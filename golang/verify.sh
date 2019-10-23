@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 go get golang.org/x/crypto/ssh
+go install golang.org/x/crypto/ssh
 go get golang.org/x/tools/cmd/goimports
+go install golang.org/x/tools/cmd/goimports
 
 #go vet ./...
  
