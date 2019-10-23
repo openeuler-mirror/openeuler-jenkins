@@ -11,5 +11,5 @@ export PATH=$PATH:$WORKSPACE/$BUILD_ID/bin
 
 #go vet ./...
  
-/bin/bash $WORKSPACE/$BUILD_ID/golang/scripts/format
+/bin/bash $WORKSPACE/$BUILD_ID/openeuler-jenkins/golang/scripts/format
 
