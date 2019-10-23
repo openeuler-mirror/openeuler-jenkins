@@ -16,7 +16,7 @@ find_files() {
     \) -name '*.go'
 }
 
-diff=$(find_files | xargs ${goimports} -d -e 2>&1)
+diff=$(find_files | xargs ${goimports} -d 2>&1)
 if [[ -n "${diff}" ]]; then
   echo "${diff}"
   exit 1
