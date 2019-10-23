@@ -3,6 +3,6 @@
 go get golang.org/x/crypto/ssh
 go get golang.org/x/tools/cmd/goimports
 
-go vet ./...
+#go vet ./...
  
-bash $WORKSPACE/golang/scripts/format
+/bin/bash $WORKSPACE/golang/scripts/format
