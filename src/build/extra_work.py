@@ -1,0 +1,178 @@
+# -*- encoding=utf-8 -*-
+import os
+import argparse
+import logging.config
+import logging
+
+import yaml
+
+
+class ExtraWork(object):
+    def __init__(self, package, rpmbuild_dir="/home/jenkins/agent/buildroot/home/abuild/rpmbuild"):
+        """
+
+        :param package: obs package
+        :param rpmbuild_dir: rpmbuild 路径
+        """
+        self._repo = package
+        self._rpm_package = BuildRPMPackage(package, rpmbuild_dir)
+
+    def is_pkgship_need_notify(self, pkgship_meta_path):
+        """
+        是否需要发起notify
+        :param pkgship_meta_path: 保存门禁中解析的pkgship spec版本元信息文件路径
+        :return:
+        """
+        if self._repo == "pkgship":     # 只有pkgship包需要通知
+            try:
+                with open(pkgship_meta_path, "r") as f:
+                    pkgship_meta = yaml.safe_load(f)
+                    logger.debug("pkgship meta: {}".format(pkgship_meta))
+                    if pkgship_meta.get("compare_version") == 1:     # version upgrade
+                        logger.debug("pkgship: notify")
+                        return True
+            except IOError:
+                # file not exist, bug
+                logger.warning("pkgship meta file not exist!")
+                return True
+
+        return False
+
+    def pkgship_notify(self, notify_url, notify_token, package_url, package_arch, notify_jenkins_user, notify_jenkins_password):
+        """
+        notify
+        :param notify_url: notify url
+        :param notify_token: notify token
+        :param package_url: package addr
+        :param package_arch: cpu arch
+        :param notify_jenkins_user: 
+        :param notify_jenkins_password: 
+        :return:
+        """
+        package = self._rpm_package.last_main_package(package_arch, package_url)
+        querystring = {"token": notify_token, "PACKAGE_URL": package, "arch": package_arch}
+        ret = do_requests("get", notify_url, querystring=querystring,
+                          auth={"user": notify_jenkins_user, "password": notify_jenkins_password}, timeout=1)
+        if ret in [0, 2]:
+            # send async, don't care about response, timeout will be ok
+            logger.info("notify ...ok")
+        else:
+            logger.error("notify ...fail")
+
+    def check_rpm_abi(self, package_url, package_arch, output, committer, comment_file, related_rpm=None):
+        """
+        对比两个版本rpm包之间的接口差异，根据差异找到受影响的rpm包
+
+        :param package_arch:
+        :param related_rpm:
+        :return:
+        """
+        cwd = os.getcwd()
+        check_abi_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../utils/check_abi.py"))
+
+        curr_rpm = self._rpm_package.main_package_local()
+        last_rpm = self._rpm_package.last_main_package(package_arch, package_url)
+        logger.debug("curr_rpm: {}".format(curr_rpm))
+        logger.debug("last_rpm: {}".format(last_rpm))
+
+        if not curr_rpm or not last_rpm:
+            logger.info("no rpms")
+            return
+
+        check_abi_cmd = "{} -o {}".format(check_abi_path, os.path.join(cwd, output))
+
+        if related_rpm:
+            # obs
+            check_abi_cmd = "{} -i {}".format(check_abi_cmd, related_rpm)
+
+        check_abi_cmd = "{} compare_rpm -r {} {}".format(check_abi_cmd, last_rpm, curr_rpm)
+
+        curr_rpm_debug = self._rpm_package.debuginfo_package_local()
+        last_rpm_debug = self._rpm_package.last_debuginfo_package(package_arch, package_url)
+        logger.debug("curr_rpm_debug: {}".format(curr_rpm_debug))
+        logger.debug("last_rpm_debug: {}".format(last_rpm_debug))
+
+        if curr_rpm_debug and last_rpm_debug:
+            # debuginfo
+            check_abi_cmd = "{} -d {} {}".format(check_abi_cmd, last_rpm_debug, curr_rpm_debug)
+
+        logger.info("check cmd: {}".format(check_abi_cmd))
+        ret, _, err = shell_cmd_live(check_abi_cmd, verbose=True)
+
+        if ret == 1:
+            logger.error("check abi error: {}".format(err))
+        else:
+            logger.debug("check abi ok: {}".format(ret))
+
+        if os.path.exists(output):
+            # change of abi
+            comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "WARNING",
+                       "link": self._rpm_package.checkabi_md_in_repo(committer, self._repo, package_arch, output, package_url)}
+        else:
+            comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
+
+        logger.debug("check abi comment: {}".format(comment))
+        try:
+            with open(comment_file, "r") as f:     # one repo with multi build package
+                comments = yaml.safe_load(f)
+        except IOError as e:
+            logger.debug("no history check abi comment")
+
+        comments = []
+        if os.path.exists(comment_file):
+            try:
+                with open(comment_file, "r") as f:     # one repo with multi build package
+                    comments = yaml.safe_load(f)
+            except:
+                logger.exception("yaml load check abi comment file exception")
+
+        comments.append(comment)
+        logger.debug("check abi comments: {}".format(comments))
+        try:
+            with open(comment_file, "w") as f:
+                yaml.safe_dump(comments, f)     # list 
+        except:
+            logger.exception("save check abi comment exception")
+
+
+if "__main__" == __name__:
+    args = argparse.ArgumentParser()
+
+    args.add_argument("-f", type=str, dest="func", choices=("notify", "checkabi"), help="function")
+
+    args.add_argument("-p", type=str, dest="package", help="obs package")
+    args.add_argument("-a", type=str, dest="arch", help="build arch")
+    args.add_argument("-c", type=str, dest="committer", help="committer")
+
+    args.add_argument("-d", type=str, dest="rpmbuild_dir", default="/home/jenkins/agent/buildroot/home/abuild/rpmbuild", help="rpmbuild dir")
+
+    args.add_argument("-n", type=str, dest="notify_url", help="target branch that merged to ")
+    args.add_argument("-t", type=str, dest="token", default=os.getcwd(), help="obs workspace dir path")
+    args.add_argument("-u", type=str, dest="notify_user", default="trigger", help="notify trigger user")
+    args.add_argument("-w", type=str, dest="notify_password", help="notify trigger password")
+    args.add_argument("-l", type=str, dest="rpm_repo_url", help="rpm repo where rpm saved")
+    args.add_argument("-m", type=str, dest="pkgship_meta", help="meta from pkgship spec")
+
+    args.add_argument("-o", type=str, dest="output", help="checkabi result")
+    args.add_argument("-e", type=str, dest="comment_file", help="checkabi result comment")
+    args.add_argument("-b", type=str, dest="obs_repo_url", help="obs repo where rpm saved")
+
+    args = args.parse_args()
+
+    not os.path.exists("log") and os.mkdir("log")
+    logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
+    logging.config.fileConfig(logger_conf_path)
+    logger = logging.getLogger("build")
+
+    from src.utils.shell_cmd import shell_cmd_live
+    from src.proxy.requests_proxy import do_requests
+    from src.build.build_rpm_package import BuildRPMPackage
+
+    ew = ExtraWork(args.package, args.rpmbuild_dir)
+    if args.func == "notify":
+        # run after copy rpm to rpm repo
+        if ew.is_pkgship_need_notify(args.pkgship_meta):
+            ew.pkgship_notify(args.notify_url, args.token, args.rpm_repo_url, args.arch, args.notify_user, args.notify_password)
+    elif args.func == "checkabi":
+        # run before copy rpm to rpm repo
+        ew.check_rpm_abi(args.rpm_repo_url, args.arch, args.output, args.committer, args.comment_file, args.obs_repo_url)
