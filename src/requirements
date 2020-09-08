@@ -1,0 +1,7 @@
+requests
+jenkinsapi
+colorlog
+threadpool
+PyYAML
+gevent==1.2.2
+jsonpath

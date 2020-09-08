@@ -1,0 +1,17 @@
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/jenkins/obs:base
+ARG user=jenkins
+
+# 容器启动时会重置/home/jenkins/agent目录，顾将ci_check放到/home/jenkins目录下
+# replace GiteeCloneUserName and GiteeClonePassword and tag before docker build
+RUN cd /home/${user} \
+    && git clone https://${GiteeCloneUserName}:${GiteeClonePassword}@gitee.com/src-openeuler/ci_check.git \
+    && cd ci_check \
+    && git checkout ${tag}
+    
+ENTRYPOINT ["jenkins-agent"]
+
+# swr.cn-north-4.myhuaweicloud.com/openeuler/jenkins/obs:{tag}
+# image dependency
+# opensdk:11-jdk-stretch --> inbound:latest
+#                        |
+#         	          --> obs:base       -->       obs:{tag}

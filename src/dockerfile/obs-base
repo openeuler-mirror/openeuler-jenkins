@@ -1,0 +1,52 @@
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk:11-jdk-stretch
+
+ARG VERSION=4.3
+ARG user=jenkins
+ARG group=jenkins
+ARG uid=1000
+ARG gid=1000
+ARG AGENT_WORKDIR=/home/${user}/agent
+
+
+RUN echo 'deb http://deb.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list
+RUN apt-get update \ 
+    && apt-get install -y python3 python3-pip python python-pip \
+    && apt-get install -y curl vim git git-lfs\
+    && apt-get install -y sudo cpio bsdtar \
+    && apt-get install -y sudo libxml-tokeparser-perl libxml-simpleobject-perl \
+    && apt-get install -y sudo libxml-parser-easytree-perl libxml-sax-expat-perl \
+    && apt-get install -y osc \
+    && apt-get install -y golint splint pylint pylint3 \
+    && apt-get install -y abigail-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && cpan install XML::Structured
+
+
+RUN curl --create-dirs -fsSLo /usr/share/jenkins/agent.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
+    && chmod 755 /usr/share/jenkins \
+    && chmod 644 /usr/share/jenkins/agent.jar \
+    && ln -sf /usr/share/jenkins/agent.jar /usr/share/jenkins/slave.jar
+
+COPY jenkins-agent /usr/local/bin/jenkins-agent
+RUN chmod a+rx /usr/local/bin/jenkins-agent \
+     && ln -s /usr/local/bin/jenkins-agent /usr/local/bin/jenkins-slave
+
+RUN groupadd -g ${gid} ${group}
+RUN useradd -c "Jenkins user" -d /home/${user} -u ${uid} -g ${gid} -m ${user}
+RUN echo "${user} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
+USER ${user}
+ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir /home/${user}/.jenkins && mkdir -p ${AGENT_WORKDIR}
+
+RUN python -m pip install --upgrade pip
+
+VOLUME /home/${user}/.jenkins
+VOLUME ${AGENT_WORKDIR}
+WORKDIR ${AGENT_WORKDIR}
+
+
+ENTRYPOINT ["jenkins-agent"]
+
+# swr.cn-north-4.myhuaweicloud.com/openeuler/jenkins/obs:base

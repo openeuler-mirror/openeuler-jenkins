@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# A simple script to checkout or update a svn or git repo as source service
+
+# defaults
+MYARCHIVE=""
+MYFILES=""
+OUTFILE="."
+FILES=""
+
+while test $# -gt 0; do
+  case $1 in
+    *-archive)
+      MYARCHIVE="${2##*/}"
+      shift
+    ;;
+    *-file|*-files)
+      MYFILES="$MYFILES ${2}"
+      FILES=${2}
+      shift
+    ;;
+    *-outfilename)
+      OUTFILE="${2}"
+      shift
+    ;;
+    *-outdir)
+      MYOUTDIR="$2"
+      shift
+    ;;
+    *)
+      echo Unknown parameter $1.
+      echo 'Usage: extract_file --archive $ARCHIVE --file $FILE --outdir $OUT'
+      exit 1
+    ;;
+  esac
+  shift
+done
+
+if [ -z "$MYARCHIVE" ]; then
+  echo "ERROR: no archive specified!"
+  exit 1
+fi
+if [ -z "$MYFILES" ]; then
+  echo "ERROR: no checkout URL is given via --file parameter!"
+  exit 1
+fi
+if [ -z "$MYOUTDIR" ]; then
+  echo "ERROR: no output directory is given via --outdir parameter!"
+  exit 1
+fi
+set -x
+
+if [ "${FILES}" == '*' ];then
+        MYFILES=" "
+fi
+
+existing_archive="$MYOUTDIR/$(echo $MYARCHIVE)"
+cd "$MYOUTDIR"
+
+existing_archive=`ls $existing_archive`
+if [ -e "$existing_archive" ]; then
+  if [ "${existing_archive%.tar.gz}" != "$existing_archive" ]; then
+    tar xfz "$existing_archive" --wildcards $MYFILES || exit 1
+  elif [ "${existing_archive%.tar.bz2}" != "$existing_archive" ]; then
+    tar xfj "$existing_archive" --wildcards $MYFILES || exit 1
+  elif [ "${existing_archive%.tar.xz}" != "$existing_archive" ]; then
+    tar xfJ "$existing_archive" --wildcards $MYFILES || exit 1
+  elif [ "${existing_archive%.tar}" != "$existing_archive" ]; then
+    tar xf "$existing_archive" --wildcards $MYFILES || exit 1
+  elif [ "${existing_archive%.zip}" != "$existing_archive" ]; then
+    unzip "$existing_archive" $MYFILES || exit 1
+  else
+    echo "ERROR: unknown archive format $existing_archive"
+    exit 1
+  fi
+  for i in $MYFILES; do 
+    mv "$i" "$OUTFILE"
+  done
+else
+  echo "ERROR: archive not found: $existing_archive"
+  exit 1
+fi
+
+exit 0
