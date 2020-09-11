@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import xml.etree.ElementTree as ET
-from collections import defaultdict
+import collections
 
 logger = logging.getLogger("jobs")
 
@@ -18,8 +18,8 @@ class ObsMetaStrategy(object):
         :param obs_meta_path: obs_meta路径
         """
         self._obs_meta_path = obs_meta_path
-        self._package_repo = defaultdict(set)
-        self._repo_package = defaultdict(set)
+        self._package_repo = collections.defaultdict(set)
+        self._repo_package = collections.defaultdict(set)
 
     def get_packages_of_repo(self, repo):
         """

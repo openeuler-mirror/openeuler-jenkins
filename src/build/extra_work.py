@@ -8,6 +8,10 @@ import yaml
 
 
 class ExtraWork(object):
+    """
+    pkgship
+    check_abi
+    """
     def __init__(self, package, rpmbuild_dir="/home/jenkins/agent/buildroot/home/abuild/rpmbuild"):
         """
 
@@ -38,7 +42,8 @@ class ExtraWork(object):
 
         return False
 
-    def pkgship_notify(self, notify_url, notify_token, package_url, package_arch, notify_jenkins_user, notify_jenkins_password):
+    def pkgship_notify(
+            self, notify_url, notify_token, package_url, package_arch, notify_jenkins_user, notify_jenkins_password):
         """
         notify
         :param notify_url: notify url
@@ -107,7 +112,8 @@ class ExtraWork(object):
         if os.path.exists(output):
             # change of abi
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "WARNING",
-                       "link": self._rpm_package.checkabi_md_in_repo(committer, self._repo, package_arch, output, package_url)}
+                       "link": self._rpm_package.checkabi_md_in_repo(
+                           committer, self._repo, package_arch, output, package_url)}
         else:
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
 
@@ -144,7 +150,8 @@ if "__main__" == __name__:
     args.add_argument("-a", type=str, dest="arch", help="build arch")
     args.add_argument("-c", type=str, dest="committer", help="committer")
 
-    args.add_argument("-d", type=str, dest="rpmbuild_dir", default="/home/jenkins/agent/buildroot/home/abuild/rpmbuild", help="rpmbuild dir")
+    args.add_argument("-d", type=str, dest="rpmbuild_dir", 
+            default="/home/jenkins/agent/buildroot/home/abuild/rpmbuild", help="rpmbuild dir")
 
     args.add_argument("-n", type=str, dest="notify_url", help="target branch that merged to ")
     args.add_argument("-t", type=str, dest="token", default=os.getcwd(), help="obs workspace dir path")
@@ -172,7 +179,8 @@ if "__main__" == __name__:
     if args.func == "notify":
         # run after copy rpm to rpm repo
         if ew.is_pkgship_need_notify(args.pkgship_meta):
-            ew.pkgship_notify(args.notify_url, args.token, args.rpm_repo_url, args.arch, args.notify_user, args.notify_password)
+            ew.pkgship_notify(
+                    args.notify_url, args.token, args.rpm_repo_url, args.arch, args.notify_user, args.notify_password)
     elif args.func == "checkabi":
         # run before copy rpm to rpm repo
         ew.check_rpm_abi(args.rpm_repo_url, args.arch, args.output, args.committer, args.comment_file, args.obs_repo_url)

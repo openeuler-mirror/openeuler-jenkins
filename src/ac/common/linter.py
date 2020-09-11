@@ -8,6 +8,9 @@ logger = logging.getLogger("ac")
 
 
 class LinterCheck(object):
+    """
+    run linter check code
+    """
     PYLINTRESULTPREFIX = ["C", "R", "W", "E", "F"]
 
     @classmethod

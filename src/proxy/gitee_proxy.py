@@ -44,7 +44,8 @@ class GiteeProxy(object):
             return True
 
         logger.debug("create tags {} of pull request {}".format(tags, pr))
-        pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(self._owner, self._repo, pr, self._token)
+        pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
+                self._owner, self._repo, pr, self._token)
 
         rs = do_requests("post", pr_tag_url, body=list(tags), timeout=10)
 
@@ -66,7 +67,8 @@ class GiteeProxy(object):
             return True
 
         logger.debug("replace all tags with {} of pull request {}".format(tag, pr))
-        pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(self._owner, self._repo, pr, self._token)
+        pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
+                self._owner, self._repo, pr, self._token)
 
         rs = do_requests("put", pr_tag_url, body=list(tags), timeout=10)
         if rs != 0:
@@ -83,7 +85,8 @@ class GiteeProxy(object):
         :return: 0成功，其它失败
         """
         logger.debug("delete tag {} of pull request {}".format(tag, pr))
-        pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels/{}?access_token={}".format(self._owner, self._repo, pr, tag, self._token)
+        pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels/{}?access_token={}".format(
+                self._owner, self._repo, pr, tag, self._token)
 
         rs = do_requests("delete", pr_tag_url, timeout=10)
 

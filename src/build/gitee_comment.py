@@ -91,7 +91,8 @@ class Comment(object):
                 if index == 0:
                     build_url = build.get_build_url()
                     comments.append(self.__class__._comment_html_table_tr(
-                        item["name"], ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
+                        item["name"], ac_result.emoji, ac_result.hint, 
+                        "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
                 else:
                     comments.append(self.__class__._comment_html_table_tr_rowspan(
                         item["name"], ac_result.emoji, ac_result.hint))
@@ -205,7 +206,7 @@ if "__main__" == __name__:
     if not args.enable:
         sys.exit(0)
 
-    not os.path.exists("log") and os.mkdir("log")
+    _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")

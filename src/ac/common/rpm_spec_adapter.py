@@ -8,6 +8,9 @@ logger = logging.getLogger("ac")
 
 
 class RPMSpecAdapter(object):
+    """
+    rpm spec file object
+    """
     def __init__(self, fp):
         if isinstance(fp, str):
             with open(fp, "r") as fp:
@@ -29,6 +32,10 @@ class RPMSpecAdapter(object):
         return replace_macros(value, self._adapter) if value else ""
 
     def include_x86_arch(self):
+        """
+        check include x86-64
+        :return
+        """
         try:
             value = self.buildarch
             logger.debug("build arch: {}".format(value))
@@ -40,6 +47,10 @@ class RPMSpecAdapter(object):
             return True
 
     def include_aarch64_arch(self):
+        """
+        check include aarch64
+        :return
+        """
         try:
             value = self.buildarch
             logger.debug("build arch: {}".format(value))
