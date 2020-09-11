@@ -1,14 +1,14 @@
-ignore:
-- ci_check
-- build
-- obs_bin
-- ci-bot
-- website
-- community
-- docs
-- infrastructure
-- obs_meta
-- euleros-latest-release
-- image-slim
-- risc-v-kernel
-- opensbi
+src-openeuler:
+  - ci_check
+  - build
+  - obs_bin
+  - ci-bot
+  - website
+  - community
+  - docs
+  - infrastructure
+  - obs_meta
+  - euleros-latest-release
+  - image-slim
+  - risc-v-kernel
+  - opensbi
