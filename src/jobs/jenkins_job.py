@@ -3,7 +3,7 @@ import gevent
 from gevent import monkey
 monkey.patch_all()
 
-from abc import ABCMeta, abstractmethod
+import abc
 import os
 import stat
 import logging.config
@@ -16,7 +16,7 @@ import argparse
 
 
 class JenkinsJobs(object):
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, template_job, jenkins_proxy):
         """
@@ -86,7 +86,7 @@ class JenkinsJobs(object):
 
         return {"job": job, "result": result}
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_real_target_jobs(self, jobs):
         """
         实际要操作的任务
@@ -95,7 +95,7 @@ class JenkinsJobs(object):
         """
         return jobs
 
-    @abstractmethod
+    @abc.abstractmethod
     def update_config(self, job):
         raise NotImplementedError
 
@@ -269,7 +269,7 @@ if "__main__" == __name__:
     args.add_argument("-f", type=str, dest="community", default="src-openeuler", help="src-openeuler or openeuler")
 
     args.add_argument("-a", type=str, dest="action", help="create or update")
-    args.add_argument("-c", type=int, dest="concurrency", default=75, help="jobs that send to jenkins server concurrency")
+    args.add_argument("-c", type=int, dest="concurrency", default=75, help="jobs send to jenkins server concurrency")
     args.add_argument("-r", type=int, dest="retry", default=3, help="retry times")
     args.add_argument("-i", type=int, dest="interval", default=0, help="retry interval")
 
@@ -298,8 +298,10 @@ if "__main__" == __name__:
     jp_t = JenkinsProxy(args.target_job_base_url, args.jenkins_user, args.jenkins_api_token, args.jenkins_timeout)
 
     if args.community == "src-openeuler":
-        jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_job, jp_m, args.mapping_info_file, args.exclusive_arch_file)
+        jenkins_jobs = SrcOpenEulerJenkinsJobs(
+                args.template_job, jp_m, args.mapping_info_file, args.exclusive_arch_file)
     else:
         jenkins_jobs = OpenEulerJenkinsJobs(args.template_job, jp_m, args.mapping_info_file, args.exclusive_arch_file)
 
-    jenkins_jobs.run(args.action, args.target_jobs, jp_t, concurrency=args.concurrency, retry=args.retry, interval=args.interval)
+    jenkins_jobs.run(
+            args.action, args.target_jobs, jp_t, concurrency=args.concurrency, retry=args.retry, interval=args.interval)
