@@ -136,7 +136,7 @@ if "__main__" == __name__:
     args = args.parse_args()
 
     # init logging
-    not os.path.exists("log") and os.mkdir("log")
+    _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("ac")

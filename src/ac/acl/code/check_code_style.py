@@ -131,7 +131,7 @@ class CheckCodeStyle(BaseCheck):
         """
         logger.info("check {} repo ...".format(self._repo))
 
-        not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
+        _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
         try:
             return self.start_check_with_order("compressed_file", "patch", "code_style")
         finally:
