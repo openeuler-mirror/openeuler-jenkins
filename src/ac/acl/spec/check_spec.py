@@ -15,6 +15,9 @@ logger = logging.getLogger("ac")
 
 
 class CheckSpec(BaseCheck):
+    """
+    check spec file
+    """
     def __init__(self, workspace, repo, conf=None):
         super(CheckSpec, self).__init__(workspace, repo, conf)
 

@@ -14,6 +14,9 @@ logger = logging.getLogger("ac")
 
 
 class CheckCodeStyle(BaseCheck):
+    """
+    check code style
+    """
     def __init__(self, workspace, repo, conf):
         super(CheckCodeStyle, self).__init__(workspace, repo, conf)
 
@@ -88,7 +91,8 @@ class CheckCodeStyle(BaseCheck):
         检查仓库的patch内的代码
         :return:
         """
-        rs = [self.__class__.check_code_file(os.path.join(self._work_tar_dir, filename)) for filename in set(diff_patch_code_files)]
+        rs = [self.__class__.check_code_file(os.path.join(self._work_tar_dir, filename)) 
+                for filename in set(diff_patch_code_files)]
 
         return sum(rs, SUCCESS) if rs else SUCCESS
 

@@ -1,5 +1,5 @@
 # -*- encoding=utf-8 -*-
-from abc import ABCMeta, abstractmethod
+import abc
 import inspect
 import logging
 import os
@@ -11,7 +11,7 @@ logger = logging.getLogger("ac")
 
 class BaseCheck(object):
 
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, workspace, repo, conf=None):
         """
@@ -26,7 +26,7 @@ class BaseCheck(object):
 
         self._work_dir = os.path.join(workspace, repo)
 
-    @abstractmethod
+    @abc.abstractmethod
     def __call__(self, *args, **kwargs):
         raise NotImplementedError("subclasses must override __call__!")
 

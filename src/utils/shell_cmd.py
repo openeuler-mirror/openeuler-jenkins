@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 # -*- encoding=utf-8 -*-
 import logging
-from subprocess import Popen, PIPE
+import subprocess
 
 
 logger = logging.getLogger("common")
@@ -10,7 +9,7 @@ no_fmt_logger = logging.getLogger("no_fmt")
 
 def shell_cmd(cmd, inmsg=None):
     logger.debug("exec cmd -- [{}]".format(cmd))
-    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if inmsg:
         p.stdin.write(inmsg)
     out, err = p.communicate()
@@ -31,7 +30,7 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
     """
     logger.debug("exec cmd -- {}".format(cmd))
 
-    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if cap_in:
         p.stdin.write(cap_in)
 

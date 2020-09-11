@@ -91,7 +91,8 @@ class Comment(object):
                 if index == 0:
                     build_url = build.get_build_url()
                     comments.append(self.__class__._comment_html_table_tr(
-                        item["name"], ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
+                        item["name"], ac_result.emoji, ac_result.hint, 
+                        "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
                 else:
                     comments.append(self.__class__._comment_html_table_tr_rowspan(
                         item["name"], ac_result.emoji, ac_result.hint))

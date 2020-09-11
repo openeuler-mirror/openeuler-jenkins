@@ -9,6 +9,9 @@ logger = logging.getLogger("ac")
 
 
 class GiteeRepo(object):
+    """
+    analysis src-openeuler repo
+    """
     def __init__(self, work_dir, decompress_dir):
         self._work_dir = work_dir
         self._decompress_dir = decompress_dir
@@ -84,7 +87,8 @@ class GiteeRepo(object):
         :param max_leading: leading path
         """
         logger.debug("apply patch {}".format(patch))
-        for patch_dir in [filename for filename in os.listdir(self._decompress_dir) if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
+        for patch_dir in [filename for filename in os.listdir(self._decompress_dir) 
+                if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
             if patch_dir.startswith(".git"):
                 continue
             for leading in xrange(max_leading + 1):

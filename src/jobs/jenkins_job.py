@@ -86,7 +86,8 @@ class JenkinsJobs(object):
         :return: dict
         """
         job_config = self.update_config(job)
-        result = jenkins_proxy.create_job(job, job_config) if action == "create" else jenkins_proxy.update_job(job, job_config)
+        result = jenkins_proxy.create_job(job, job_config) if action == "create" 
+                   else jenkins_proxy.update_job(job, job_config)
 
         return {"job": job, "result": result}
 
@@ -127,7 +128,7 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                 with open(os.path.join(exclusive_arch_path, filename), "r") as f:
                     arches = f.readline()
                     self._exclusive_arch[filename] = [arch.strip() for arch in arches.split(",")]
-        logger.debug("exclusive arch: {}".format(self._exclusive_arch ))
+        logger.debug("exclusive arch: {}".format(self._exclusive_arch))
 
     def get_real_target_jobs(self, jobs):
         """

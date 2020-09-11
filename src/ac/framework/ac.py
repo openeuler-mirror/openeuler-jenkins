@@ -6,10 +6,13 @@ import logging.config
 import logging
 import json
 import argparse
-from importlib import import_module
+import importlib
 
 
 class AC(object):
+    """
+    ac entrypoint
+    """
     def __init__(self, conf):
         self._ac_check_elements = {}       # 门禁项
         self._ac_check_result = []         # 门禁结果结果
@@ -35,7 +38,7 @@ class AC(object):
             # import module
             module_path = check_element.get("module", "{}.check_{}".format(element, element))   # eg: spec.check_spec
             try:
-                module = import_module("." + module_path, self._acl_package)
+                module = importlib.import_module("." + module_path, self._acl_package)
                 logger.debug("load module {} succeed".format(module_path))
             except ImportError as exc:
                 logger.exception("import module {} exception, {}".format(module_path, exc))
