@@ -65,7 +65,7 @@ class ObsMetaStrategy(object):
                         logger.debug("analysis {}".format(_service))
                         tree = ET.parse(_service)
                         elements = tree.findall(".//param[@name=\"url\"]")  # <param name=url>next/openEuler/zip</parm>
-                    except Exception:
+                    except:
                         logger.exception("invalid xml format, {}".format(_service))
                         continue
 

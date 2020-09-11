@@ -12,6 +12,7 @@ class SinglePackageBuild(object):
     GITEEBRANCHPROJECTMAPPING = {
         "master": ["bringInRely", "openEuler:Extras", "openEuler:Factory", "openEuler:Mainline"],
         "openEuler-20.03-LTS": ["openEuler:20.03:LTS"],
+        "openEuler-20.03-LTS-Next": ["openEuler:20.03:LTS:Next"],
         "openEuler-EPOL-LTS": ["bringInRely"],
         "openEuler-20.09": ["openEuler:20.09"],
         "mkopeneuler-20.03": ["openEuler:Extras"]
@@ -109,7 +110,8 @@ class SinglePackageBuild(object):
                 elif param.get("name") == "tar_scm":
                     param.text = "tar_local"
                 elif param.get("name") == "url":
-                    if "openEuler_kernel" in param.text or "LTS_kernel" in param.text or "openEuler-20.09_kernel" in param.text:
+                    if "openEuler_kernel" in param.text or "LTS_kernel" in param.text \
+                            or "openEuler-20.09_kernel" in param.text:
                         param.text = "{}/{}".format(code_path, "code")  # kernel special logical
                     else:
                         gitee_repo = param.text.split("/")[-1]
