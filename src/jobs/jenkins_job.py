@@ -16,6 +16,10 @@ import argparse
 
 
 class JenkinsJobs(object):
+    """
+    handle jenkins job with batch
+    """
+
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, template_job, jenkins_proxy):
@@ -97,6 +101,11 @@ class JenkinsJobs(object):
 
     @abc.abstractmethod
     def update_config(self, job):
+        """
+        implement in subclass
+        :param job:
+        :return:
+        """
         raise NotImplementedError
 
 
