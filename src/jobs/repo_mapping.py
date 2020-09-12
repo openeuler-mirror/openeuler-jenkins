@@ -150,7 +150,7 @@ if "__main__" == __name__:
     from src.jobs.obs_meta_strategy import ObsMetaStrategy
 
     ignore_repo_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/ignore_repo.yaml"))
-    input_repos = [repo.strip() for repo in args.jobs.split(",")]
+    input_repos = [input_repo.strip() for input_repo in args.jobs.split(",")]
 
     if args.community == "src-openeuler":
         rm = SOERepoMapping(ignore_repo_path, args.community_path, *input_repos)

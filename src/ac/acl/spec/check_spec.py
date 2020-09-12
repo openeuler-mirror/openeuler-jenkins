@@ -22,7 +22,7 @@ class CheckSpec(BaseCheck):
         super(CheckSpec, self).__init__(workspace, repo, conf)
 
         self._gp = GitProxy(self._work_dir)
-        self._gr = GiteeRepo(self._work_dir, None)  # don't care about decompress
+        self._gr = GiteeRepo(self._repo, self._work_dir, None)  # don't care about decompress
         fp = self._gp.get_content_of_file_with_commit(self._gr.spec_file)
         self._spec = RPMSpecAdapter(fp)
         self._latest_commit = self._gp.commit_id_of_reverse_head_index(0)
@@ -34,7 +34,7 @@ class CheckSpec(BaseCheck):
         """
         self._gp.checkout_to_commit("HEAD~1")
         try:
-            gr = GiteeRepo(self._work_dir, None)    # don't care about decompress
+            gr = GiteeRepo(self._repo, self._work_dir, None)    # don't care about decompress
             fp = self._gp.get_content_of_file_with_commit(gr.spec_file)
             if fp is None:
                 # last commit has no spec file 

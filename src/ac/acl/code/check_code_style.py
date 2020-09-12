@@ -22,7 +22,7 @@ class CheckCodeStyle(BaseCheck):
 
         self._work_tar_dir = os.path.join(workspace, "code")    # 解压缩目标目录
 
-        self._gr = GiteeRepo(self._work_dir, self._work_tar_dir)
+        self._gr = GiteeRepo(self._repo, self._work_dir, self._work_tar_dir)
 
     def check_compressed_file(self):
         """

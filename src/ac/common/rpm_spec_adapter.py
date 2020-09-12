@@ -14,7 +14,7 @@ class RPMSpecAdapter(object):
     def __init__(self, fp):
         if isinstance(fp, str):
             with open(fp, "r") as fp:
-               self._adapter = Spec.from_string(fp.read())
+                self._adapter = Spec.from_string(fp.read())
         else:
             self._adapter = Spec.from_string(fp.read())
             fp.close()
