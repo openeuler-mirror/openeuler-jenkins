@@ -3,7 +3,6 @@ import os
 import argparse
 import logging.config
 import logging
-
 import yaml
 
 
@@ -64,56 +63,52 @@ class ExtraWork(object):
         else:
             logger.error("notify ...fail")
 
-    def check_rpm_abi(self, package_url, package_arch, output, committer, comment_file, related_rpm=None):
+    def check_rpm_abi(self, package_url, package_arch, output, committer, comment_file, obs_addr, 
+                        branch_name="master", obs_repo_url=None):
         """
         对比两个版本rpm包之间的接口差异，根据差异找到受影响的rpm包
-
         :param package_arch:
-        :param related_rpm:
+        :param obs_repo_url:
         :return:
         """
-        cwd = os.getcwd()
-        check_abi_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../utils/check_abi.py"))
-
+        #get rpms
         curr_rpm = self._rpm_package.main_package_local()
         last_rpm = self._rpm_package.last_main_package(package_arch, package_url)
         logger.debug("curr_rpm: {}".format(curr_rpm))
         logger.debug("last_rpm: {}".format(last_rpm))
-
         if not curr_rpm or not last_rpm:
             logger.info("no rpms")
             return
+        rpms = [last_rpm, curr_rpm]
 
-        check_abi_cmd = "{} -o {}".format(check_abi_path, os.path.join(cwd, output))
-
-        if related_rpm:
-            # obs
-            check_abi_cmd = "{} -i {}".format(check_abi_cmd, related_rpm)
-
-        check_abi_cmd = "{} compare_rpm -r {} {}".format(check_abi_cmd, last_rpm, curr_rpm)
-
+        #get debuginfos
+        debuginfos = None
         curr_rpm_debug = self._rpm_package.debuginfo_package_local()
         last_rpm_debug = self._rpm_package.last_debuginfo_package(package_arch, package_url)
         logger.debug("curr_rpm_debug: {}".format(curr_rpm_debug))
         logger.debug("last_rpm_debug: {}".format(last_rpm_debug))
-
         if curr_rpm_debug and last_rpm_debug:
-            # debuginfo
-            check_abi_cmd = "{} -d {} {}".format(check_abi_cmd, last_rpm_debug, curr_rpm_debug)
+            debuginfos = [last_rpm_debug, curr_rpm_debug]
 
-        logger.info("check cmd: {}".format(check_abi_cmd))
-        ret, _, err = shell_cmd_live(check_abi_cmd, verbose=True)
+        #get related rpms url
+        related_rpms_url = None
+        if obs_repo_url:
+            rp = RelatedRpms(obs_addr, obs_repo_url, branch_name, package_arch)
+            related_rpms_url = rp.get_related_rpms_url(curr_rpm)
 
+        #check abi
+        check_abi = CheckAbi(result_output_file=output, input_rpms_path=related_rpms_url)
+        ret = check_abi.process_with_rpm(rpms, debuginfos)
         if ret == 1:
-            logger.error("check abi error: {}".format(err))
+            logger.error("check abi error: {}".format(ret))
         else:
             logger.debug("check abi ok: {}".format(ret))
-
+        
         if os.path.exists(output):
             # change of abi
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "WARNING",
-                       "link": self._rpm_package.checkabi_md_in_repo(
-                           committer, self._repo, package_arch, output, package_url)}
+                       "link": self._rpm_package.checkabi_md_in_repo(committer, self._repo, package_arch, 
+                                output, package_url)}
         else:
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
 
@@ -129,7 +124,7 @@ class ExtraWork(object):
             try:
                 with open(comment_file, "r") as f:     # one repo with multi build package
                     comments = yaml.safe_load(f)
-            except:
+            except IOError:
                 logger.exception("yaml load check abi comment file exception")
 
         comments.append(comment)
@@ -137,9 +132,8 @@ class ExtraWork(object):
         try:
             with open(comment_file, "w") as f:
                 yaml.safe_dump(comments, f)     # list 
-        except:
+        except IOError:
             logger.exception("save check abi comment exception")
-
 
 if "__main__" == __name__:
     args = argparse.ArgumentParser()
@@ -163,17 +157,19 @@ if "__main__" == __name__:
     args.add_argument("-o", type=str, dest="output", help="checkabi result")
     args.add_argument("-e", type=str, dest="comment_file", help="checkabi result comment")
     args.add_argument("-b", type=str, dest="obs_repo_url", help="obs repo where rpm saved")
-
+    args.add_argument("-s", type=str, dest="obs_addr", help="obs address")
+    args.add_argument("-r", type=str, dest="branch_name", help="obs project name")
     args = args.parse_args()
-
-    not os.path.exists("log") and os.mkdir("log")
+    
+    _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
-
     from src.utils.shell_cmd import shell_cmd_live
     from src.proxy.requests_proxy import do_requests
     from src.build.build_rpm_package import BuildRPMPackage
+    from src.build.related_rpm_package import RelatedRpms
+    from src.utils.check_abi import CheckAbi
 
     ew = ExtraWork(args.package, args.rpmbuild_dir)
     if args.func == "notify":
@@ -183,4 +179,5 @@ if "__main__" == __name__:
                     args.notify_url, args.token, args.rpm_repo_url, args.arch, args.notify_user, args.notify_password)
     elif args.func == "checkabi":
         # run before copy rpm to rpm repo
-        ew.check_rpm_abi(args.rpm_repo_url, args.arch, args.output, args.committer, args.comment_file, args.obs_repo_url)
+        ew.check_rpm_abi(args.rpm_repo_url, args.arch, args.output, args.committer, args.comment_file, 
+                        args.obs_addr, args.branch_name, args.obs_repo_url)

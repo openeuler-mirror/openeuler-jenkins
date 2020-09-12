@@ -86,8 +86,8 @@ class JenkinsJobs(object):
         :return: dict
         """
         job_config = self.update_config(job)
-        result = jenkins_proxy.create_job(job, job_config) if action == "create" 
-                   else jenkins_proxy.update_job(job, job_config)
+        result = jenkins_proxy.create_job(job, job_config) if action == "create"\
+                else jenkins_proxy.update_job(job, job_config)
 
         return {"job": job, "result": result}
 
