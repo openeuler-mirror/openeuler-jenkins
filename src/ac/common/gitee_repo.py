@@ -48,7 +48,7 @@ class GiteeRepo(object):
             maybe multi spec file of repo
             :return:
             """
-            if spec_files:      # closure
+            if not spec_files:      # closure
                 logger.warning("no spec file")
                 return None
 
