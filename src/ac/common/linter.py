@@ -38,6 +38,7 @@ class LinterCheck(object):
         """
         parser message for summary
         """
+        logger.debug(message)
         summary = {}
         # summary["W"] = summary["W"] + message.count("Use -preproc to inhibit warning")
         # summary["W"] = summary["W"] + message.count("Use -nestcomment to inhibit warning")

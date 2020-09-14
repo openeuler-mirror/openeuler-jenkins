@@ -12,7 +12,8 @@ class GiteeRepo(object):
     """
     analysis src-openeuler repo
     """
-    def __init__(self, work_dir, decompress_dir):
+    def __init__(self, repo, work_dir, decompress_dir):
+        self._repo = repo
         self._work_dir = work_dir
         self._decompress_dir = decompress_dir
 
@@ -28,6 +29,7 @@ class GiteeRepo(object):
         """
         compress file, patch file, diff file, spec file
         """
+        spec_files = []
         for dirpath, dirnames, filenames in os.walk(self._work_dir):
             for filename in filenames:
                 rel_file_path = os.path.join(dirpath, filename).replace(self._work_dir, "").lstrip("/")
@@ -39,7 +41,31 @@ class GiteeRepo(object):
                     self._patch_files.append(rel_file_path)
                 elif self.is_spec_file(filename):
                     logger.debug("find spec file: {}".format(rel_file_path))
-                    self.spec_file = filename
+                    spec_files.append(filename)
+
+        def guess_real_spec_file():
+            """
+            maybe multi spec file of repo
+            :return:
+            """
+            if spec_files:      # closure
+                logger.warning("no spec file")
+                return None
+
+            if len(spec_files) == 1:
+                return spec_files[0]
+
+            # file prefix
+            for spec_file in spec_files:
+                prefix = spec_file.split(".")[0]
+                if prefix == self._repo:
+                    return spec_file
+
+            # will not happen
+            logger.warning("no spec file")
+            return None
+
+        self.spec_file = guess_real_spec_file()
 
     def patch_files_not_recursive(self):
         """
@@ -95,7 +121,7 @@ class GiteeRepo(object):
                 logger.debug("try dir {} -p{}".format(patch_dir, leading))
                 if GitProxy.apply_patch_at_dir(os.path.join(self._decompress_dir, patch_dir), 
                         os.path.join(self._work_dir, patch), leading):
-                    logger.debug("patch success".format(leading))
+                    logger.debug("patch success")
                     self.patch_dir_mapping[patch] = patch_dir
                     return True
 
