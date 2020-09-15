@@ -27,11 +27,30 @@ class CheckSpec(BaseCheck):
         self._spec = RPMSpecAdapter(fp)
         self._latest_commit = self._gp.commit_id_of_reverse_head_index(0)
 
+    def _only_change_package_yaml(self):
+        """
+        如果本次提交只变更yaml，则无需检查version
+        :return: boolean
+        """
+        diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        package_yaml = "{}.yaml".format(self._repo)     # package yaml file name
+
+        if len(diff_files) == 1 and diff_files[0] == package_yaml:
+            logger.debug("diff files: {}".format(diff_files))
+            return True
+
+        return False
+
     def check_version(self):
         """
         检查当前版本号是否比上一个commit新
         :return:
         """
+        # need check version？
+        if self._only_change_package_yaml():
+            logger.debug("only change package yaml")
+            return SUCCESS
+
         self._gp.checkout_to_commit("HEAD~1")
         try:
             gr = GiteeRepo(self._repo, self._work_dir, None)    # don't care about decompress
