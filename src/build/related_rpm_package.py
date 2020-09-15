@@ -70,7 +70,7 @@ class RelatedRpms(object):
         for name in  self._arch_names:
             download_req_addr = os.path.join(self._obs_repo_url, download_project_name, name)
             logging.info("downloading index of %s", download_req_addr)
-            subprocess.run("wget {} -O {} > /dev/null 2>&1".format(download_req_addr, self._arch_names[name]),
+            subprocess.run("wget -t 5 -c {} -O {} > /dev/null 2>&1".format(download_req_addr, self._arch_names[name]),
                             shell=True)
             if not has_found:
                 with open(self._arch_names[name], "r") as fd:
@@ -152,7 +152,7 @@ class RelatedRpms(object):
         if os.path.exists(rpm_url):
             rpm_path = rpm_url
         else:
-            subprocess.run("wget -P {} {}".format(temp_path, rpm_url), shell=True)
+            subprocess.run("wget -t 5 -c -P {} {}".format(temp_path, rpm_url), shell=True)
             rpm_path = os.path.join(temp_path, os.path.basename(rpm_url))
         
         for project in self.GITEEBRANCHPROJECTMAPPING.get(self._branch_name):
