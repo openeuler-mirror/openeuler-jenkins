@@ -138,7 +138,7 @@ class Comment(object):
         def match(name, comment_file):
             if "aarch64" in name and "aarch64" in comment_file:
                 return True
-            if "x86-64" in name and "x86-64" in comment_file:
+            if "x86-64" in name and "x86_64" in comment_file:
                 return True
             return False
 

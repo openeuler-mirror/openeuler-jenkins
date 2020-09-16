@@ -132,8 +132,8 @@ class CheckAbi(object):
         else:
             rpm_name = os.path.basename(rpm_url)
             rpm_path = os.path.join(dest, rpm_name)
-            logging.debug("downloading %s......", rpm_name)
-            subprocess.run("wget -P {} {}".format(dest, rpm_url), shell=True)
+            logging.info("downloading %s......", rpm_name)
+            subprocess.run("wget -t 5 -c -P {} {}".format(dest, rpm_url), shell=True)
         return rpm_path
 
     def do_rpm2cpio(self, rpm2cpio_path, rpm_file):
@@ -487,16 +487,16 @@ class CheckAbi(object):
             logging.debug("rpm exists:%s", rpms_url)
             return os.path.abspath(rpms_url)
         else:
+            use_args = "-t 5 -r -c -np -nH -nd -R index.html"
             if type(rpms_url) is str:
-                subprocess.run("wget -r -np -nH -nd -R index.html -P {} {} > /dev/null 2>&1".format(dest, rpms_url),
-                                shell=True)
+                subprocess.run("wget {} -P {} {} > /dev/null 2>&1".format(use_args, dest, rpms_url), shell=True)
             else:
                 count = 0
                 need_download = len(rpms_url)
                 for url in rpms_url:
                     count += 1
                     logging.info("[%d/%d] downloading %s", count, need_download, os.path.basename(url))
-                    subprocess.run("wget -r -np -nH -nd -R index.html -P {} {} > /dev/null 2>&1".format(dest, url),
+                    subprocess.run("wget {} -P {} {} > /dev/null 2>&1".format(use_args, dest, url),
                                     shell=True)
             return dest
 
