@@ -9,22 +9,28 @@ import argparse
 
 
 class Comment(object):
-    def __init__(self, pr, *check_abi_comment_files):
+    """
+    comments process
+    """
+    def __init__(self, pr, jenkins_proxy, *check_abi_comment_files):
         """
 
         :param pr: pull request number
         """
         self._pr = pr
         self._check_abi_comment_files = check_abi_comment_files
+        self._up_builds = []
+        self._up_up_builds = []
+        self._get_upstream_builds(jenkins_proxy)
 
-    def comment_build(self, jenkins_proxy, gitee_proxy):
+    def comment_build(self, gitee_proxy):
         """
         构建结果
         :param jenkins_proxy:
         :param gitee_proxy:
         :return:
         """
-        comments = self._comment_build_html_format(jenkins_proxy)
+        comments = self._comment_build_html_format()
         gitee_proxy.comment_pr(self._pr, "\n".join(comments))
 
     def comment_at(self, committer, gitee_proxy):
@@ -37,7 +43,32 @@ class Comment(object):
         """
         gitee_proxy.comment_pr(self._pr, "@{}".format(committer))
 
-    def _comment_build_html_format(self, jenkins_proxy):
+    def check_build_result(self):
+        """
+        build result check
+        :return:
+        """
+        build_result = sum([ACResult.get_instance(build.get_status()) for build in self._up_builds], SUCCESS)
+        return build_result
+
+    def _get_upstream_builds(self, jenkins_proxy):
+        """
+        get upstream builds
+        :param jenkins_proxy:
+        :return:
+        """
+        base_job_name = os.environ.get("JOB_NAME")
+        base_build_id = os.environ.get("BUILD_ID")
+        base_build_id = int(base_build_id)
+        logger.debug("base_job_name: {}, base_build_id: {}".format(base_job_name, base_build_id))
+        base_build = jenkins_proxy.get_build(base_job_name, base_build_id)
+        logger.debug("get base build")
+        self._up_builds = jenkins_proxy.get_upstream_builds(base_build)
+        if self._up_builds:
+            logger.debug("get up_builds")
+            self._up_up_builds = jenkins_proxy.get_upstream_builds(self._up_builds[0])
+
+    def _comment_build_html_format(self):
         """
         组装构建信息，并评论pr
         :param jenkins_proxy: JenkinsProxy object
@@ -45,26 +76,14 @@ class Comment(object):
         """
         comments = ["<table>", self._comment_html_table_th()]
 
-        base_job_name = os.environ.get("JOB_NAME")
-        base_build_id = os.environ.get("BUILD_ID")
-        base_build_id = int(base_build_id)
-        logger.debug("base_job_name: {}, base_build_id: {}".format(base_job_name, base_build_id))
-
-        base_build = jenkins_proxy.get_build(base_job_name, base_build_id)
-        logger.debug("get base build")
-
-        up_builds = jenkins_proxy.get_upstream_builds(base_build)
-        if up_builds:
-            logger.debug("get up_builds")
-            up_up_builds = jenkins_proxy.get_upstream_builds(up_builds[0])
-            if up_up_builds:
-                logger.debug("get up_up_builds")
-                comments.extend(self._comment_of_ac(up_up_builds[0]))
-            comments.extend(self._comment_of_build(up_builds))
-            comments.extend(self._comment_of_check_abi(up_builds))
+        if self._up_up_builds:
+            logger.debug("get up_up_builds")
+            comments.extend(self._comment_of_ac(self._up_up_builds[0]))
+        if self._up_builds:
+            comments.extend(self._comment_of_build(self._up_builds))
+            comments.extend(self._comment_of_check_abi(self._up_builds))
 
         comments.append("</table>")
-
         return comments
 
     def _comment_of_ac(self, build):
@@ -218,15 +237,20 @@ if "__main__" == __name__:
     # gitee notify
     gp = GiteeProxy(args.owner, args.repo, args.gitee_token)
     gp.delete_tag_of_pr(args.pr, "ci_processing")
-    gp.create_tags_of_pr(args.pr, "ci_finished")
+
 
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
 
     if args.check_abi_comment_files:
-        comment = Comment(args.pr, *args.check_abi_comment_files)
+        comment = Comment(args.pr, jp, *args.check_abi_comment_files)
     else:
-        comment = Comment(args.pr)
+        comment = Comment(args.pr, jp)
     logger.info("comment: build result......")
-    comment.comment_build(jp, gp)
+    comment.comment_build(gp)
+    
+    if comment.check_build_result() == SUCCESS:
+        gp.create_tags_of_pr(args.pr, "ci_success")
+    else:
+        gp.create_tags_of_pr(args.pr, "ci_fail")
     logger.info("comment: at committer......")
     comment.comment_at(args.committer, gp)
