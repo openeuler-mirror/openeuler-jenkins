@@ -11,13 +11,14 @@ import yaml
 class RepoMapping(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, ignored_repos_path, ignored_repos_key, community_path, *repos):
+    def __init__(self, ignored_repos_path, ignored_repos_key, community_path, *repos, **kwargs):
         """
         :param ignored_repos_path: 忽略的repo配置文件
         :param key:
         :param repos: 用户输入的仓库
         """
         self._input_repos = repos
+        self._exclude_repos = kwargs.get("exclude_jobs") if kwargs.get("exclude_jobs") else []
         self._repo_mapping = {}   # 保存结果
         self._ignored_repos = self._load_ignore_repo(ignored_repos_path, ignored_repos_key)
         logger.debug("ignored repos: {}".format(self._ignored_repos))
@@ -63,7 +64,7 @@ class RepoMapping(object):
         :param repo:
         :return:
         """
-        if repo in self._community_repos and repo not in self._ignored_repos:
+        if repo in self._community_repos and repo not in self._ignored_repos and repo not in self._exclude_repos:
             return True
 
         return False
@@ -91,9 +92,9 @@ class OERepoMapping(RepoMapping):
     """
     openeuler
     """
-    def __init__(self, ignored_repos_path, community_path, *repos):
+    def __init__(self, ignored_repos_path, community_path, *repos, **kwargs):
         super(OERepoMapping, self).__init__(ignored_repos_path, "openeuler",
-                                            os.path.join(community_path, "repository/openeuler.yaml"), *repos)
+                                            os.path.join(community_path, "repository/openeuler.yaml"), *repos, **kwargs)
 
     def mapping(self, strategy):
         """
@@ -112,9 +113,9 @@ class SOERepoMapping(RepoMapping):
     """
     src-openeuler
     """
-    def __init__(self, ignored_repos_path, community_path, *repos):
-        super(SOERepoMapping, self).__init__(ignored_repos_path, "src-openeuler",
-                                             os.path.join(community_path, "repository/src-openeuler.yaml"), *repos)
+    def __init__(self, ignored_repos_path, community_path, *repos, **kwargs):
+        super(SOERepoMapping, self).__init__(ignored_repos_path, "src-openeuler", 
+                os.path.join(community_path, "repository/src-openeuler.yaml"), *repos, **kwargs)
 
     def mapping(self, strategy):
         """
@@ -135,7 +136,9 @@ class SOERepoMapping(RepoMapping):
 if "__main__" == __name__:
     args = argparse.ArgumentParser()
     args.add_argument("-f", type=str, dest="community", default="src-openeuler", help="src-openeuler or openeuler")
-    args.add_argument("-j", type=str, dest="jobs", help="jobs name, split by dot")
+    #args.add_argument("-j", type=str, dest="jobs", help="jobs name, split by dot")
+    args.add_argument("-j", type=str, dest="jobs", nargs="+", help="jobs name")
+    args.add_argument("-e", type=str, dest="exclude_jobs", nargs="*", help="exclude jobs name")
     args.add_argument("-o", type=str, dest="mapping_file", help="output file to save buddy info")
     args.add_argument("-m", type=str, dest="obs_meta_path", help="obs meta path")
     args.add_argument("-c", type=str, dest="community_path", help="community repo path")
@@ -150,12 +153,11 @@ if "__main__" == __name__:
     from src.jobs.obs_meta_strategy import ObsMetaStrategy
 
     ignore_repo_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/ignore_repo.yaml"))
-    input_repos = [input_repo.strip() for input_repo in args.jobs.split(",")]
 
     if args.community == "src-openeuler":
-        rm = SOERepoMapping(ignore_repo_path, args.community_path, *input_repos)
+        rm = SOERepoMapping(ignore_repo_path, args.community_path, *args.jobs, exclude_jobs=args.exclude_jobs)
         rm.mapping(ObsMetaStrategy(args.obs_meta_path))
     else:
-        rm = OERepoMapping(ignore_repo_path, args.community_path, *input_repos)
+        rm = OERepoMapping(ignore_repo_path, args.community_path, *args.jobs, exclude_jobs=args.exclude_jobs)
         rm.mapping(None)
     rm.save(args.mapping_file)

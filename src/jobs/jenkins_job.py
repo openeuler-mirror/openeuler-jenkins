@@ -31,7 +31,7 @@ class JenkinsJobs(object):
         self._template_job = template_job
         self._template_job_config = jenkins_proxy.get_config(template_job)
 
-    def run(self, action, jobs, jenkins_proxy, concurrency=75, retry=3, interval=0):
+    def run(self, action, jobs, jenkins_proxy, exclude_jobs=None, concurrency=75, retry=3, interval=0):
         """
         启动
         :param action: 行为
@@ -42,16 +42,18 @@ class JenkinsJobs(object):
         :param interval: 每次batch请求后sleep时间（秒），
         :return:
         """
-        jobs = [job.strip() for job in jobs.split(",")]
         logger.info("{} jobs {}".format(action, jobs))
-        real_jobs = self.get_real_target_jobs(jobs)
+        real_jobs = self.get_real_target_jobs(jobs, exclude_jobs if exclude_jobs else [])
 
         def run_once(target_jobs):
+            """
+            run once for retry
+            """
             batch = (len(target_jobs) + concurrency - 1) / concurrency
             _failed_jobs = []
             for index in xrange(batch):
-                works = [gevent.spawn(self.dispatch, action, job, jenkins_proxy) for job in
-                         target_jobs[index * concurrency: (index + 1) * concurrency]]
+                works = [gevent.spawn(self.dispatch, action, job, jenkins_proxy) 
+                        for job in target_jobs[index * concurrency: (index + 1) * concurrency]]
                 logger.info("{} works, {}/{} ".format(len(works), index + 1, batch))
                 gevent.joinall(works)
                 for work in works:
@@ -92,13 +94,14 @@ class JenkinsJobs(object):
         return {"job": job, "result": result}
 
     @abc.abstractmethod
-    def get_real_target_jobs(self, jobs):
+    def get_real_target_jobs(self, jobs, exclude_jobs):
         """
         实际要操作的任务
-        :param jobs:
+        :param jobs: 用户输入的任务列表
+        :param exclude_jobs: 用户输入的exclude任务列表
         :return:
         """
-        return jobs
+        return [job for job in jobs if job not in exclude_jobs]
 
     @abc.abstractmethod
     def update_config(self, job):
@@ -130,16 +133,17 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                     self._exclusive_arch[filename] = [arch.strip() for arch in arches.split(",")]
         logger.debug("exclusive arch: {}".format(self._exclusive_arch))
 
-    def get_real_target_jobs(self, jobs):
+    def get_real_target_jobs(self, jobs, exclude_jobs):
         """
         真实有效的任务列表
         :param jobs: 用户输入的任务列表
+        :param exclude_jobs: 用户输入的exclude任务列表
         :return: list<string>
         """
         if "all" in jobs:
-            return self._buddy_info.keys()
+            return [job for job in self._buddy_info.keys() if job not in exclude_jobs]
 
-        return [job for job in jobs if job in self._buddy_info]
+        return [job for job in jobs if job in self._buddy_info and job not in exclude_jobs]
 
     def update_config(self, job):
         """
@@ -285,8 +289,9 @@ if "__main__" == __name__:
 
     args.add_argument("-m", type=str, dest="template_job", help="template job name")
     args.add_argument("-s", type=str, dest="template_job_base_url", help="jenkins base url of template job")
-    args.add_argument("-j", type=str, dest="target_jobs", help="jobs to created")
+    args.add_argument("-j", type=str, dest="target_jobs", nargs="+", help="jobs to created")
     args.add_argument("-d", type=str, dest="target_job_base_url", help="jenkins base url of target jobs")
+    args.add_argument("-l", type=str, dest="exclude_jobs", nargs="*", help="jobs not to created")
     args.add_argument("-o", type=int, dest="jenkins_timeout", default=10, help="jenkins api timeout")
 
     args.add_argument("-u", type=str, dest="jenkins_user", help="jenkins user name")
@@ -313,5 +318,5 @@ if "__main__" == __name__:
     else:
         jenkins_jobs = OpenEulerJenkinsJobs(args.template_job, jp_m, args.mapping_info_file, args.exclusive_arch_file)
 
-    jenkins_jobs.run(
-            args.action, args.target_jobs, jp_t, concurrency=args.concurrency, retry=args.retry, interval=args.interval)
+    jenkins_jobs.run(args.action, args.target_jobs, jp_t, exclude_jobs=args.exclude_jobs, 
+            concurrency=args.concurrency, retry=args.retry, interval=args.interval)
