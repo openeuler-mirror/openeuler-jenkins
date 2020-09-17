@@ -68,9 +68,9 @@ class AC(object):
             # do ac check
             try:
                 result = entry()
-                logger.debug("check result {}".format(element, result))
+                logger.debug("check result {} {}".format(element, result))
             except Exception as exc:
-                logger.exception("check exception, {}".format(element, exc))
+                logger.exception("check exception, {} {}".format(element, exc))
                 continue
 
             # show in gitee, must starts with "check_"
@@ -144,10 +144,10 @@ if "__main__" == __name__:
     logger.info("------------------AC START--------------")
 
     # notify gitee
-    # TODO use replace all tags instead, state machine in future
     from src.proxy.gitee_proxy import GiteeProxy
     gp = GiteeProxy(args.owner, args.repo, args.token)
-    gp.delete_tag_of_pr(args.pr, "ci_finished")
+    gp.delete_tag_of_pr(args.pr, "ci_success")
+    gp.delete_tag_of_pr(args.pr, "ci_fail")
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"))
