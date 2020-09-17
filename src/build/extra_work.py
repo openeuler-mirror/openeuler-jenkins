@@ -108,7 +108,7 @@ class ExtraWork(object):
             # change of abi
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "WARNING",
                        "link": self._rpm_package.checkabi_md_in_repo(committer, self._repo, package_arch, 
-                                output, package_url)}
+                                os.path.basename(output), package_url)}
         else:
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
 
