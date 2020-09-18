@@ -65,7 +65,7 @@ class CheckAbi(object):
                     continue
                 if filename.split(".")[-1] in exception_list:
                     continue
-                if ".so" in filename:
+                if ".so." in filename or filename.endswith(".so"):
                     logging.debug(".so file found:%s", fp)
                     so_files.add(fp)
                     if add_global:
@@ -215,7 +215,7 @@ class CheckAbi(object):
             all_abidiff_files.append(abidiff_file)
             logging.info("result write in: %s, returncode:%d", abidiff_file, ret.returncode)
             return_code |= ret.returncode
-        if return_code != 0:
+        if not return_code in [0, 1]:
             self.diff_result_file = self.merge_all_abidiff_files(all_abidiff_files, base_name)
             logging.info("abidiff all results writed in: %s", self.diff_result_file)
         return return_code
