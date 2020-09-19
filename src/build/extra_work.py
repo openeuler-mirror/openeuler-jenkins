@@ -96,6 +96,10 @@ class ExtraWork(object):
         if not curr_rpm or not last_rpm:
             logger.info("no rpms")
             return
+
+        #check configs
+        check_conf = CheckConfig(last_rpm, curr_rpm, output_file=output)
+        check_conf.conf_check()
         rpms = [last_rpm, curr_rpm]
 
         #get debuginfos
@@ -187,6 +191,7 @@ if "__main__" == __name__:
     from src.build.build_rpm_package import BuildRPMPackage
     from src.build.related_rpm_package import RelatedRpms
     from src.utils.check_abi import CheckAbi
+    from src.utils.check_conf import CheckConfig
 
     ew = ExtraWork(args.package, args.rpmbuild_dir)
     if args.func == "notify":

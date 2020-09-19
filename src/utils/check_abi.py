@@ -86,8 +86,8 @@ class CheckAbi(object):
         if previous_sos and current_sos:
             for so_file1 in previous_sos:
                 for so_file2 in current_sos:
-                    base_name1 = (os.path.basename(so_file1)).split('.so')[0]
-                    base_name2 = (os.path.basename(so_file2)).split('.so')[0]
+                    base_name1 = so_file1.split('previous_package')[-1].split('.so')[0]
+                    base_name2 = so_file2.split('current_package')[-1].split('.so')[0]
                     if base_name1 == base_name2:
                         all_so_pair[so_file1] = so_file2
                         prev_matched.add(so_file1)
@@ -215,6 +215,7 @@ class CheckAbi(object):
             all_abidiff_files.append(abidiff_file)
             logging.info("result write in: %s, returncode:%d", abidiff_file, ret.returncode)
             return_code |= ret.returncode
+        logging.info("-----final return_code:%s", return_code)
         if not return_code in [0, 1]:
             self.diff_result_file = self.merge_all_abidiff_files(all_abidiff_files, base_name)
             logging.info("abidiff all results writed in: %s", self.diff_result_file)
@@ -476,8 +477,6 @@ class CheckAbi(object):
 
         if self.result_output_file:
             merged_file = os.path.abspath(self.result_output_file)
-        if os.path.exists(merged_file):
-            subprocess.run("rm -rf {}".format(merged_file), shell=True)
         _ = [self.write_result(x, merged_file) for x in result_files]
         logging.info("-------------all result write at:%s", merged_file)
 
