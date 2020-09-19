@@ -9,3 +9,8 @@ code:
   entry: CheckCodeStyle
   #exclude: True
   ignored: []
+yaml:
+  hint: check_yaml_file
+  module: yaml.check_yaml
+  entry: CheckYaml
+  ignored: ["fields"]

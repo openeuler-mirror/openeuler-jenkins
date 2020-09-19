@@ -1,0 +1,4 @@
+version_control: github
+src_repo: seb-m/pyinotify
+tag_prefix: "^"
+seperator: "."

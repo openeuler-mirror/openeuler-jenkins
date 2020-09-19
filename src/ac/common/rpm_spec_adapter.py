@@ -45,8 +45,23 @@ class RPMSpecAdapter(object):
         value = getattr(self._adapter, item)
         if isinstance(value, list):
             return [replace_macros(item, self._adapter) for item in value]
-
         return replace_macros(value, self._adapter) if value else ""
+
+    def get_source(self, key):
+        """
+        get source url from spec.source_dict by key
+        :return:
+        """
+        src_url = self._adapter.sources_dict.get(key, "")
+        return replace_macros(src_url, self._adapter) if src_url else ""
+
+    def get_patch(self, key):
+        """
+        get source url from spec.source_dict by key
+        :return:
+        """
+        patch = self._adapter.patches_dict.get(key, "")
+        return replace_macros(patch, self._adapter) if patch else ""
 
     def include_x86_arch(self):
         """

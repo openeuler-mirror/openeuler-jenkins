@@ -1,5 +1,6 @@
 # -*- encoding=utf-8 -*-
-# **********************************************************************************
+"""
+# ***********************************************************************************
 # Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
 # [openeuler-jenkins] is licensed under the Mulan PSL v1.
 # You can use this software according to the terms and conditions of the Mulan PSL v1.
@@ -12,7 +13,8 @@
 # Author: 
 # Create: 2020-09-23
 # Description: Gitee api proxy
-# **********************************************************************************
+# ***********************************************************************************/
+"""
 
 import os
 import logging
@@ -36,6 +38,7 @@ class GiteeRepo(object):
         self._compress_files = []
 
         self.spec_file = None
+        self.yaml_file = None
         self.patch_dir_mapping = {}
 
         self.find_file_path()
@@ -57,6 +60,9 @@ class GiteeRepo(object):
                 elif self.is_spec_file(filename):
                     logger.debug("find spec file: {}".format(rel_file_path))
                     spec_files.append(filename)
+                elif self.is_package_yaml_file(filename):
+                    logger.debug("find yaml file: {}".format(rel_file_path))
+                    self.yaml_file = rel_file_path
 
         def guess_real_spec_file():
             """
@@ -198,4 +204,18 @@ class GiteeRepo(object):
 
     @staticmethod
     def is_spec_file(filename):
+        """
+        功能描述：判断文件名是否以.spec结尾
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".spec",))
+
+    @staticmethod
+    def is_package_yaml_file(filename):
+        """
+        功能描述：判断文件名是否以.yaml结尾
+        参数：文件名
+        返回值：bool
+        """
+        return filename.endswith((".yaml",))
