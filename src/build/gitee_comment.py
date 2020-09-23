@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+"""
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v1.
+# You can use this software according to the terms and conditions of the Mulan PSL v1.
+# You may obtain a copy of Mulan PSL v1 at:
+#     http://license.coscl.org.cn/MulanPSL
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v1 for more details.
+# Author: 
+# Create: 2020-09-23
+# Description: comment pr with build result 
+# **********************************************************************************
+"""
+
 import os
 import sys
 import logging.config
@@ -6,6 +23,8 @@ import logging
 import json
 import yaml
 import argparse
+
+from yaml.error import YAMLError
 
 
 class Comment(object):
@@ -74,7 +93,7 @@ class Comment(object):
         :param jenkins_proxy: JenkinsProxy object
         :return:
         """
-        comments = ["<table>", self._comment_html_table_th()]
+        comments = ["<table>", self.comment_html_table_th()]
 
         if self._up_up_builds:
             logger.debug("get up_up_builds")
@@ -104,20 +123,17 @@ class Comment(object):
             return []
 
         comments = []
-        try:
-            for index, item in enumerate(acl):
-                ac_result = ACResult.get_instance(item["result"])
-                if index == 0:
-                    build_url = build.get_build_url()
-                    comments.append(self.__class__._comment_html_table_tr(
-                        item["name"], ac_result.emoji, ac_result.hint, 
-                        "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
-                else:
-                    comments.append(self.__class__._comment_html_table_tr_rowspan(
-                        item["name"], ac_result.emoji, ac_result.hint))
-        except:
-            # jenkins api maybe exception, who knows
-            logger.exception("comment of ac result exception")
+
+        for index, item in enumerate(acl):
+            ac_result = ACResult.get_instance(item["result"])
+            if index == 0:
+                build_url = build.get_build_url()
+                comments.append(self.__class__.comment_html_table_tr(
+                    item["name"], ac_result.emoji, ac_result.hint, 
+                    "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
+            else:
+                comments.append(self.__class__.comment_html_table_tr_rowspan(
+                    item["name"], ac_result.emoji, ac_result.hint))
 
         logger.info("ac comment: {}".format(comments))
 
@@ -129,18 +145,15 @@ class Comment(object):
         :return:
         """
         comments = []
-        try:
-            for build in builds:
-                name = build.job._data["fullName"]
-                status = build.get_status()
-                ac_result = ACResult.get_instance(status)
-                build_url = build.get_build_url()
 
-                comments.append(self.__class__._comment_html_table_tr(
-                    name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno))
-        except:
-            # jenkins api maybe exception, who knows
-            logger.exception("comment of build exception")
+        for build in builds:
+            name = build.job._data["fullName"]
+            status = build.get_status()
+            ac_result = ACResult.get_instance(status)
+            build_url = build.get_build_url()
+
+            comments.append(self.__class__.comment_html_table_tr(
+                name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno))
 
         logger.info("build comment: {}".format(comments))
 
@@ -161,46 +174,57 @@ class Comment(object):
                 return True
             return False
 
-        try:
-            for check_abi_comment_file in self._check_abi_comment_files:
-                logger.debug("check abi comment file: {}".format(check_abi_comment_file))
-                if os.path.exists(check_abi_comment_file):      # check abi评论文件存在
-                    for build in builds:
-                        name = build.job._data["fullName"]
-                        logger.debug("check build {}".format(name))
-                        if match(name, check_abi_comment_file):     # 找到匹配的jenkins build
-                            logger.debug("build \"{}\" match".format(name))
-                            status = build.get_status()
-                            logger.debug("build state: {}".format(status))
-                            if ACResult.get_instance(status) == SUCCESS:    # 保证build状态成功
-                                with open(check_abi_comment_file, "r") as f:
-                                    content = yaml.safe_load(f)
-                                    logger.debug("comment: {}".format(content))
-                                    for item in content:
-                                        ac_result = ACResult.get_instance(item.get("result"))
-                                        comments.append(self.__class__._comment_html_table_tr(
-                                            item.get("name"), ac_result.emoji, ac_result.hint, item.get("link", ""),
-                                            "markdown" if "link" in item else "", hashtag=False))
-                            break
-        except:
-            # jenkins api or yaml maybe exception, who knows
-            logger.exception("comment of build exception")
+        for check_abi_comment_file in self._check_abi_comment_files:
+            logger.debug("check abi comment file: {}".format(check_abi_comment_file))
+            if not os.path.exists(check_abi_comment_file):      # check abi评论文件存在
+                continue
+            for build in builds:
+                name = build.job._data["fullName"]
+                logger.debug("check build {}".format(name))
+                if not match(name, check_abi_comment_file):     # 找到匹配的jenkins build
+                    continue
+                logger.debug("build \"{}\" match".format(name))
+
+                status = build.get_status()
+                logger.debug("build state: {}".format(status))
+                if ACResult.get_instance(status) == SUCCESS:    # 保证build状态成功
+                    with open(check_abi_comment_file, "r") as f:
+                        try:
+                            content = yaml.safe_load(f)
+                        except YAMLError: # yaml base exception
+                            logger.exception("illegal yaml format of check abi comment file ")
+                        logger.debug("comment: {}".format(content))
+                        for item in content:
+                            ac_result = ACResult.get_instance(item.get("result"))
+                            comments.append(self.__class__.comment_html_table_tr(
+                                item.get("name"), ac_result.emoji, ac_result.hint, item.get("link", ""),
+                                "markdown" if "link" in item else "", hashtag=False))
+                break
 
         logger.info("check abi comment: {}".format(comments))
 
         return comments
 
     @classmethod
-    def _comment_html_table_th(cls):
+    def comment_html_table_th(cls):
+        """
+        table header
+        """
         return "<tr><th>Check Name</th> <th>Build Result</th> <th>Build Details</th></tr>"
 
     @classmethod
-    def _comment_html_table_tr(cls, name, icon, status, href, build_no, hashtag=True, rowspan=1):
+    def comment_html_table_tr(cls, name, icon, status, href, build_no, hashtag=True, rowspan=1):
+        """
+        one row or span row
+        """
         return "<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>".format(
             name, icon, status, rowspan, href, "#" if hashtag else "", build_no)
 
     @classmethod
-    def _comment_html_table_tr_rowspan(cls, name, icon, status):
+    def comment_html_table_tr_rowspan(cls, name, icon, status):
+        """
+        span row
+        """
         return "<tr><td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(name, icon, status)
 
 
@@ -249,8 +273,8 @@ if "__main__" == __name__:
     comment.comment_build(gp)
     
     if comment.check_build_result() == SUCCESS:
-        gp.create_tags_of_pr(args.pr, "ci_success")
+        gp.create_tags_of_pr(args.pr, "ci_successful")
     else:
-        gp.create_tags_of_pr(args.pr, "ci_fail")
+        gp.create_tags_of_pr(args.pr, "ci_failed")
     logger.info("comment: at committer......")
     comment.comment_at(args.committer, gp)

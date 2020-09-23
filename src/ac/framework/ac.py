@@ -1,4 +1,19 @@
 # -*- encoding=utf-8 -*-
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v1.
+# You can use this software according to the terms and conditions of the Mulan PSL v1.
+# You may obtain a copy of Mulan PSL v1 at:
+#     http://license.coscl.org.cn/MulanPSL
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v1 for more details.
+# Author: 
+# Create: 2020-09-23
+# Description: access control list entrypoint
+# **********************************************************************************
+
 import os
 import sys
 import yaml
@@ -7,6 +22,8 @@ import logging
 import json
 import argparse
 import importlib
+
+from yaml.error import YAMLError
 
 
 class AC(object):
@@ -59,7 +76,7 @@ class AC(object):
                     entry = entry(workspace, repo, check_element)       # new a instance
                 except Exception as exc:
                     logger.exception("new a instance of class {} exception, {}".format(entry_name, exc))
-                    return
+                    continue
 
             if not callable(entry):      # check callable
                 logger.warning("entry {} not callable".format(entry_name))
@@ -99,11 +116,11 @@ class AC(object):
         try:
             with open(conf_file, "r") as f:
                 elements = yaml.safe_load(f)
-        except FileNotFoundError as exc:
-            logger.warning("ac conf file {} not exist".format(conf_file))
+        except IOError:
+            logger.exception("ac conf file {} not exist".format(conf_file))
             return
-        except Exception as exc:
-            logger.warning("load conf file exception, {}".format(exc))
+        except YAMLError:
+            logger.exception("illegal conf file format")
             return
 
         for name in elements:
@@ -146,8 +163,8 @@ if "__main__" == __name__:
     # notify gitee
     from src.proxy.gitee_proxy import GiteeProxy
     gp = GiteeProxy(args.owner, args.repo, args.token)
-    gp.delete_tag_of_pr(args.pr, "ci_success")
-    gp.delete_tag_of_pr(args.pr, "ci_fail")
+    gp.delete_tag_of_pr(args.pr, "ci_successful")
+    gp.delete_tag_of_pr(args.pr, "ci_failed")
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"))

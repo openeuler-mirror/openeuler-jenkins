@@ -1,4 +1,19 @@
 # -*- encoding=utf-8 -*-
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v1.
+# You can use this software according to the terms and conditions of the Mulan PSL v1.
+# You may obtain a copy of Mulan PSL v1 at:
+#     http://license.coscl.org.cn/MulanPSL
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v1 for more details.
+# Author: 
+# Create: 2020-09-23
+# Description: requests api proxy
+# **********************************************************************************
+
 import logging
 import requests
 from requests.auth import HTTPBasicAuth
@@ -68,6 +83,6 @@ def do_requests(method, url, querystring=None, body=None, auth=None, timeout=30,
     except requests.exceptions.Timeout as e:
         logger.warning("requests timeout")
         return 2
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logger.warning("requests exception, {}".format(e))
         return 3
