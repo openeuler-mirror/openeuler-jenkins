@@ -20,7 +20,7 @@ import logging
 import re
 
 # not friendly when job in folders
-import jenkinsapi.jenkins.Jenkins as Jenkins
+import jenkinsapi.jenkins as jenkins
 import src.proxy.jenkins_patch
 
 logger = logging.getLogger("common")
@@ -41,7 +41,7 @@ class JenkinsProxy(object):
         self._username = username
         self._token = token
         self._timeout = timeout
-        self._jenkins = Jenkins(base_url, username=username, password=token, timeout=timeout)
+        self._jenkins = jenkins.Jenkins(base_url, username=username, password=token, timeout=timeout)
 
     def create_job(self, job, config):
         """
@@ -130,7 +130,7 @@ class JenkinsProxy(object):
             logger.debug("base url {}".format(base_url))
 
             try:
-                j = Jenkins(base_url, self._username, self._token, timeout=self._timeout)
+                j = jenkins.Jenkins(base_url, self._username, self._token, timeout=self._timeout)
                 jobs.append(j[name])
             except Exception as e:
                 logger.exception("get job of {} exception".format(url))
