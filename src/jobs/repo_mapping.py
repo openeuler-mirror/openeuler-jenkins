@@ -1,15 +1,32 @@
 # -*- coding: utf-8 -*-
+"""
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v1.
+# You can use this software according to the terms and conditions of the Mulan PSL v1.
+# You may obtain a copy of Mulan PSL v1 at:
+#     http://license.coscl.org.cn/MulanPSL
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v1 for more details.
+# Author: 
+# Create: 2020-09-23
+# Description: cal repo mapping info
+# **********************************************************************************
+"""
+
 import logging.config
 import logging
 import os
 import argparse
-from abc import ABCMeta, abstractmethod
+import abc
 
 import yaml
 
 
 class RepoMapping(object):
-    __metaclass__ = ABCMeta
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, ignored_repos_path, ignored_repos_key, community_path, *repos, **kwargs):
         """
@@ -69,7 +86,7 @@ class RepoMapping(object):
 
         return False
 
-    @abstractmethod
+    @abc.abstractmethod
     def mapping(self, strategy):
         """
         计算仓库关联的package及buddy
@@ -145,7 +162,7 @@ if "__main__" == __name__:
     args = args.parse_args()
 
     _ = not os.path.exists("log") and os.mkdir("log")
-    logger_conf_path = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../conf/logger.conf"))
+    logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("jobs")
 

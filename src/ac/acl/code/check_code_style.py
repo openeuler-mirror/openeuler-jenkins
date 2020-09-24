@@ -1,4 +1,19 @@
 # -*- encoding=utf-8 -*-
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v1.
+# You can use this software according to the terms and conditions of the Mulan PSL v1.
+# You may obtain a copy of Mulan PSL v1 at:
+#     http://license.coscl.org.cn/MulanPSL
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v1 for more details.
+# Author: 
+# Create: 2020-09-23
+# Description: check code style
+# **********************************************************************************
+
 import os
 import shutil
 import logging
@@ -65,8 +80,14 @@ class CheckCodeStyle(BaseCheck):
                 logger.debug("diff patch {} apply at dir {}".format(diff_file, patch_dir))
                 if patch_dir is not None:
                     files_in_patch = gp.extract_files_path_of_patch(diff_file)
-                    diff_patch_code_files.extend([os.path.join(patch_dir, file_in_patch) 
-                        for file_in_patch in files_in_patch if GiteeRepo.is_code_file(file_in_patch)])
+                    patch_code_files = [os.path.join(patch_dir, file_in_patch) 
+                            for file_in_patch in files_in_patch 
+                            if GiteeRepo.is_code_file(file_in_patch)]
+                    # care about deleted file in patch, filter with "git patch --summary" maybe better
+                    diff_patch_code_files.extend([code_file 
+                        for code_file in patch_code_files 
+                        if os.path.exists(code_file)])
+
         logger.debug("diff code files: {}".format(diff_code_files))
         logger.debug("diff patch code files: {}".format(diff_patch_code_files))
 

@@ -1,4 +1,19 @@
 # -*- encoding=utf-8 -*-
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v1.
+# You can use this software according to the terms and conditions of the Mulan PSL v1.
+# You may obtain a copy of Mulan PSL v1 at:
+#     http://license.coscl.org.cn/MulanPSL
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v1 for more details.
+# Author: 
+# Create: 2020-09-23
+# Description: build single package using obs
+# **********************************************************************************
+
 import os
 import sys
 import logging.config
@@ -8,8 +23,11 @@ from xml.etree import ElementTree
 
 
 class SinglePackageBuild(object):
+    """
+    build single package using obs
+    """
 
-    GITEEBRANCHPROJECTMAPPING = {
+    GITEE_BRANCH_PROJECT_MAPPING = {
         "master": ["bringInRely", "openEuler:Extras", "openEuler:Factory", "openEuler:Mainline"],
         "openEuler-20.03-LTS": ["openEuler:20.03:LTS"],
         "openEuler-20.03-LTS-Next": ["openEuler:20.03:LTS:Next"],
@@ -18,7 +36,15 @@ class SinglePackageBuild(object):
         "mkopeneuler-20.03": ["openEuler:Extras"]
     }
 
+    BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
+
     def __init__(self, package, arch, target_branch):
+        """
+        
+        :param package: package name
+        :param arch: x86_64 or aarch64
+        :param target_branch: branch pull request apply
+        """
         self._package = package
         self._arch = arch
         self._branch = target_branch
@@ -152,11 +178,15 @@ class SinglePackageBuild(object):
         :param code_dir: 代码目录
         :return:
         """
-        if self._branch not in self.GITEEBRANCHPROJECTMAPPING:
+        if self._branch in self.BUILD_IGNORED_GITEE_BRANCH:
+            logger.error("branch \"{}\" ignored".format(self._branch))
+            sys.exit(0)
+
+        if self._branch not in self.GITEE_BRANCH_PROJECT_MAPPING:
             logger.error("branch \"{}\" not support yet".format(self._branch))
             sys.exit(1)
 
-        for project in self.GITEEBRANCHPROJECTMAPPING.get(self._branch):
+        for project in self.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
             logger.debug("start build project {}".format(project))
 
             obs_repos = self.get_need_build_obs_repos(project)
