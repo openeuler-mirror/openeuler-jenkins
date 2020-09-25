@@ -41,7 +41,7 @@ class AC(object):
 
         logger.debug("check list: {}".format(self._ac_check_elements))
 
-    def check_all(self, workspace, repo):
+    def check_all(self, workspace, repo, **kwargs):
         """
         门禁检查
         :param workspace:
@@ -84,7 +84,7 @@ class AC(object):
 
             # do ac check
             try:
-                result = entry()
+                result = entry(**kwargs)
                 logger.debug("check result {} {}".format(element, result))
             except Exception as exc:
                 logger.exception("check exception, {} {}".format(element, exc))
@@ -146,6 +146,7 @@ if "__main__" == __name__:
     args = argparse.ArgumentParser()
     args.add_argument("-w", type=str, dest="workspace", help="workspace where to find source")
     args.add_argument("-r", type=str, dest="repo", help="repo name")
+    args.add_argument("-b", type=str, dest="tbranch", help="branch merge to")
     args.add_argument("-n", type=str, dest="owner", default="src-openeuler", help="gitee owner")
     args.add_argument("-o", type=str, dest="output", help="output file to save result")
     args.add_argument("-p", type=str, dest="pr", help="pull request number")
@@ -168,5 +169,5 @@ if "__main__" == __name__:
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"))
-    ac.check_all(workspace=args.workspace, repo=args.repo)
+    ac.check_all(workspace=args.workspace, repo=args.repo, tbranch=args.tbranch)
     ac.save(args.output)
