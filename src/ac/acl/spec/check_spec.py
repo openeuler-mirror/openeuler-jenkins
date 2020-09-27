@@ -58,6 +58,17 @@ class CheckSpec(BaseCheck):
 
         return False
 
+    def _is_lts_branch(self):
+        """
+        check if lts branch
+        :return boolean
+        """
+        if self._tbranch:
+            if "lts" in self._tbranch.lower():
+                return True
+
+        return False
+
     def check_version(self):
         """
         检查当前版本号是否比上一个commit新
@@ -80,6 +91,13 @@ class CheckSpec(BaseCheck):
             self._gp.checkout_to_commit(self._latest_commit)   # recover whatever
 
         self._ex_pkgship(spec_o)
+
+        # if lts branch, version update is forbidden
+        if self._is_lts_branch():
+            logger.debug("lts branch {}".format(self._tbranch))
+            if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
+                logger.error("version update of lts branch is forbidden")
+                return FAILED
 
         if self._spec > spec_o:
             return SUCCESS
@@ -181,5 +199,6 @@ class CheckSpec(BaseCheck):
     def __call__(self, *args, **kwargs):
         logger.info("check {} spec ...".format(self._repo))
         self._ex_exclusive_arch()
+        self._tbranch = kwargs.get("tbranch", None)
 
         return self.start_check()
