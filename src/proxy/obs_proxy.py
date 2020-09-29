@@ -72,6 +72,22 @@ class OBSProxy(object):
         return rs
 
     @staticmethod
+    def list_packages_of_state(project, state):
+        """
+        获取project下某个状态的包列表
+        :param project: obs项目
+        :param state: 状态
+        :return: list<str>
+        """
+        cmd = "osc results {} --csv |grep {} | awk -F';' '{{print $1}}'".format(project, state)
+        ret, out, _ = shell_cmd_live(cmd, cap_out=True)
+        if ret:
+            logger.debug("list package of state error, {}".format(ret))
+            return []
+
+        return out
+
+    @staticmethod
     def checkout_package(project, package):
         """
         checkout

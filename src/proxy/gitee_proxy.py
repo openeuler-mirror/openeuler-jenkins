@@ -135,3 +135,39 @@ class GiteeProxy(object):
         do_requests("get", url=community_repo_url, timeout=timeout, obj=analysis)
         
         return repos
+
+    def get_last_pr_committer(self, branch, state="merged"):
+        """
+        获取指定分支的最后一个pr的提交者
+        :param branch: pr合入分支
+        :param state: pr状态
+        :return: str or None
+        """
+        logger.debug("get last pull request committer, branch: {}, state: {}".format(branch, state))
+        pr_url = "https://gitee.com/api/v5/repos/{}/{}/pulls?access_token={}&state={}&base={}" \
+                 "&page=1&per_page=1".format(self._owner, self._repo, self._token, state, branch)
+
+        # python2 not have nonlocal
+        committer = [None]
+
+        def analysis(response):
+            """
+            requests回调，解析pr列表
+            :param response: requests response object
+            :return:
+            """
+            handler = response.json()
+
+            if handler:
+                try:
+                    committer[0] = handler[0]["user"]["login"]
+                    logger.debug("get last pr committer: {}".format(committer))
+                except KeyError:
+                    logger.exception("extract committer info from gitee exception")
+
+        rs = do_requests("get", pr_url, timeout=10, obj=analysis)
+
+        if rs != 0:
+            logger.warning("get last pr committer failed")
+
+        return committer[0]
