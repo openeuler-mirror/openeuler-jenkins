@@ -33,7 +33,8 @@ class ObsPackageBuildReport(object):
             "openEuler:Factory": "master",
             "openEuler:Mainline": "master",
             "openEuler:20.03:LTS": "openEuler-20.03-LTS",
-            "openEuler:20.09": "openEuler-20.09"
+            "openEuler:20.09": "openEuler-20.09",
+            "openEuler:20.03:LTS:Next": "openEuler-20.03-LTS-Next"
         }
 
     GITEE_OWNER = "src-openeuler"
