@@ -123,8 +123,8 @@ if "__main__" == __name__:
     from src.proxy.obs_proxy import OBSProxy
     from src.proxy.gitee_proxy import GiteeProxy
 
-    for project in args.project:
-        for state in args.state:
-            report = ObsPackageBuildReport(project, state, args.real_name_mapping_file)
+    for prj in args.project:
+        for states in args.state:
+            report = ObsPackageBuildReport(prj, states, args.real_name_mapping_file)
             report.get_last_committer(args.token)
             report.dump()
