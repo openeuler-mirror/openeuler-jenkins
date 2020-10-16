@@ -1,0 +1,38 @@
+From 48cb6db25b31eebe7bdd330d812c52d3c93aa328 Mon Sep 17 00:00:00 2001
+From: "yuuji.yaginuma" <yuuji.yaginuma@gmail.com>
+Date: Tue, 13 Dec 2016 07:50:42 +0900
+Subject: [PATCH] fix new warning in ruby 2.4
+
+This fixes the following warning.
+
+```
+/home/travis/build/mikel/mail/lib/mail/fields/common/address_container.rb:11: warning: parentheses after method name is interpreted as
+/home/travis/build/mikel/mail/lib/mail/fields/common/address_container.rb:11: warning: an argument list, not a decomposed argument
+```
+
+Ref: https://github.com/ruby/ruby/commit/65e27c8b138d6959608658ffce2fa761842b8d24
+---
+ lib/mail/fields/common/address_container.rb | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/mail/fields/common/address_container.rb b/lib/mail/fields/common/address_container.rb
+index f4a5aec..48c1286 100644
+--- a/lib/mail/fields/common/address_container.rb
++++ b/lib/mail/fields/common/address_container.rb
+@@ -8,10 +8,10 @@ module Mail
+       super(list)
+     end
+ 
+-    def << (address)
++    def <<(address)
+       @field << address
+     end
+ 
+   end
+   
+-end
+\ No newline at end of file
++end
+-- 
+2.11.0
+

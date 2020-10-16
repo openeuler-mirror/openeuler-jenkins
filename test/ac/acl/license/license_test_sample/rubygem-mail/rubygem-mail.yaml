@@ -1,0 +1,4 @@
+version_control: github
+src_repo: mikel/mail
+tag_prefix: ""
+seperator: "."

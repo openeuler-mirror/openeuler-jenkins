@@ -1,0 +1,59 @@
+From e8fde9cf1d77ee7e465c12e809501df8d27e8451 Mon Sep 17 00:00:00 2001
+From: Koichi ITO <koic.ito@gmail.com>
+Date: Sun, 4 Dec 2016 12:33:06 +0800
+Subject: [PATCH] Fix deprecated warnings in Ruby 2.4.0+
+
+---
+ lib/mail/attachments_list.rb                         | 2 +-
+ lib/mail/multibyte/chars.rb                          | 4 ++--
+ lib/mail/network/retriever_methods/test_retriever.rb | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/lib/mail/attachments_list.rb b/lib/mail/attachments_list.rb
+index bb34a85..14fe31c 100644
+--- a/lib/mail/attachments_list.rb
++++ b/lib/mail/attachments_list.rb
+@@ -30,7 +30,7 @@ module Mail
+     # mail.attachments['test.png'].filename #=> 'test.png'
+     # mail.attachments[1].filename          #=> 'test.jpg'
+     def [](index_value)
+-      if index_value.is_a?(Fixnum)
++      if index_value.is_a?(Integer)
+         self.fetch(index_value)
+       else
+         self.select { |a| a.filename == index_value }.first
+diff --git a/lib/mail/multibyte/chars.rb b/lib/mail/multibyte/chars.rb
+index bb39897..2e431ca 100644
+--- a/lib/mail/multibyte/chars.rb
++++ b/lib/mail/multibyte/chars.rb
+@@ -269,12 +269,12 @@ module Mail #:nodoc:
+           @wrapped_string[*args] = replace_by
+         else
+           result = Unicode.u_unpack(@wrapped_string)
+-          if args[0].is_a?(Fixnum)
++          if args[0].is_a?(Integer)
+             raise IndexError, "index #{args[0]} out of string" if args[0] >= result.length
+             min = args[0]
+             max = args[1].nil? ? min : (min + args[1] - 1)
+             range = Range.new(min, max)
+-            replace_by = [replace_by].pack('U') if replace_by.is_a?(Fixnum)
++            replace_by = [replace_by].pack('U') if replace_by.is_a?(Integer)
+           elsif args.first.is_a?(Range)
+             raise RangeError, "#{args[0]} out of range" if args[0].min >= result.length
+             range = args[0]
+diff --git a/lib/mail/network/retriever_methods/test_retriever.rb b/lib/mail/network/retriever_methods/test_retriever.rb
+index 9bb3e1a..dfbc909 100644
+--- a/lib/mail/network/retriever_methods/test_retriever.rb
++++ b/lib/mail/network/retriever_methods/test_retriever.rb
+@@ -25,7 +25,7 @@ module Mail
+       emails_index.reverse! if options[:what] == :last
+       emails_index = case count = options[:count]
+         when :all then emails_index
+-        when Fixnum then emails_index[0, count]
++        when Integer then emails_index[0, count]
+         else
+           raise 'Invalid count option value: ' + count.inspect
+       end
+-- 
+2.11.0
+

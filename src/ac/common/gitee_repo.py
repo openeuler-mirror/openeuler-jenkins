@@ -21,6 +21,7 @@ import logging
 
 from src.proxy.git_proxy import GitProxy
 from src.utils.shell_cmd import shell_cmd_live
+from src.ac.acl.package_license.package_license import PkgLicense
 
 logger = logging.getLogger("ac")
 
@@ -168,38 +169,89 @@ class GiteeRepo(object):
 
         return 0 if all(rs) else (1 if any(rs) else -1)
 
+    def scan_license_in_spec(self, spec):
+        """
+        Find spec file and scan. If no spec file or open file failed, the program will exit with an error. 
+        """
+        if not spec:
+            return set()
+        licenses = spec.license
+        licenses_in_spec = PkgLicense.split_license(licenses)
+        logger.info("all licenses from SPEC: %s", licenses_in_spec)
+        return licenses_in_spec
+
     @staticmethod
     def is_py_file(filename):
+        """
+        功能描述：判断文件是否是python文件
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".py",))
 
     @staticmethod
     def is_go_file(filename):
+        """
+        功能描述：判断文件名是否是go文件
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".go",))
 
     @staticmethod
     def is_c_cplusplus_file(filename):
+        """
+        功能描述：判断文件名是否是c++文件
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".c", ".cpp", ".cc", ".cxx", ".c++", ".h", ".hpp", "hxx"))
 
     @staticmethod
     def is_code_file(filename):
+        """
+        功能描述：判断文件名是否是源码文件
+        参数：文件名
+        返回值：bool
+        """
         return GiteeRepo.is_py_file(filename) \
                or GiteeRepo.is_go_file(filename) \
                or GiteeRepo.is_c_cplusplus_file(filename)
 
     @staticmethod
     def is_patch_file(filename):
+        """
+        功能描述：判断文件名是否是补丁文件
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".patch", ".diff"))
 
     @staticmethod
     def is_compress_file(filename):
+        """
+        功能描述：判断文件名是否是压缩文件
+        参数：文件名
+        返回值：bool
+        """
         return GiteeRepo._is_compress_tar_file(filename) or GiteeRepo._is_compress_zip_file(filename)
 
     @staticmethod
     def _is_compress_zip_file(filename):
+        """
+        功能描述：判断文件名是否是zip压缩文件
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".zip",))
 
     @staticmethod
     def _is_compress_tar_file(filename):
+        """
+        功能描述：判断文件名是否是tar压缩文件
+        参数：文件名
+        返回值：bool
+        """
         return filename.endswith((".tar.gz", ".tar.bz", ".tar.bz2", ".tar.xz", "tgz"))
 
     @staticmethod
