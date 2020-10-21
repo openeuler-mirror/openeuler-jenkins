@@ -75,11 +75,12 @@ class ObsPackageBuildReport(object):
         :param gitee_api_token: 码云api token
         :return:
         """
-        try:
-            branch = self.__class__.PROJECT_BRANCH_MAPPING[self._project]
-        except KeyError:
-            logger.exception("project {} not support".format(self._project))
-            return
+#        try:
+#            branch = self.__class__.PROJECT_BRANCH_MAPPING[self._project]
+#        except KeyError:
+#            logger.exception("project {} not support".format(self._project))
+#            return
+        branch = "master"
 
         # get packages in project of state
         packages = OBSProxy.list_packages_of_state(self._project, self._state)
