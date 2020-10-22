@@ -5,3 +5,5 @@ threadpool
 PyYAML
 gevent==1.2.2
 jsonpath
+mock
+tldextract

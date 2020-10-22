@@ -1,0 +1,4 @@
+version_control: gnu-ftp
+src_repo: help2man
+tag_prefix: help2man-(.*).tar.xz(.sig)?
+seperator: "."

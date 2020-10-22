@@ -1,0 +1,4 @@
+version_control: gitee
+src_repo: openEuler/iSulad
+tag_prefix: "v"
+seperator: "."
