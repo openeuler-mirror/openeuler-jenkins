@@ -53,7 +53,7 @@ class CheckPackageYaml(BaseCheck):
         self._gp = GitProxy(self._work_dir)
         self._gr = GiteeRepo(self._repo, self._work_dir, None)  # don't care about decompress
         if self._gr.spec_file:
-            self._spec = RPMSpecAdapter(self._gr.spec_file)
+            self._spec = RPMSpecAdapter(os.path.join(self._work_dir, self._gr.spec_file))
         else:
             self._spec = None
         self._yaml_content = None

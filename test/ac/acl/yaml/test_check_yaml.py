@@ -299,8 +299,6 @@ class TestCheckConsistency(unittest.TestCase):
     }
 
     def _test_repo_domain(self, dir_key, predict):
-        os.chdir(os.path.join(TestCheckConsistency.DIR_PATH, 
-                              TestCheckConsistency.TEST_SAMPLE_DIR[dir_key]))
         self.cy = CheckPackageYaml(TestCheckConsistency.DIR_PATH, 
                                    TestCheckConsistency.TEST_SAMPLE_DIR[dir_key],
                                    None)
@@ -321,8 +319,6 @@ class TestCheckConsistency(unittest.TestCase):
         self._test_repo_domain("pypi", SUCCESS)
 
     def _test_repo_name(self, dir_key, predict):
-        os.chdir(os.path.join(TestCheckConsistency.DIR_PATH, 
-                              TestCheckConsistency.TEST_SAMPLE_DIR[dir_key]))
         self.cy = CheckPackageYaml(TestCheckConsistency.DIR_PATH, 
                                    TestCheckConsistency.TEST_SAMPLE_DIR[dir_key],
                                    None)
@@ -340,7 +336,6 @@ class TestCheckConsistency(unittest.TestCase):
         self._test_repo_name("svn", SUCCESS)
 
 if __name__ == '__main__':
-    work_dir = os.getcwd()
     _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../src/conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
@@ -354,5 +349,4 @@ if __name__ == '__main__':
     # Test check repo name and repo domain
     suite = unittest.makeSuite(TestCheckConsistency)
     unittest.TextTestRunner().run(suite)
-    os.chdir(work_dir)
     shutil.rmtree("log")
