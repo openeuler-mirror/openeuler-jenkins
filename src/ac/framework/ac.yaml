@@ -12,5 +12,5 @@ code:
 yaml:
   hint: check_yaml_file
   module: yaml.check_yaml
-  entry: CheckYaml
+  entry: CheckPackageYaml
   ignored: ["fields"]
