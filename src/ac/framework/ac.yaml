@@ -10,7 +10,7 @@ code:
   #exclude: True
   ignored: []
 yaml:
-  hint: check_yaml_file
-  module: yaml.check_yaml
+  hint: check_package_yaml_file
+  module: package_yaml.check_yaml
   entry: CheckPackageYaml
   ignored: ["fields"]

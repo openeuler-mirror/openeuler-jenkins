@@ -1,0 +1,4 @@
+version_control: gitlab.gnome
+src_repo: gnome-dictionary
+tag_prefix: "^v"
+separator: "."

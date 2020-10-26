@@ -1,0 +1,4 @@
+version_control: hg
+src_repo: https://hg.nginx.org/nginx
+tag_prefix: release-
+separator: "."

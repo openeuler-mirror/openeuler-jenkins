@@ -1,0 +1,4 @@
+version_control: rubygem
+src_repo: idn
+tag_prefix: ""
+separator: "."

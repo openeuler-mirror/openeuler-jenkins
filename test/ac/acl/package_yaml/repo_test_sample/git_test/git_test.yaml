@@ -1,0 +1,4 @@
+version_control: git
+src_repo: https://git.savannah.gnu.org/git/autoconf.git
+tag_prefix: "^v"
+separator: "."
