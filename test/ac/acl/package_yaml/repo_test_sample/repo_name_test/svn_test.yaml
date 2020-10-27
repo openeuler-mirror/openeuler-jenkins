@@ -1,0 +1,4 @@
+version_control: svn
+src_repo: https://svn.code.sf.net/p/lame/svn
+tag_prefix: "^lame"
+separator: _

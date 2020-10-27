@@ -1,0 +1,4 @@
+version_control: metacpan
+src_repo: HTML-Tagset
+tag_prefix: "v"
+separator: "."

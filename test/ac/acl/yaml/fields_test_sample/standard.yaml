@@ -1,4 +1,0 @@
-version_control: testvc
-src_repo: src/repo
-tag_prefix: "v"
-seperator: "."

@@ -1,0 +1,4 @@
+version_control: pypi
+src_repo: idna
+tag_prefix: "v"
+separator: "."
