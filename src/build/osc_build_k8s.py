@@ -137,6 +137,7 @@ class SinglePackageBuild(object):
                     param.text = "tar_local"
                 elif param.get("name") == "url":
                     if "openEuler_kernel" in param.text or "LTS_kernel" in param.text \
+                            or "openEuler-kernel" in param.text \
                             or "openEuler-20.09_kernel" in param.text:
                         param.text = "{}/{}".format(code_path, "code")  # kernel special logical
                     else:
