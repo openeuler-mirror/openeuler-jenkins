@@ -96,8 +96,8 @@ class CheckConfig(object):
         """
         Check md5sum
         """
-        old_md5 = subprocess.run(['md5sum', old_rpm], stdout=subprocess.PIPE, encoding='utf-8')
-        new_md5 = subprocess.run(['md5sum', new_rpm], stdout=subprocess.PIPE, encoding='utf-8')
+        old_md5 = subprocess.run(['md5sum', old_rpm], stdout=subprocess.PIPE)
+        new_md5 = subprocess.run(['md5sum', new_rpm], stdout=subprocess.PIPE)
         return old_md5.stdout.split()[0] == new_md5.stdout.split()[0]
 
     def _check_diff(self, old_and_new_path):
@@ -189,8 +189,8 @@ class CheckConfig(object):
             if self._md5_check(self._old_rpm, self._new_rpm):
                 logging.info("Same RPM")
                 return
-            old_config = subprocess.run(['rpm', '-qpc', self._old_rpm], stdout=subprocess.PIPE, encoding='utf-8')
-            new_config = subprocess.run(['rpm', '-qpc', self._new_rpm], stdout=subprocess.PIPE, encoding='utf-8')
+            old_config = subprocess.run(['rpm', '-qpc', self._old_rpm], stdout=subprocess.PIPE)
+            new_config = subprocess.run(['rpm', '-qpc', self._new_rpm], stdout=subprocess.PIPE)
             for line in old_config.stdout.split():
                 self._remove_file.add(line)
             for line in new_config.stdout.split():
