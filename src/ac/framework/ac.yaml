@@ -9,7 +9,7 @@ code:
   entry: CheckCodeStyle
   #exclude: True
   ignored: []
-yaml:
+package_yaml:
   hint: check_package_yaml_file
   module: package_yaml.check_yaml
   entry: CheckPackageYaml
