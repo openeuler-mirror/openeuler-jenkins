@@ -132,6 +132,21 @@ class GitProxy(object):
 
         return True
 
+    def checkout_to_commit_force(self, commit):
+        """
+        git checkout
+        :param commit: HEAD~{} or SHA
+        :return: boolean
+        """
+        checkout_cmd = "cd {}; git checkout -f {}".format(self._repo_dir, commit)
+        ret, _, _ = shell_cmd_live(checkout_cmd)
+
+        if ret:
+            logger.warning("checkout failed, {}".format(ret))
+            return False
+
+        return True
+
     def get_tree_hashes(self, commit, number=0, with_merges=True):
         """
         获取tree对象hash值
