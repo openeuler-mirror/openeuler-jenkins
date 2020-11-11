@@ -79,7 +79,7 @@ class CheckSpec(BaseCheck):
             logger.debug("only change package yaml")
             return SUCCESS
 
-        self._gp.checkout_to_commit("HEAD~1")
+        self._gp.checkout_to_commit_force("HEAD~1")
         try:
             gr = GiteeRepo(self._repo, self._work_dir, None)    # don't care about decompress
             fp = self._gp.get_content_of_file_with_commit(gr.spec_file)
@@ -88,7 +88,7 @@ class CheckSpec(BaseCheck):
                 return SUCCESS
             spec_o = RPMSpecAdapter(fp)
         finally:
-            self._gp.checkout_to_commit(self._latest_commit)   # recover whatever
+            self._gp.checkout_to_commit_force(self._latest_commit)   # recover whatever
 
         self._ex_pkgship(spec_o)
 
