@@ -7,3 +7,4 @@ gevent==1.2.2
 jsonpath
 mock
 tldextract
+chardet
