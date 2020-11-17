@@ -105,6 +105,7 @@ class CheckConfig(object):
         Check diff file
         """
         for name in self._need_check_file:
+            logging.info("config file:%s", name)
             name = name.split("/", 1)[-1].split()[0]
             logging.debug("path:%s", old_and_new_path)
             if self._md5_check(os.path.join(old_and_new_path[0], name), os.path.join(old_and_new_path[1], name)):
@@ -162,6 +163,7 @@ class CheckConfig(object):
             logging.info("\n---Change infos write at:%s----", self._output_file)
         else:
             logging.info("\n---Configs are same----")
+            os.remove(self._output_file)
         ofile.close()
     
     def _get_rpms(self, rpm_url, dest):
