@@ -1,4 +1,5 @@
-FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:20.09
+# replace VERSION before build
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:VERSION
 
 RUN set -eux; \
     yum install -y tar wget python3 expect osc vim openssh shadow git
