@@ -1,7 +1,7 @@
-FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:20.03-lts-08-20
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:20.09
 
 RUN set -eux; \
-    yum install -y tar wget
+    yum install -y tar wget python3 expect osc vim openssh shadow git
 
 # Default to UTF-8 file.encoding
 ENV LANG C.UTF-8

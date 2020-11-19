@@ -1,4 +1,5 @@
-FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk-openeuler:11-jdk-stretch
+# replace VERSION before run
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler-VERSION/openjdk:11-jdk-stretch
 
 ARG VERSION=4.3
 ARG user=jenkins
@@ -6,8 +7,6 @@ ARG group=jenkins
 ARG uid=1000
 ARG gid=1000
 ARG AGENT_WORKDIR=/home/${user}/agent
-
-RUN yum install -y shadow git
 
 RUN curl --create-dirs -fsSLo /usr/share/jenkins/agent.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
     && chmod 755 /usr/share/jenkins \
