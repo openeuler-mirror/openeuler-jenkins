@@ -63,3 +63,15 @@
 
 多arch支持
 > docker manifest push时Registry Credentials?
+
+## 目录结构
+| 目录 | 描述 |
+| --- | --- |
+|ac/framework | 门禁框架 |
+|ac/acl | 门禁任务，每个门禁项对应一个目录 |
+|ac/common | 门禁通用代码 |
+|build| 单包构建|
+|jobs| jenkins任务管理|
+|conf|配置|
+|proxy|第三方接口代理|
+|utils|通用代码，日志等|
