@@ -25,6 +25,7 @@ import os
 import argparse
 import time
 import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import ParseError
 import json
 
 logger = logging.getLogger("common")
@@ -42,7 +43,12 @@ class JobBuildHistory(object):
         :return:
         """
         history = OBSProxy.build_history(project, package, repo, arch)
-        root = ET.fromstring(history)
+        try:
+            root = ET.fromstring(history)
+        except ParseError:
+            logger.exception("package: {}, build history: {}".format(package, history))
+            return {"package": package, "max": 0, "min": 0, "average": 0, "times": -1}
+
         duration = [int(ele.get("duration")) for ele in root.findall("entry")]
 
         if not duration:
@@ -52,16 +58,16 @@ class JobBuildHistory(object):
                 "average": sum(duration) / len(duration), "times": len(duration)}
 
     @staticmethod
-    def get_packages_job_duration(project, repo, arch, *packages):
+    def get_packages_job_duration(project, repo, arch, concurrency, *packages):
         """
         获取多个包任务构建时间信息
         :param project:
         :param packages:
         :param repo:
         :param arch:
+        :param concurrency:
         :return:
         """
-        concurrency = 100
         batch = (len(packages) + concurrency - 1) / concurrency
 
         rs = []
@@ -80,7 +86,7 @@ class JobBuildHistory(object):
         return rs
 
     @staticmethod
-    def get_jobs_duration(project, repo, arch):
+    def get_jobs_duration(project, repo, arch, concurrency=50):
         """
         获取项目下所有包构建时间信息
         :param project:
@@ -90,7 +96,7 @@ class JobBuildHistory(object):
         """
         packages = OBSProxy.list_project(project)
 
-        return JobBuildHistory.get_packages_job_duration(project, repo, arch, *packages)
+        return JobBuildHistory.get_packages_job_duration(project, repo, arch, concurrency, *packages)
 
 
 if "__main__" == __name__:
@@ -100,11 +106,12 @@ if "__main__" == __name__:
     args.add_argument("-g", type=str, dest="packages", nargs="+", help="package")
     args.add_argument("-r", type=str, dest="repo", help="repo")
     args.add_argument("-a", type=str, dest="arch", help="arch")
+    args.add_argument("-c", type=str, dest="concurrency", help="concurrency for obs")
     args.add_argument("-o", type=str, dest="output", help="output file")
 
     args = args.parse_args()
 
-    not os.path.exists("log") and os.mkdir("log")
+    _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
@@ -112,9 +119,10 @@ if "__main__" == __name__:
     from src.proxy.obs_proxy import OBSProxy
 
     if args.packages:
-        result = JobBuildHistory.get_packages_job_duration(args.project, args.repo, args.arch, *args.packages)
+        result = JobBuildHistory.get_packages_job_duration(args.project, args.repo, args.arch, 
+                int(args.concurrency), *args.packages)
     else:
-        result = JobBuildHistory.get_jobs_duration(args.project, args.repo, args.arch)
+        result = JobBuildHistory.get_jobs_duration(args.project, args.repo, args.arch, int(args.concurrency))
 
     if args.output:
         with open(args.output, "w") as f:
