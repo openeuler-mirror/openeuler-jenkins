@@ -132,3 +132,21 @@ class OBSProxy(object):
             return False
 
         return True
+
+    @staticmethod
+    def build_history(project, package, repo, arch):
+        """
+        构建历史
+        :param project:
+        :param package:
+        :param repo:
+        :param arch:
+        :return:
+        """
+        cmd = "osc api /build/{}/{}/{}/{}/_history".format(project, repo, arch, package)
+        ret, out, _ = shell_cmd_live(cmd, cap_out=True)
+        if ret:
+            logger.debug("list build history of package error, {}".format(ret))
+            return ""
+
+        return "\n".join(out)
