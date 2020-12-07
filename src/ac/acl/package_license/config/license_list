@@ -1,263 +1,451 @@
+0BSD,white
+AAL,white
+ADSL,black
 AFL, white
+AFL-1.1,white
+AFL-1.2,white
+AFL-2.0,white
+AFL-2.1,white
+AFL-3.0,white
 AFLv2.1, white
+AGPL-1.0-only,black
+AGPL-1.0-or-later,black
 AGPL-3.0, white
+AGPL-3.0-only,black
+AGPL-3.0-or-later,black
 AGPLv3, white
 AGPLv3+, white
-Apache, white
-Apache-2, white
-Apache-2.0, white
-APSL-2.0, white
-Artistic, white
-Artistic-1.0, white
-Artistic-2.0, white
+AMDPLPA,black
+AML,black
+AMPAS,black
+AND, black
+ANTLR-PD,black
+APAFML,black
+APL-1.0,black
+APSL-1.0,black
+APSL-1.1,black
+APSL-1.2,black
+APSL-2.0,white
 ASL-1.0, white
 ASL-1.1, white
 ASL-2.0, white
-Boost, white
+Abstyles,black
+Adobe-2006,black
+Adobe-Glyph,black
+Afmparse,black
+Aladdin,black
+Apache, white
+Apache-1.1,white
+Apache-2, white
+Apache-2.0,white
+Arphic, black
+Artistic, white
+Artistic-1.0,black
+Artistic-1.0-Perl,black
+Artistic-1.0-cl8,black
+Artistic-2.0,white
 BSD, white
-BSD-2-Clause, white
-BSD-2-Clause-Patent, white
-BSD3, white
-BSD-3-Clause, white
+BSD-1-Clause,white
+BSD-2-Clause,white
+BSD-2-Clause-Patent,white
+BSD-3-Clause,white
+BSD-3-Clause-Attribution,black
+BSD-3-Clause-LBNL,black
+BSD-3-Clause-No-Nuclear-License,black
+BSD-3-Clause-No-Nuclear-License-2014,black
+BSD-3-Clause-No-Nuclear-Warranty,black
+BSD-3-Clause-Open-MPI,black
+BSD-4-Clause-UC,black
+BSD-Protection,black
+BSD-Source-Code,black
 BSD-licenced-3, white
-BSL-1.0, white
-CC0, white
-CC0-1.0, white
+BSD3, white
+BSL-1.0,white
+Bahyph,black
+Barr,black
+Beerware,black
+BitTorrent-1.0,black
+BlueOak-1.0.0,black
+Boost, white
+Borceux,black
+CAL-1.0,black
+CAL-1.0-Combined-Work-Exception,black
+CATOSL-1.1,white
+CC-BY, black
+CC-BY-1.0,black
+CC-BY-2.0,black
+CC-BY-2.5,black
+CC-BY-3.0,black
+CC-BY-4.0,white
+CC-BY-NC-1.0,black
+CC-BY-NC-2.0,black
+CC-BY-NC-2.5,black
+CC-BY-NC-3.0,black
+CC-BY-NC-4.0,black
+CC-BY-NC-ND-1.0,black
+CC-BY-NC-ND-2.0,black
+CC-BY-NC-ND-2.5,black
+CC-BY-NC-ND-3.0,black
+CC-BY-NC-ND-4.0,black
+CC-BY-NC-SA-1.0,black
+CC-BY-NC-SA-2.0,black
+CC-BY-NC-SA-2.5,black
+CC-BY-NC-SA-3.0,black
+CC-BY-NC-SA-4.0,black
+CC-BY-ND-1.0,black
+CC-BY-ND-2.0,black
+CC-BY-ND-2.5,black
+CC-BY-ND-3.0,black
+CC-BY-ND-4.0,black
+CC-BY-SA, black
+CC-BY-SA-1.0,black
+CC-BY-SA-2.0,black
+CC-BY-SA-2.5,black
+CC-BY-SA-3.0,black
+CC-BY-SA-4.0,white
+CC-PDDC,black
+CC0, black
+CC0-1.0,white
 CDDL, white
-GFDL-1.1, white
-Commons Clause 1.0, white
+CDDL-1.0,white
+CDDL-1.1,black
+CDLA-Permissive-1.0,black
+CDLA-Sharing-1.0,black
+CECILL-1.0,black
+CECILL-1.1,black
+CECILL-2.1,black
+CERN-OHL-1.1,black
+CERN-OHL-1.2,black
+CERN-OHL-P-2.0,black
+CERN-OHL-S-2.0,black
+CERN-OHL-W-2.0,black
+CNRI-Jython,black
+CNRI-Python,white
+CNRI-Python-GPL-Compatible,black
+CPAL-1.0,white
 CPL, white
-CPL-1.0, white
+CPL-1.0,white
+CPOL-1.02,black
+CUA-OPL-1.0,black
+Caldera,black
+Commons Clause,black
+Commons Clause 1.0, white
+Crossword,black
+CrystalStacker,black
+Cube,black
+D-FSL-1.0,black
+DMIT,black
+DMTF, black
+DOC,black
+DSDP,black
+Dotseqn,black
+ECL-1.0,black
+ECL-2.0,white
+EFL-1.0,black
+EFL-2.0,white
 EPL, white
-EPL-2.0, white
-GPL-1.0, white
+EPL-1.0,white
+EPL-2.0,white
+EUDatagrid,white
+EUPL-1.0,black
+EUPL-1.1,white
+EUPL-1.2,white
+Entessa,black
+ErlPL-1.1,black
+Eurosym,black
+FSFAP, black
+FSFUL,black
+FSFULLR,black
+FTL, black
+Fair,white
+Frameworx-1.0,black
+FreeImage,black
+GFDL-1.1, white
+GL2PS,black
 GPL, white
 GPL+, white
+GPL-1.0, white
 GPL-1.0+, white
-GPL2, white
+GPL-1.0-only,black
+GPL-1.0-or-later,black
 GPL-2, white
 GPL-2.0, white
 GPL-2.0+, white
-GPL-2.0-only, white
-GPL-2.0-or-later, white
+GPL-2.0-only,white
+GPL-2.0-or-later,white
 GPL-3.0, white
 GPL-3.0+, white
-GPL-3.0-only, white
+GPL-3.0-only,white
+GPL-3.0-or-later,white
+GPL2, white
+GPLV2, white
+GPLV2+, white
 GPLv1+, white
 GPLv2, white
-GPLV2, white
 GPLv2+, white
-GPLV2+, white
 GPLv2-or-later, white
 GPLv3, white
 GPLv3+, white
-ISC, white
+Giftware,black
+Glide,black
+Glulxe,black
+HPND,white
+HPND-sell-variant,black
+HaskellReport,black
+Hippocratic-2.1,black
+IBM, black
+IBM-pibs,black
+ICU,black
+IEEE, black
+IJG,white
+IPA,white
+IPL-1.0,white
+ISC,white
+ImageMagick,black
+Info-ZIP,black
+Intel,white
+Intel-ACPI,black
+Interbase, black
+Interbase-1.0,black
+JPNIC,black
+JSON,black
+JasPer-2.0,black
+Knuth, black
+LAL-1.2,black
+LAL-1.3,black
 LGPL-2.0, white
 LGPL-2.0+, white
+LGPL-2.0-only,white
+LGPL-2.0-or-later,white
 LGPL-2.1, white
 LGPL-2.1+, white
+LGPL-2.1-only,white
+LGPL-2.1-or-later,white
 LGPL-3.0+, white
+LGPL-3.0-only,white
+LGPL-3.0-or-later,white
+LGPLLR,black
 LGPLv2, white
+LGPLv2+, white
 LGPLv2.1, white
 LGPLv2.1+, white
-LGPLv2+, white
 LGPLv3, white
 LGPLv3+, white
+LPL-1.0,black
+LPL-1.02,white
 LPPL, white
-MirOS, white
-MIT, white
-MPLv1.1, white
-MPLv2.0, white
+LPPL-1.0,black
+LPPL-1.1,black
+LPPL-1.3c,white
+Latex2e,black
+Leptonica,black
+LiLiQ-P-1.1,black
+LiLiQ-R-1.1,black
+LiLiQ-Rplus-1.1,black
+Liberation, black
+Libpng,black
+Licence-2.0, black
+Linux-OpenIB,black
+Lucida, black
+MIT,white
+MIT-0,black
+MIT-CMU,black
+MIT-advertising,black
+MIT-enna,black
+MIT-feh,black
+MITNFA,black
+MPL-1.0,white
+MPL-1.1,white
 MPL-2, white
-MPL-2.0, white
+MPL-2.0,white
+MPL-2.0-no-copyleft-exception,black
 MPL2, white
 MPLv1.1, white
-MPL-1.1, white
+MPLv2.0, white
+MS-PL,white
+MS-RL,white
+MTLL,black
+MakeIndex,black
+MirOS,white
+Motosoto,white
+Mulan 2.0, white
 Mulan-PSL-1, white
 Mulan-PSL-2, white
-Mulan 2.0, white
-NCSA, white
-OFL, white
-OSL-2.1, white
-Perl, white
-Artistic-1.0-Perl, white
-PHP, white
-PostgreSQL, white
-Python, white
-Python-2.0, white
-QPL, white
-SISSL, white
-Sleepycat, white
-SSPL-1.0, white
-W3C, white
-zlib, white
-Zlib, white
-ZPL-2.0, white
-ZPLv2.0, white
-ZPLv2.1, white
-ZPL-2.1, white
-Adobe-2006, black
-ADSL, black
-Afmparse, black
-Afmparse, black
-AGPL-1.0-or-later, black
-AMDPLPA, black
-AML, black
-AMPAS, black
-AND, black
-Arphic, black
-Barr, black
-BitTorrent-1.0, black
-blessing, black
-Borceux, black
-BSD-3-Clause-Attribution, black
-BSD-3-Clause-No-Nuclear-License-2014, black
-BSD-3-Clause-Open-MPI, black
-BSD-4-Clause-UC, black
-BSD-Source-Code, black
-bzip2-1.0.5, black
-Caldera, black
-CC0, black
-CC0-1.0, black
-CC-BY, black
-CC-BY-1.0, black
-CC-BY-2.5, black
-CC-BY-NC-2.0, black
-CC-BY-NC-3.0, black
-CC-BY-NC-ND-1.0, black
-CC-BY-NC-ND-2.5, black
-CC-BY-NC-ND-4.0, black
-CC-BY-NC-SA-2.0, black
-CC-BY-NC-SA-3.0, black
-CC-BY-ND-1.0, black
-CC-BY-ND-2.5, black
-CC-BY-ND-4.0, black
-CC-BY-SA, black
-CC-BY-SA-2.0, black
-CC-BY-SA-3.0, black
-CC-BY-SA-3.0, black
-CC-PDDC, black
-CDLA-Permissive-1.0, black
-CECILL-1.0, black
-CERN-OHL-1.1, black
-CERN-OHL-P-2.0, black
-CERN-OHL-W-2.0, black
-CNRI-Jython, black
-CNRI-Python-GPL-Compatible, black
-copyleft-next-0.3.0, black
-CPOL-1.02, black
-CrystalStacker, black
-Cube, black
-D-FSL-1.0, black
-DMIT, black
-DMTF, black
-DOC, black
-DSDP, black
-eGenix, black
-ErlPL-1.1, black
-Eurosym, black
-FSFAP, black
-FSFULLR, black
-FTL, black
-Giftware, black
-Glide, black
-gnuplot, black
-GPL-1.0-or-later, black
-HaskellReport, black
-IBM, black
-IBM-pibs, black
-ICU, black
-IEEE, black
-IJG, black
-ImageMagick, black
-Info-ZIP, black
-Info-ZIP, black
-Intel-ACPI, black
-Interbase, black
-JPNIC, black
-Knuth, black
-LAL-1.2, black
-Latex2e, black
-LGPLLR, black
-Liberation, black
-libpng-2.0, black
-libtiff, black
-libtiff, black
-Licence-2.0, black
-Linux-OpenIB, black
-LPPL-1.1, black
-Lucida, black
-MakeIndex, black
-MIT-advertising, black
-MIT-enna, black
-MITNFA, black
-mpich2, black
-MulanPSL-1.0, black
-NBPL-1.0, black
-NetCDF, black
+MulanPSL-1.0,black
+MulanPSL-2.0,white
+Multics,black
+Mup,black
+NASA-1.3,black
+NBPL-1.0,black
+NCGL-UK-2.0,black
+NCSA,white
+NGPL,white
+NLOD-1.0,black
+NLPL,black
+NPOSL-3.0,black
+NRL,black
+NTP,white
+NTP-0,black
+Naumen,white
+Net-SNMP,black
+NetCDF,black
 Netscape, black
-NLPL, black
+Newsletr,black
 Nmap, black
-ODC-By-1.0, black
-OFL-1.0-no-RFN, black
+Nokia,white
+Noweb,black
+O-UDA-1.0,black
+OCCT-PL,black
+OCLC-2.0,black
+ODC-By-1.0,black
+OFL, white
+OFL-1.0-RFN,black
+OFL-1.0-no-RFN,black
+OFL-1.1,white
+OFL-1.1-RFN,black
+OFL-1.1-no-RFN,black
 OFSFDL, black
-OGL-Canada-2.0, black
-OGL-UK-2.0, black
-OLDAP-1.2, black
-OLDAP-1.4, black
-OLDAP-2.0.1, black
-OLDAP-2.2, black
-OLDAP-2.2.2, black
-OLDAP-2.4, black
-OLDAP-2.6, black
-OLDAP-2.8, black
+OGC-1.0,black
+OGL-Canada-2.0,black
+OGL-UK-1.0,black
+OGL-UK-2.0,black
+OGL-UK-3.0,black
+OGTSL,black
+OLDAP-1.1,black
+OLDAP-1.2,black
+OLDAP-1.3,black
+OLDAP-1.4,black
+OLDAP-2.0,black
+OLDAP-2.0.1,black
+OLDAP-2.1,black
+OLDAP-2.2,black
+OLDAP-2.2.1,black
+OLDAP-2.2.2,black
+OLDAP-2.4,black
+OLDAP-2.5,black
+OLDAP-2.6,black
+OLDAP-2.8,black
+OML,black
+OPL-1.0,black
+OSET-PL-2.1,black
+OSL-1.0,white
+OSL-2.0,white
+OSL-2.1,white
+OSL-3.0,white
 OpenLDAP, black
-OpenSSL, black
-O-UDA-1.0, black
-Parity-6.0.0, black
-PDDL-1.0, black
-PolyForm-Noncommercial-1.0.0, black
+OpenSSL,white
+PDDL-1.0,black
+PHP, white
+PHP-3.0,white
 PSF, black
-psfrag, black
-psutils, black
+PSF-2.0,black
+Parity-6.0.0,black
+Parity-7.0.0,black
+Perl, white
+Plexus,black
+PolyForm-Noncommercial-1.0.0,black
+PolyForm-Small-Business-1.0.0,black
+PostgreSQL,white
 Pubilc, black
-Qhull, black
-RHeCos-1.1, black
-RSA-MD, black
-Ruby, black
-Saxpath, black
-Sendmail, black
-Sendmail, black
-SGI-B-1.0, black
-SHL-0.51, black
-SMPPL, black
-SNIA, black
-Spencer-86, black
-Spencer-99, black
-SSH-OpenSSH, black
+Python, white
+Python-2.0,white
+QPL, white
+QPL-1.0,white
+Qhull,black
+RHeCos-1.1,black
+RPL-1.1,black
+RPL-1.5,black
+RPSL-1.0,white
+RSA-MD,black
+RSCPL,black
+Rdisc,black
+Ruby,white
+SAX-PD,black
+SCEA,black
+SGI-B-1.0,black
+SGI-B-1.1,black
+SHL-0.5,black
+SHL-0.51,black
+SISSL,white
+SISSL-1.2,black
+SMPPL,black
+SNIA,black
+SPL-1.0,white
+SSH-OpenSSH,black
+SSH-short,black
 SSLeay, black
-SWL, black
-SWL, black
+SSPL-1.0,black
+SWL,black
+Saxpath,black
+Sendmail,black
+Sendmail-8.23,black
+SimPL-2.0,black
+Sleepycat,white
+Spencer-86,black
+Spencer-94,black
+Spencer-99,black
+SugarCRM-1.1.3,black
+TAPR-OHL-1.0,black
 TCGL, black
-TCL, black
-TCL, black
-TMate, black
-TOSL, black
+TCL,white
+TCP-wrappers,black
+TMate,black
+TORQUE-1.1,black
+TOSL,black
 TTWL, black
-TU-Berlin-2.0, black
-UCD, black
+TU-Berlin-1.0,black
+TU-Berlin-2.0,black
+UCD,white
+UCL-1.0,black
+UPL-1.0,white
 Unicode, black
-Unicode-DFS-2015, black
-Unicode-TOU, black
+Unicode-DFS-2015,black
+Unicode-DFS-2016,black
+Unicode-TOU,black
 Utopia, black
+VOSTROM,black
+VSL-1.0,white
 Verbatim, black
 Vim, black
-VOSTROM, black
-W3C-20150513, black
-Wsuipa, black
+W3C,white
+W3C-19980720,black
+W3C-20150513,black
 WTFPL, black
+Watcom-1.0,black
+Wsuipa,black
+XSkat,black
+Xerox,black
+Xnet,black
+YPL-1.0,black
+ZPL-1.1,black
+ZPL-2.0,white
+ZPL-2.1,white
+ZPLv2.0, white
+ZPLv2.1, white
+Zed,black
+Zimbra-1.4,black
+Zlib,white
+artistic,black
+artistic-2.0,black
+blessing,black
+bzip2-1.0.5,black
+bzip2-1.0.6,black
+copyleft-next-0.3.0,black
+copyleft-next-0.3.1,black
+curl,black
+diffmark,black
+dvipdfm,black
+eGenix,black
+etalab-2.0,black
+gSOAP-1.3b,black
+gnuplot, black
+libpng-2.0,black
+libselinux-1.0,black
+libtiff,black
+mpich2,black
+psfrag,black
+psutils,black
 xinetd, black
-XSkat, black
-Zend, black
-Zimbra-1.4, black
-zlib-acknowledgement, black
+xpp,black
+zlib, white
+zlib-acknowledgement,white

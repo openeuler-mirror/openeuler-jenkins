@@ -70,8 +70,8 @@ class PkgLicense(object):
             for line in f:
                 if line.startswith("#"):
                     continue
-                k, v = line.rsplit(", ", 1)
-                result[k] = v.rstrip()
+                k, v = line.rsplit(",", 1)
+                result[k.strip()] = v.strip()
         return result
 
     def load_config(self):
