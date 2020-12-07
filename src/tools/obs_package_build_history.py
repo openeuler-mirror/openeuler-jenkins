@@ -52,9 +52,9 @@ class JobBuildHistory(object):
         duration = [int(ele.get("duration")) for ele in root.findall("entry")]
 
         if not duration:
-            return {"package": package, "max": 0, "min": 0, "average": 0, "times": 0}
+            return {"package": package, "max": 0, "min": 0, "average": 0, "times": 0, "duration": []}
 
-        return {"package": package, "max": max(duration), "min": min(duration),
+        return {"package": package, "max": max(duration), "min": min(duration), "duration": duration,
                 "average": sum(duration) / len(duration), "times": len(duration)}
 
     @staticmethod
@@ -77,7 +77,8 @@ class JobBuildHistory(object):
             logger.info("{} works, {}/{} ".format(len(works), index + 1, batch))
             gevent.joinall(works)
             for work in works:
-                logger.info("{}: {}".format(work.value["package"], work.value))
+                logger.debug("{}: {}".format(work.value["package"], work.value))
+                logger.info("{}       ...done".format(work.value["package"]))
                 rs.append(work.value)
 
             time.sleep(1)
