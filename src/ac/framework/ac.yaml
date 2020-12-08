@@ -1,20 +1,30 @@
-spec:
-  hint: check_spec_file
-  module: spec.check_spec
-  entry: CheckSpec
-  ignored: ["homepage"]
-code:
-  hint: check_code_style
-  module: code.check_code_style
-  entry: CheckCodeStyle
-  #exclude: True
-  ignored: []
-package_yaml:
-  hint: check_package_yaml_file
-  module: package_yaml.check_yaml
-  entry: CheckPackageYaml
-  ignored: ["fields"]
-package_license:
-  hint: check_package_license
-  module: package_license.check_license
-  entry: CheckLicense
+src-openeuler:
+  spec:
+    hint: check_spec_file
+    module: spec.check_spec
+    entry: CheckSpec
+    ignored: ["homepage"]
+  code:
+    hint: check_code_style
+    module: code.check_code_style
+    entry: CheckCodeStyle
+    #exclude: True
+    ignored: []
+  package_yaml:
+    hint: check_package_yaml_file
+    module: package_yaml.check_yaml
+    entry: CheckPackageYaml
+    ignored: ["fields"]
+  package_license:
+    hint: check_package_license
+    module: package_license.check_license
+    entry: CheckLicense
+openeuler:
+  spec:
+    exclude: True
+  code:
+    exclude: True
+  package_yaml:
+    exclude: True
+  package_license:
+    exclude: True
