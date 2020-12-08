@@ -30,14 +30,20 @@ class AC(object):
     """
     ac entrypoint
     """
-    def __init__(self, conf):
+    def __init__(self, conf, community="src-openeuler"):
+        """
+
+        :param conf: 配置文件路径
+        :param community: src-openeuler or openeuler
+        :return:
+        """
         self._ac_check_elements = {}       # 门禁项
         self._ac_check_result = []         # 门禁结果结果
 
         acl_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "../acl"))
         self._acl_package = "src.ac.acl"  # take attention about import module
         self.load_check_elements_from_acl_directory(acl_path)
-        self.load_check_elements_from_conf(conf)
+        self.load_check_elements_from_conf(conf, community)
 
         logger.debug("check list: {}".format(self._ac_check_elements))
 
@@ -107,15 +113,16 @@ class AC(object):
             if os.path.isdir(os.path.join(acl_dir, filename)):
                 self._ac_check_elements[filename] = {}     # don't worry, using default when checking
 
-    def load_check_elements_from_conf(self, conf_file):
+    def load_check_elements_from_conf(self, conf_file, community):
         """
         加载门禁项目，只支持yaml格式
         :param conf_file: 配置文件路径
+        :param community: src-openeuler or openeuler
         :return:
         """
         try:
             with open(conf_file, "r") as f:
-                elements = yaml.safe_load(f)
+                content = yaml.safe_load(f)
         except IOError:
             logger.exception("ac conf file {} not exist".format(conf_file))
             return
@@ -123,6 +130,8 @@ class AC(object):
             logger.exception("illegal conf file format")
             return
 
+        elements = content.get(community, {})
+        logger.debug("community \"{}\" conf: {}".format(community, elements))
         for name in elements:
             if name in self._ac_check_elements:
                 if elements[name].get("exclude"):
@@ -144,6 +153,7 @@ class AC(object):
 
 if "__main__" == __name__:
     args = argparse.ArgumentParser()
+    args.add_argument("-c", type=str, dest="community", default="src-openeuler", help="src-openeuler or openeuler")
     args.add_argument("-w", type=str, dest="workspace", help="workspace where to find source")
     args.add_argument("-r", type=str, dest="repo", help="repo name")
     args.add_argument("-b", type=str, dest="tbranch", help="branch merge to")
@@ -168,6 +178,6 @@ if "__main__" == __name__:
     gp.delete_tag_of_pr(args.pr, "ci_failed")
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
-    ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"))
+    ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
     ac.check_all(workspace=args.workspace, repo=args.repo, tbranch=args.tbranch)
     ac.save(args.output)
