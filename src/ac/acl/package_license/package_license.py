@@ -71,7 +71,9 @@ class PkgLicense(object):
                 if line.startswith("#"):
                     continue
                 k, v = line.rsplit(",", 1)
-                result[k.strip()] = v.strip()
+                k = PkgLicense._auto_decode_str(k.strip())
+                v = PkgLicense._auto_decode_str(v.strip())
+                result[k] = v
         return result
 
     def load_config(self):
@@ -136,7 +138,7 @@ class PkgLicense(object):
                     licenses_in_file.update(
                         self.scan_licenses(
                             os.path.join(root, filename)))
-        logger.info("all licenses from src: %s", licenses_in_file)
+        logger.info("all licenses from src: %s", ", ".join([data.encode("utf-8") for data in licenses_in_file]))
         return licenses_in_file
 
     def scan_licenses(self, copying):
@@ -156,22 +158,29 @@ class PkgLicense(object):
 
         with open(copying, "rb") as f:
             data = f.read()
-        data = PkgLicense._decode_license(data, chardet.detect(data)['encoding'])
+        data = PkgLicense._auto_decode_str(data)
         if not data:
             return licenses_in_file
         for word in self._license_translation:
-            if word in data:
-                licenses_in_file.add(word)
+            try:
+                if word in data:
+                    licenses_in_file.add(word)
+            except UnicodeDecodeError as e:
+                logger.exception("decode error: %s", str(e))
         return licenses_in_file
 
     @staticmethod
-    def _decode_license(license_string, charset):
+    def _decode_str(data, charset):
         """ 
         Decode the license string. return the license string or nothing.
         """
         if not charset:
-            return
-        return license_string.decode(charset)
+            return ""
+        return data.decode(charset)
+
+    @staticmethod
+    def _auto_decode_str(data):
+        return PkgLicense._decode_str(data, chardet.detect(data)["encoding"])
 
     @staticmethod
     def check_licenses_is_same(licenses_for_spec, licenses_for_source_files):
