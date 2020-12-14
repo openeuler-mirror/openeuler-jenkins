@@ -177,7 +177,7 @@ class GiteeRepo(object):
             return set()
         licenses = spec.license
         licenses_in_spec = PkgLicense.split_license(licenses)
-        logger.info("all licenses from SPEC: %s", licenses_in_spec)
+        logger.info("all licenses from SPEC: %s", ", ".join(list(licenses_in_spec)))
         return licenses_in_spec
 
     @staticmethod
