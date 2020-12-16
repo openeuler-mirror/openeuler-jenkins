@@ -28,13 +28,13 @@ class SinglePackageBuild(object):
     """
 
     GITEE_BRANCH_PROJECT_MAPPING = {
-        "master": ["bringInRely", "openEuler:Extras", "openEuler:Factory", "openEuler:Mainline"],
+        "master": ["bringInRely", "openEuler:Extras", "openEuler:Factory", "openEuler:Mainline", "openEuler:Epol"],
         "openEuler-20.03-LTS": ["openEuler:20.03:LTS"],
-        "openEuler-20.03-LTS-Next": ["openEuler:20.03:LTS:Next"],
+        "openEuler-20.03-LTS-Next": ["openEuler:20.03:LTS:Next", "openEuler:20.03:LTS:Next:Epol"],
         "openEuler-EPOL-LTS": ["bringInRely"],
-        "openEuler-20.09": ["openEuler:20.09"],
+        "openEuler-20.09": ["openEuler:20.09", "openEuler:20.09:Epol"],
         "mkopeneuler-20.03": ["openEuler:Extras"],
-        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1"]
+        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol"]
     }
 
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]

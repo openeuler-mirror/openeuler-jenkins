@@ -32,9 +32,12 @@ class ObsPackageBuildReport(object):
     PROJECT_BRANCH_MAPPING = {
             "openEuler:Factory": "master",
             "openEuler:Mainline": "master",
+            "openEuler:Epol": "master",
             "openEuler:20.03:LTS": "openEuler-20.03-LTS",
             "openEuler:20.09": "openEuler-20.09",
+            "openEuler:20.09:Epol": "openEuler-20.09",
             "openEuler:20.03:LTS:Next": "openEuler-20.03-LTS-Next",
+            "openEuler:20.03:LTS:Next:Epol": "openEuler-20.03-LTS-Next",
             "openEuler:20.03:LTS:SP1": "openEuler-20.03-LTS-SP1",
             "openEuler:20.03:LTS:SP1:Epol": "openEuler-20.03-LTS-SP1"
         }
