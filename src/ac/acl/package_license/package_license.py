@@ -164,7 +164,10 @@ class PkgLicense(object):
         for word in self._license_translation:
             try:
                 if word in data:
-                    licenses_in_file.add(word)
+                    pattern_str = r'(^{word}$)|(^{word}(\s+))|((\s+){word}$)|((\s+){word}(\s+))' \
+                                  .format(word=word)
+                    if re.search(pattern_str, data):
+                        licenses_in_file.add(word)
             except UnicodeDecodeError as e:
                 logger.exception("decode error: %s", str(e))
         return licenses_in_file
