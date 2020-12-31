@@ -182,11 +182,11 @@ class SinglePackageBuild(object):
         """
         if self._branch in self.BUILD_IGNORED_GITEE_BRANCH:
             logger.error("branch \"{}\" ignored".format(self._branch))
-            sys.exit(0)
+            return 0
 
         if self._branch not in self.GITEE_BRANCH_PROJECT_MAPPING:
             logger.error("branch \"{}\" not support yet".format(self._branch))
-            sys.exit(1)
+            return 1
 
         for project in self.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
             logger.debug("start build project {}".format(project))
@@ -201,12 +201,18 @@ class SinglePackageBuild(object):
             if ret > 0:
                 logger.debug("build run return {}".format(ret))
                 logger.error("build {} {} {} ... {}".format(project, self._package, self._arch, "failed"))
-                sys.exit(1)     # finish if any error
+                return 1     # finish if any error
             else:
                 logger.info("build {} {} {} ... {}".format(project, self._package, self._arch, "ok"))
 
+        return 0
 
-if "__main__" == __name__:
+
+def init_args():
+    """
+    init args
+    :return: 
+    """
     args = argparse.ArgumentParser()
 
     args.add_argument("-p", type=str, dest="package", help="obs package")
@@ -215,15 +221,66 @@ if "__main__" == __name__:
     args.add_argument("-c", type=str, dest="code", help="code dir path")
     args.add_argument("-w", type=str, dest="workspace", default=os.getcwd(), help="obs workspace dir path")
 
-    args = args.parse_args()
+    args.add_argument("-m", type=str, dest="comment_id", help="uniq comment id")
+    args.add_argument("-r", type=str, dest="repo", help="repo")
+    args.add_argument("--pr", type=str, dest="pr", help="pull request")
+    args.add_argument("-t", type=str, dest="account", help="gitee account")
+
+    args.add_argument("-o", type=str, dest="owner", default="src-openeuler", help="gitee owner")
+
+    return args.parse_args()
+
+
+if "__main__" == __name__:
+    args = init_args()
 
     _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
 
+    from src.utils.dist_dataset import DistDataset
+    from src.proxy.git_proxy import GitProxy
     from src.proxy.obs_proxy import OBSProxy
+    from src.proxy.es_proxy import ESProxy
     from src.utils.shell_cmd import shell_cmd_live
 
+    dd = DistDataset()
+    dd.set_attr_stime("spb.job.stime")
+
+    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
+
+    # download repo
+    dd.set_attr_stime("spb.scm.stime")
+    gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
+    repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.owner, args.repo)
+    if not gp.fetch_pull_request(repo_url, args.pr, depth=1):
+        dd.set_attr("spb.scm.result", "failed")
+        dd.set_attr_etime("spb.scm.etime")
+        dd.set_attr_etime("spb.job.etime")
+        dd.set_attr("spb.job.result", "failed")
+
+        # upload to es
+        query = {"term": {"id": args.comment_id}}
+        script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch),
+                "params": dd.to_dict()}
+        ep.update_by_query(index="openeuler_statewall_ac", query=query,  script=script)
+        sys.exit(-1)
+    else:
+        gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
+        dd.set_attr("spb.scm.result", "successful")
+        dd.set_attr_etime("spb.scm.etime")
+
+    dd.set_attr_stime("spb.build.stime")
     spb = SinglePackageBuild(args.package, args.arch, args.branch)
-    spb.build(args.workspace, args.code)
+    rs = spb.build(args.workspace, args.code)
+    dd.set_attr("spb.job.result", "failed" if rs else "successful")
+    dd.set_attr_etime("spb.build.etime")
+
+    dd.set_attr_etime("spb.job.etime")
+
+    # upload to es
+    query = {"term": {"id": args.comment_id}}
+    script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch), "params": dd.to_dict()}
+    ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
+    sys.exit(rs)
