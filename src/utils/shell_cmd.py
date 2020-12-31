@@ -18,7 +18,7 @@ def shell_cmd(cmd, inmsg=None):
     return p.returncode, out, err
 
 
-def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False):
+def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False, cmd_verbose=True):
     """
     创建子进程执行命令，实时输出结果
     :param cmd: 命令
@@ -28,7 +28,8 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
     :param verbose: show cmd output to console, default not
     :return:
     """
-    logger.debug("exec cmd -- {}".format(cmd))
+    if cmd_verbose:
+        logger.debug("exec cmd -- {}".format(cmd))
 
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if cap_in:

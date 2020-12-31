@@ -22,6 +22,7 @@ import re
 # not friendly when job in folders
 import jenkinsapi.jenkins as jenkins
 import src.proxy.jenkins_patch
+from src.utils.dt_transform import convert_utc_to_naive
 
 logger = logging.getLogger("common")
 
@@ -181,3 +182,52 @@ class JenkinsProxy(object):
                     break
 
         return upstream_builds
+
+    def get_job_url(self, job):
+        """
+        获取任务url
+        :param job:
+        :return:
+        """
+        j = self._jenkins[job]
+
+        return self._jenkins[job].url
+
+    def get_build_datetime(self, job, build):
+        """
+        get job build tims
+        :param job:
+        :param build:
+        :return:
+        """
+        return convert_utc_to_naive(self._jenkins[job].get_build(build).get_timestamp())
+
+    def get_build_trigger_reason(self, job, build):
+        """
+        get job build tims
+        :param job:
+        :param build:
+        :return:
+        """
+        causes = self._jenkins[job].get_build(build).get_causes()
+        if not causes:
+            return "N/A"
+
+        return causes[0]["shortDescription"]
+
+    def get_job_build_info(self, job, build):
+        """
+        get job and build info
+        :param job:
+        :param build:
+        :return:
+        """
+        job = self._jenkins[job]
+        build = job.get_build(build)
+
+        build_dt = convert_utc_to_naive(build.get_timestamp())
+
+        causes = build.get_causes()
+        trigger_reason = causes[0]["shortDescription"] if causes else "N/A"
+
+        return job.url, build_dt, trigger_reason
