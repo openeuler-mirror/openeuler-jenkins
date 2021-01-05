@@ -52,6 +52,8 @@ class Comment(object):
         comments = self._comment_build_html_format()
         gitee_proxy.comment_pr(self._pr, "\n".join(comments))
 
+        return "\n".join(comments)
+
     def comment_at(self, committer, gitee_proxy):
         """
         通知committer
@@ -228,9 +230,14 @@ class Comment(object):
         return "<tr><td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(name, icon, status)
 
 
-if "__main__" == __name__:
+def init_args():
+    """
+    init args
+    :return: 
+    """
     args = argparse.ArgumentParser()
     args.add_argument("-p", type=int, dest="pr", help="pull request number")
+    args.add_argument("-m", type=int, dest="comment_id", help="uniq comment id")
     args.add_argument("-c", type=str, dest="committer", help="commiter")
     args.add_argument("-o", type=str, dest="owner", help="gitee owner")
     args.add_argument("-r", type=str, dest="repo", help="repo name")
@@ -244,8 +251,11 @@ if "__main__" == __name__:
 
     args.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
 
-    args = args.parse_args()
+    return args.parse_args()
 
+
+if "__main__" == __name__:
+    args = init_args()
     if not args.enable:
         sys.exit(0)
 
@@ -256,25 +266,49 @@ if "__main__" == __name__:
 
     from src.ac.framework.ac_result import ACResult, SUCCESS
     from src.proxy.gitee_proxy import GiteeProxy
+    from src.proxy.es_proxy import ESProxy
     from src.proxy.jenkins_proxy import JenkinsProxy
+    from src.utils.dist_dataset import DistDataset
 
-    # gitee notify
+    dd = DistDataset()
+    dd.set_attr_stime("comment.job.stime")
+
+    # gitee pr tag
     gp = GiteeProxy(args.owner, args.repo, args.gitee_token)
     gp.delete_tag_of_pr(args.pr, "ci_processing")
 
-
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
+    url, build_time, reason = jp.get_job_build_info(os.environ.get("JOB_NAME"), int(os.environ.get("BUILD_ID")))
+    dd.set_attr("comment.job.link", url)
+    dd.set_attr("comment.trigger.reason", reason)
+    dd.set_attr_ctime("comment.job.ctime", build_time)
 
-    if args.check_abi_comment_files:
-        comment = Comment(args.pr, jp, *args.check_abi_comment_files)
-    else:
-        comment = Comment(args.pr, jp)
-    logger.info("comment: build result......")
-    comment.comment_build(gp)
+    dd.set_attr_stime("comment.build.stime")
     
+    comment = Comment(args.pr, jp, *args.check_abi_comment_files) \
+        if args.check_abi_comment_files else Comment(args.pr, jp)
+    logger.info("comment: build result......")
+    content = comment.comment_build(gp)
+    dd.set_attr_etime("comment.build.etime")
+    dd.set_attr("comment.build.content.html", content)
+
     if comment.check_build_result() == SUCCESS:
         gp.create_tags_of_pr(args.pr, "ci_successful")
+        dd.set_attr("comment.build.tags", ["ci_successful"])
+        dd.set_attr("comment.build.result", "successful")
     else:
         gp.create_tags_of_pr(args.pr, "ci_failed")
+        dd.set_attr("comment.build.tags", ["ci_failed"])
+        dd.set_attr("comment.build.result", "failed")
+
     logger.info("comment: at committer......")
     comment.comment_at(args.committer, gp)
+
+    dd.set_attr_etime("comment.job.etime")
+    dd.set_attr("comment.job.result", "successful")
+
+    # upload to es
+    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
+    query = {"term": {"id": args.comment_id}}
+    script = {"lang": "painless", "source": "ctx._source.comment = params.comment", "params": dd.to_dict()}
+    ep.update_by_query(index="openeuler_statewall_ac", query=query,  script=script)
