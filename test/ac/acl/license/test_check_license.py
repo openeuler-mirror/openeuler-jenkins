@@ -72,7 +72,7 @@ class TestCheckPkgLicense(unittest.TestCase):
         self._test_check_license_in_spec("spec_success", SUCCESS)
 
     def test_check_license_in_spec_failed(self):
-        self._test_check_license_in_spec("spec_fail", WARNING)
+        self._test_check_license_in_spec("spec_fail", FAILED)
 
     def _test_check_license_in_src(self, dir_key, predict):
         os.chdir(os.path.join(self.DIR_PATH,

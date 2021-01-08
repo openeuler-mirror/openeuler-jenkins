@@ -65,7 +65,7 @@ class CheckLicense(BaseCheck):
             return SUCCESS
         else:
             logger.warning("licenses in spec are not in white list")
-            return WARNING
+            return FAILED
 
     def check_license_in_src(self):
         """
@@ -81,7 +81,7 @@ class CheckLicense(BaseCheck):
             return SUCCESS
         else:
             logger.warning("licenses in src code are not in white list")
-            return WARNING
+            return FAILED
 
     def check_license_is_same(self):
         """
