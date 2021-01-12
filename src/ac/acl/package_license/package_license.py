@@ -39,11 +39,13 @@ class PkgLicense(object):
                            "gpl.txt",
                            "gpl2.txt",
                            "gplv2.txt",
+                           "lgpl.txt",
                            "notice",
                            "about_bsd.txt",
                            "mit",
                            "pom.xml",
-                           "meta.yml"]
+                           "meta.yml",
+                           "pkg-info"]
     
     LICENSE_TARGET_PAT  = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?$")
 
