@@ -22,6 +22,7 @@ import logging
 import json
 import argparse
 import importlib
+import datetime
 
 from yaml.error import YAMLError
 
@@ -47,7 +48,7 @@ class AC(object):
 
         logger.debug("check list: {}".format(self._ac_check_elements))
 
-    def check_all(self, workspace, repo, **kwargs):
+    def check_all(self, workspace, repo, dataset, **kwargs):
         """
         门禁检查
         :param workspace:
@@ -101,7 +102,9 @@ class AC(object):
             if not hint.startswith("check_"):
                 hint = "check_{}".format(hint)
             self._ac_check_result.append({"name": hint, "result": result.val})
+            dataset.set_attr("access_control.build.acl.{}".format(element), result.hint)
 
+        dataset.set_attr("access_control.build.content", self._ac_check_result)
         logger.debug("ac result: {}".format(self._ac_check_result))
 
     def load_check_elements_from_acl_directory(self, acl_dir):
@@ -151,21 +154,40 @@ class AC(object):
             f.write("ACL={}".format(json.dumps(self._ac_check_result)))
 
 
+def init_args():
+    """
+    init args
+    :return:
+    """
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-c", type=str, dest="community", default="src-openeuler", help="src-openeuler or openeuler")
+    parser.add_argument("-w", type=str, dest="workspace", help="workspace where to find source")
+    parser.add_argument("-r", type=str, dest="repo", help="repo name")
+    parser.add_argument("-b", type=str, dest="tbranch", help="branch merge to")
+    parser.add_argument("-o", type=str, dest="output", help="output file to save result")
+    parser.add_argument("-p", type=str, dest="pr", help="pull request number")
+    parser.add_argument("-t", type=str, dest="token", help="gitee api token")
+    parser.add_argument("-a", type=str, dest="account", help="gitee account")
+    
+    # dataset
+    parser.add_argument("-m", type=str, dest="comment", help="trigger comment")
+    parser.add_argument("-i", type=str, dest="comment_id", help="trigger comment id")
+    parser.add_argument("-e", type=str, dest="committer", help="committer")
+    parser.add_argument("-x", type=str, dest="pr_ctime", help="pr create time")
+    parser.add_argument("-z", type=str, dest="trigger_time", help="job trigger time")
+    parser.add_argument("-l", type=str, dest="trigger_link", help="job trigger link")
+
+    return parser.parse_args()
+
+
 if "__main__" == __name__:
-    args = argparse.ArgumentParser()
-    args.add_argument("-c", type=str, dest="community", default="src-openeuler", help="src-openeuler or openeuler")
-    args.add_argument("-w", type=str, dest="workspace", help="workspace where to find source")
-    args.add_argument("-r", type=str, dest="repo", help="repo name")
-    args.add_argument("-b", type=str, dest="tbranch", help="branch merge to")
-    args.add_argument("-n", type=str, dest="owner", default="src-openeuler", help="gitee owner")
-    args.add_argument("-o", type=str, dest="output", help="output file to save result")
-    args.add_argument("-p", type=str, dest="pr", help="pull request number")
-    args.add_argument("-t", type=str, dest="token", help="gitee api token")
-    args = args.parse_args()
+    args = init_args()
 
     # init logging
     _ = not os.path.exists("log") and os.mkdir("log")
-    logger_conf_path = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../conf/logger.conf"))
+    logger_conf_path = os.path.realpath(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("ac")
 
@@ -173,11 +195,59 @@ if "__main__" == __name__:
 
     # notify gitee
     from src.proxy.gitee_proxy import GiteeProxy
-    gp = GiteeProxy(args.owner, args.repo, args.token)
+    from src.proxy.git_proxy import GitProxy
+    from src.proxy.es_proxy import ESProxy
+    from src.utils.dist_dataset import DistDataset
+
+    dd = DistDataset()
+    dd.set_attr_stime("access_control.job.stime")
+
+    # info from args
+    dd.set_attr("id", args.comment_id)
+    dd.set_attr("pull_request.package", args.repo)
+    dd.set_attr("pull_request.number", args.pr)
+    dd.set_attr("pull_request.author", args.committer)
+    dd.set_attr("pull_request.target_branch", args.tbranch)
+    dd.set_attr("pull_request.ctime", args.pr_ctime)
+    dd.set_attr("access_control.trigger.link", args.trigger_link)
+    dd.set_attr("access_control.trigger.reason", args.comment)
+    ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
+    dd.set_attr_ctime("access_control.job.ctime", ctime)
+
+    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
+
+    # download repo
+    dd.set_attr_stime("access_control.scm.stime")
+    gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
+    repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.community, args.repo)
+    if not gp.fetch_pull_request(repo_url, args.pr, depth=4):
+        dd.set_attr("access_control.scm.result", "failed")
+        dd.set_attr_etime("access_control.scm.etime")
+
+        dd.set_attr_etime("access_control.job.etime")
+        dd.set_attr("access_control.job.result", "successful")
+        ep.insert(index="openeuler_statewall_ac", body=dd.to_dict())
+        sys.exit(-1)
+    else:
+        gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
+        dd.set_attr("access_control.scm.result", "successful")
+        dd.set_attr_etime("access_control.scm.etime") 
+
+    # build start
+    dd.set_attr_stime("access_control.build.stime")
+
+    # gitee pr tag
+    gp = GiteeProxy(args.community, args.repo, args.token)
     gp.delete_tag_of_pr(args.pr, "ci_successful")
     gp.delete_tag_of_pr(args.pr, "ci_failed")
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
+    # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
-    ac.check_all(workspace=args.workspace, repo=args.repo, tbranch=args.tbranch)
+    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch)
+    dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
+
+    dd.set_attr_etime("access_control.job.etime")
+    dd.set_attr("access_control.job.result", "successful")
+    ep.insert(index="openeuler_statewall_ac", body=dd.to_dict())

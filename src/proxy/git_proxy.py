@@ -1,4 +1,5 @@
 # -*- encoding=utf-8 -*-
+import os
 import logging
 from cStringIO import StringIO
 
@@ -17,6 +18,43 @@ class GitProxy(object):
         """
         self._repo_dir = repo_dir
 
+    @classmethod
+    def init_repository(cls, sub_dir, work_dir=None):
+        """
+        初始化git仓库
+        :param sub_dir: 仓库子目录
+        :param work_dir: 仓库根目录
+        :return: GitProxy() or None
+        """
+        repo_dir = os.path.join(work_dir, sub_dir) if work_dir else sub_dir
+
+        init_cmd = "git init {}".format(repo_dir)
+        ret, _, _ = shell_cmd_live(init_cmd)
+
+        if ret:
+            logger.warning("init repository failed, {}".format(ret))
+            return None
+
+        return cls(repo_dir)
+
+    def fetch_pull_request(self, url, pull_request, depth=1, progress=False):
+        """
+        fetch pr
+        :param url: 仓库地址
+        :param pull_request: pr编号
+        :param depth: 深度
+        :param progress: 展示进度
+        :return:
+        """
+        fetch_cmd = "cd {}; git fetch {} --depth {} {} +refs/pull/{}/MERGE:refs/pull/{}/MERGE".format(
+            self._repo_dir, "--progress" if progress else "", depth, url, pull_request, pull_request)
+        ret, _, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
+        if ret:
+            logger.error("git fetch failed, {}".format(ret))
+            return False
+
+        return True
+      
     def get_content_of_file_with_commit(self, file_path, commit="HEAD~0"):
         """
         获取单个commit文件内容

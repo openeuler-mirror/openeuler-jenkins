@@ -17,7 +17,7 @@
 import re
 import logging
 
-from src.utils.shell_cmd import shell_cmd_live
+from src.utils.shell_cmd import shell_cmd_live, shell_cmd
 
 logger = logging.getLogger("ac")
 
@@ -45,7 +45,7 @@ class LinterCheck(object):
         """
         所有都当作WARNING
         """
-        m = re.findall("\.go:[0-9]+:[0-9]+:", "\n".join(message))
+        m = re.findall(r"\.go:[0-9]+:[0-9]+:", "\n".join(message))
         return {"W": len(m)}
 
     @classmethod
@@ -105,7 +105,8 @@ class LinterCheck(object):
         """
         logger.debug("check c/c++ file: {}".format(filepath))
         splint_cmd = "splint {}".format(filepath)
-        ret, out, _ = shell_cmd_live(splint_cmd, cap_out=True, verbose=True)
+        #ret, out, _ = shell_cmd_live(splint_cmd, cap_out=True, verbose=True)
+        ret, out, _ = shell_cmd(splint_cmd)
 
         if ret:
             logger.debug("splint error, {}".format(ret))
