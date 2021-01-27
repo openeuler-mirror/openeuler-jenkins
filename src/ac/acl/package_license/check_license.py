@@ -57,14 +57,14 @@ class CheckLicense(BaseCheck):
         :return
         """
         if self._spec is None:
-            logger.warning("spec file not find")
-            return WARNING
+            logger.error("spec file not find")
+            return FAILED
         self._license_in_spec = self._gr.scan_license_in_spec(self._spec)
         self._license_in_spec = self._pkg_license.translate_license(self._license_in_spec)
         if self._pkg_license.check_license_safe(self._license_in_spec):
             return SUCCESS
         else:
-            logger.warning("licenses in spec are not in white list")
+            logger.error("licenses in spec are not in white list")
             return FAILED
 
     def check_license_in_src(self):
@@ -75,12 +75,11 @@ class CheckLicense(BaseCheck):
         self._license_in_src = self._pkg_license.scan_licenses_in_license(self._work_tar_dir)
         self._license_in_src = self._pkg_license.translate_license(self._license_in_src)
         if not self._license_in_src:
-            logger.warning("can't find license in src code")
-            return WARNING
+            logger.warning("cannot find licenses in src")
         if self._pkg_license.check_license_safe(self._license_in_src):
             return SUCCESS
         else:
-            logger.warning("licenses in src code are not in white list")
+            logger.error("licenses in src code are not in white list")
             return FAILED
 
     def check_license_is_same(self):
@@ -93,9 +92,9 @@ class CheckLicense(BaseCheck):
                                                                             self._license_in_spec))
             return SUCCESS
         else:
-            logger.warning("licenses in src:{} and in spec:{} are not same".format(self._license_in_src,
+            logger.error("licenses in src:{} and in spec:{} are not same".format(self._license_in_src,
                                                                                    self._license_in_spec))
-            return WARNING
+            return FAILED
 
     def __call__(self, *args, **kwargs):
         """
