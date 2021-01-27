@@ -1,0 +1,1546 @@
+Software Licenses:
+  Bad Licenses:
+  - alias:
+    - Abstyles License
+    - APREAMBL.TEX, version 1.10e
+    identifier: Abstyles
+  - alias:
+    - Adobe Systems Incorporated Source Code License Agreement
+    - Adobe Systems Incorporated(r) Source Code License Agreement
+    identifier: Adobe-2006
+  - alias:
+    - Adobe Glyph List License
+    - Copyright (c) 1997,1998,2002,2007 Adobe Systems Incorporated
+    identifier: Adobe-Glyph
+  - alias:
+    - Amazon Digital Services License
+    - Amazon Digital Services, Inc. or its affiliates
+    identifier: ADSL
+  - alias:
+    - Affero General Public License v1.0 only
+    - AFFERO GENERAL PUBLIC LICENSE Version 1
+    identifier: AGPL-1.0-only
+  - alias:
+    - Affero General Public License v1.0 or later
+    - AFFERO GENERAL PUBLIC LICENSE Version 1
+    identifier: AGPL-1.0-or-later
+  - alias:
+    - Aladdin Free Public License
+    identifier: Aladdin
+  - alias:
+    - AMD's plpa_map.c License
+    - Copyright (c) 2006, 2007 Advanced Micro Devices, Inc.
+    identifier: AMDPLPA
+  - alias:
+    - Apple MIT License
+    - Copyright (c) 2006 by Apple Computer, Inc.
+    identifier: AML
+  - alias:
+    - Academy of Motion Picture Arts and Sciences BSD
+    - A.M.P.A.S.
+    identifier: AMPAS
+  - alias:
+    - ANTLR Software Rights Notice
+    - ANTLR 2 License
+    identifier: ANTLR-PD
+  - alias:
+    - Bahyph License
+    - Copyright (c) GMV 1991
+    identifier: Bahyph
+  - alias:
+    - Barr License
+    - Michael Barr
+    identifier: Barr
+  - alias:
+    - Beerware License
+    - THE BEER-WARE LICENSE
+    identifier: Beerware
+  - alias:
+    - BitTorrent Open Source License v1.0
+    - BitTorrent Open Source License Version 1.0
+    identifier: BitTorrent-1.0
+  - alias:
+    - SQLite Blessing
+    - here is a blessing
+    identifier: blessing
+  - alias:
+    - Blue Oak Model License 1.0.0
+    - "http://blueoakcouncil.org/license/1.0.0"
+    identifier: BlueOak-1.0.0
+  - alias:
+    - Borceux license
+    - Copyright 1993 Francis Borceux
+    identifier: Borceux
+  - alias:
+    - BSD 3-Clause No Nuclear License
+    - Copyright 1994-2009 Sun Microsystems, Inc.
+    identifier: BSD-3-Clause-No-Nuclear-License
+  - alias:
+    - BSD 3-Clause No Nuclear License 2014
+    - Copyright © 2008, 2014 Oracle and/or its affiliates
+    identifier: BSD-3-Clause-No-Nuclear-License-2014
+  - alias:
+    - BSD 3-Clause No Nuclear Warranty
+    - Copyright (c) 2003-2005 Sun Microsystems, Inc.
+    identifier: BSD-3-Clause-No-Nuclear-Warranty
+  - alias:
+    - BSD 3-Clause Open MPI variant
+    identifier: BSD-3-Clause-Open-MPI
+  - alias:
+    - BSD-4-Clause (University of California-Specific)
+    identifier: BSD-4-Clause-UC
+  - alias:
+    - BSD Source Code Attribution
+    - Copyright (c) 2011, Deusty, LLC
+    identifier: BSD-Source-Code
+  - alias:
+    - bzip2 and libbzip2 License v1.0.5
+    - bzip2/libbzip2 version 1.0.5
+    identifier: bzip2-1.0.5
+  - alias:
+    - bzip2 and libbzip2 License v1.0.6
+    - bzip2/libbzip2 version 1.0.6
+    identifier: bzip2-1.0.6
+  - alias:
+    - Caldera License
+    - Caldera International, Inc.
+    identifier: Caldera
+  - alias:
+    - Creative Commons Attribution 2.0 Generic
+    - Creative Commons Attribution 2.0
+    identifier: CC-BY-2.0
+  - alias:
+    - Creative Commons Attribution 2.5 Generic
+    - Creative Commons Attribution 2.0
+    identifier: CC-BY-2.5
+  - alias:
+    - Creative Commons Attribution Non Commercial 1.0 Generic
+    - Creative Commons Attribution-NonCommercial 1.0
+    identifier: CC-BY-NC-1.0
+  - alias:
+    - Creative Commons Attribution Non Commercial 2.0 Generic
+    - Creative Commons Attribution-NonCommercial 2.0
+    identifier: CC-BY-NC-2.0
+  - alias:
+    - Creative Commons Attribution Non Commercial 2.5 Generic
+    - Creative Commons Attribution-NonCommercial 2.5
+    identifier: CC-BY-NC-2.5
+  - alias:
+    - Creative Commons Attribution Non Commercial 3.0 Unported
+    - Creative Commons Attribution-NonCommercial 3.0
+    identifier: CC-BY-NC-3.0
+  - alias:
+    - Creative Commons Attribution Non Commercial 4.0 International
+    - Creative Commons Attribution-NonCommercial 4.0
+    identifier: CC-BY-NC-4.0
+  - alias:
+    - Creative Commons Attribution Non Commercial No Derivatives 1.0 Generic
+    - Creative Commons Attribution-NoDerivs-NonCommercial 1.0
+    identifier: CC-BY-NC-ND-1.0
+  - alias:
+    - Creative Commons Attribution Non Commercial No Derivatives 2.0 Generic
+    - Creative Commons Attribution-NonCommercial-NoDerivs 2.0
+    identifier: CC-BY-NC-ND-2.0
+  - alias:
+    - Creative Commons Attribution Non Commercial No Derivatives 2.5 Generic
+    - Creative Commons Attribution-NonCommercial-NoDerivs 2.5
+    identifier: CC-BY-NC-ND-2.5
+  - alias:
+    - Creative Commons Attribution Non Commercial No Derivatives 3.0 Unported
+    - Creative Commons Attribution-NonCommercial-NoDerivs 3.0
+    identifier: CC-BY-NC-ND-3.0
+  - alias:
+    - Creative Commons Attribution Non Commercial No Derivatives 4.0 International
+    - Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
+    identifier: CC-BY-NC-ND-4.0
+  - alias:
+    - Creative Commons Attribution Non Commercial Share Alike 1.0 Generic
+    - Creative Commons Attribution-NonCommercial-ShareAlike 1.0
+    identifier: CC-BY-NC-SA-1.0
+  - alias:
+    - Creative Commons Attribution Non Commercial Share Alike 2.0 Generic
+    - Creative Commons Attribution-NonCommercial-ShareAlike 2.0
+    identifier: CC-BY-NC-SA-2.0
+  - alias:
+    - Creative Commons Attribution Non Commercial Share Alike 2.5 Generic
+    - Creative Commons Attribution-NonCommercial-ShareAlike 2.5
+    identifier: CC-BY-NC-SA-2.5
+  - alias:
+    - Creative Commons Attribution Non Commercial Share Alike 3.0 Unported
+    - Creative Commons Attribution-NonCommercial-ShareAlike 3.0
+    identifier: CC-BY-NC-SA-3.0
+  - alias:
+    - Creative Commons Attribution Non Commercial Share Alike 4.0 International
+    - Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+    identifier: CC-BY-NC-SA-4.0
+  - alias:
+    - Creative Commons Attribution No Derivatives 1.0 Generic
+    - Creative Commons Attribution-NoDerivs 1.0
+    identifier: CC-BY-ND-1.0
+  - alias:
+    - Creative Commons Attribution No Derivatives 2.0 Generic
+    - Creative Commons Attribution-NoDerivs 2.0
+    identifier: CC-BY-ND-2.0
+  - alias:
+    - Creative Commons Attribution No Derivatives 2.5 Generic
+    - Creative Commons Attribution-NoDerivs 2.5
+    identifier: CC-BY-ND-2.5
+  - alias:
+    - Creative Commons Attribution No Derivatives 3.0 Unported
+    - Creative Commons Attribution-NoDerivs 3.0
+    identifier: CC-BY-ND-3.0
+  - alias:
+    - Creative Commons Attribution No Derivatives 4.0 International
+    - Creative Commons Attribution-NoDerivatives 4.0
+    identifier: CC-BY-ND-4.0
+  - alias:
+    - Creative Commons Attribution Share Alike 2.0 Generic
+    - Creative Commons Attribution-ShareAlike 2.0
+    identifier: CC-BY-SA-2.0
+  - alias:
+    - Creative Commons Attribution Share Alike 2.5 Generic
+    - Creative Commons Attribution-ShareAlike 2.5
+    identifier: CC-BY-SA-2.5
+  - alias:
+    - Creative Commons Public Domain Dedication and Certification
+    identifier: CC-PDDC
+  - alias:
+    - Community Data License Agreement Permissive 1.0
+    - Community Data License Agreement - Permissive, Version 1.0
+    identifier: CDLA-Permissive-1.0
+  - alias:
+    - Community Data License Agreement Sharing 1.0
+    - Community Data License Agreement - Sharing, Version 1.0
+    identifier: CDLA-Sharing-1.0
+  - alias:
+    - CeCILL Free Software License Agreement v1.0
+    - CONTRAT DE LICENCE DE LOGICIEL LIBRE CeCILL
+    identifier: CECILL-1.0
+  - alias:
+    - CeCILL Free Software License Agreement v1.1
+    - FREE SOFTWARE LICENSING AGREEMENT CeCILL
+    identifier: CECILL-1.1
+  - alias:
+    - CERN Open Hardware Licence v1.1
+    - CERN OHL v1.1
+    identifier: CERN-OHL-1.1
+  - alias:
+    - CERN Open Hardware Licence v1.2
+    - CERN OHL v1.2
+    identifier: CERN-OHL-1.2
+  - alias:
+    - CERN Open Hardware Licence Version 2 - Permissive
+    identifier: CERN-OHL-P-2.0
+  - alias:
+    - CERN Open Hardware Licence Version 2 - Strongly Reciprocal
+    identifier: CERN-OHL-S-2.0
+  - alias:
+    - CERN Open Hardware Licence Version 2 - Weakly Reciprocal
+    identifier: CERN-OHL-W-2.0
+  - alias:
+    - CNRI Jython License
+    - JPython or CNRI
+    identifier: CNRI-Jython
+  - alias:
+    - CNRI Python Open Source GPL Compatible License Agreement
+    - CNRI OPEN SOURCE GPL-COMPATIBLE LICENSE AGREEMENT
+    identifier: CNRI-Python-GPL-Compatible
+  - alias:
+    - copyleft-next 0.3.0
+    identifier: copyleft-next-0.3.0
+  - alias:
+    - copyleft-next 0.3.1
+    identifier: copyleft-next-0.3.1
+  - alias:
+    - Code Project Open License 1.02
+    - Code Project Open License (CPOL) 1.02
+    identifier: CPOL-1.02
+  - alias:
+    - Crossword License
+    - cwpuzzle.dtx
+    identifier: Crossword
+  - alias:
+    - CrystalStacker License
+    - Crystal Stacker
+    identifier: CrystalStacker
+  - alias:
+    - Cube License
+    - Cube game engine source code
+    identifier: Cube
+  - alias:
+    - curl License
+    - Copyright (c) 1996 - 2021, Daniel Stenberg
+    identifier: curl
+  - alias:
+    - Deutsche Freie Software Lizenz
+    identifier: D-FSL-1.0
+  - alias:
+    - diffmark license
+    - 1. you can do what you want with it 2. I refuse any responsibility for the consequences
+    identifier: diffmark
+  - alias:
+    - DOC License
+    - DOC software
+    identifier: DOC
+  - alias:
+    - Dotseqn License
+    - Copyright (C) 1995 by Donald Arseneau
+    identifier: Dotseqn
+  - alias:
+    - DSDP License
+    - owned by The United States Government, and operated by the University of Chicago
+    identifier: DSDP
+  - alias:
+    - dvipdfm License
+    - should be distributed with a *different* name
+    identifier: dvipdfm
+  - alias:
+    - eGenix.com Public License 1.1.0
+    - EGENIX.COM PUBLIC LICENSE AGREEMENT Version 1.1.0
+    identifier: eGenix
+  - alias:
+    - Erlang Public License v1.1
+    - ERLANG PUBLIC LICENSE Version 1.1
+    identifier: ErlPL-1.1
+  - alias:
+    - Etalab Open License 2.0
+    - OPEN LICENCE 2.0 LICENCE OUVERTE 2.0
+    identifier: etalab-2.0
+  - alias:
+    - European Union Public License 1.0
+    - European Union Public Licence V.1.0
+    identifier: EUPL-1.0
+  - alias:
+    - Eurosym License
+    - Copyright (c) 1999-2002 Henrik Theiling Licence Version 2
+    identifier: Eurosym
+  - alias:
+    - FreeImage Public License v1.0
+    - FreeImage Public License - Version 1.0
+    identifier: FreeImage
+  - alias:
+    - FSF Unlimited License
+    - Copyright (C) 1992-1996, 1998-2012 Free Software Foundation, Inc.
+    identifier: FSFUL
+  - alias:
+    - FSF Unlimited License (with License Retention)
+    - Copyright 1996-2006 Free Software Foundation, Inc.
+    identifier: FSFULLR
+  - alias:
+    - Giftware License
+    - Allegro 4 (the giftware license)
+    identifier: Giftware
+  - alias:
+    - 3dfx Glide License
+    - 3dfx GLIDE Source Code General Public License
+    identifier: Glide
+  - alias:
+    - Glulxe License
+    identifier: Glulxe
+  - alias:
+    - Haskell Language Report License
+    identifier: HaskellReport
+  - alias:
+    - Hippocratic License 2.1
+    identifier: Hippocratic-2.1
+  - alias:
+    - Historical Permission Notice and Disclaimer - sell variant
+    identifier: HPND-sell-variant
+  - alias:
+    - IBM PowerPC Initialization and Boot Software
+    identifier: IBM-pibs
+  - alias:
+    - Info-ZIP License
+    identifier: Info-ZIP
+  - alias:
+    - Intel ACPI Software License Agreement
+    identifier: Intel-ACPI
+  - alias:
+    - Japan Network Information Center License
+    identifier: JPNIC
+  - alias:
+    - JSON License
+    identifier: JSON
+  - alias:
+    - Licence Art Libre 1.2
+    identifier: LAL-1.2
+  - alias:
+    - Licence Art Libre 1.3
+    identifier: LAL-1.3
+  - alias:
+    - Latex2e License
+    identifier: Latex2e
+  - alias:
+    - Lesser General Public License For Linguistic Resources
+    identifier: LGPLLR
+  - alias:
+    - libselinux public domain notice
+    identifier: libselinux-1.0
+  - alias:
+    - Linux Kernel Variant of OpenIB.org license
+    identifier: Linux-OpenIB
+  - alias:
+    - LaTeX Project Public License v1.0
+    identifier: LPPL-1.0
+  - alias:
+    - LaTeX Project Public License v1.1
+    identifier: LPPL-1.1
+  - alias:
+    - MakeIndex License
+    identifier: MakeIndex
+  - alias:
+    - MIT No Attribution
+    identifier: MIT-0
+  - alias:
+    - Enlightenment License (e16)
+    identifier: MIT-advertising
+  - alias:
+    - CMU License
+    identifier: MIT-CMU
+  - alias:
+    - enna License
+    identifier: MIT-enna
+  - alias:
+    - feh License
+    identifier: MIT-feh
+  - alias:
+    - mpich2 License
+    identifier: mpich2
+  - alias:
+    - Matrix Template Library License
+    identifier: MTLL
+  - alias:
+    - Mup License
+    identifier: Mup
+  - alias:
+    - Net Boolean Public License v1
+    identifier: NBPL-1.0
+  - alias:
+    - Non-Commercial Government Licence
+    identifier: NCGL-UK-2.0
+  - alias:
+    - Net-SNMP License
+    identifier: Net-SNMP
+  - alias:
+    - Newsletr License
+    identifier: Newsletr
+  - alias:
+    - Norwegian Licence for Open Government Data
+    identifier: NLOD-1.0
+  - alias:
+    - No Limit Public License
+    identifier: NLPL
+  - alias:
+    - Noweb License
+    identifier: Noweb
+  - alias:
+    - NRL License
+    identifier: NRL
+  - alias:
+    - NTP No Attribution
+    identifier: NTP-0
+  - alias:
+    - Open Use of Data Agreement v1.0
+    identifier: O-UDA-1.0
+  - alias:
+    - Open CASCADE Technology Public License
+    identifier: OCCT-PL
+  - alias:
+    - Open Data Commons Attribution License v1.0
+    identifier: ODC-By-1.0
+  - alias:
+    - SIL Open Font License 1.0 with no Reserved Font Name
+    identifier: OFL-1.0-no-RFN
+  - alias:
+    - SIL Open Font License 1.0 with Reserved Font Name
+    identifier: OFL-1.0-RFN
+  - alias:
+    - OGC Software License, Version 1.0
+    identifier: OGC-1.0
+  - alias:
+    - Open Government Licence - Canada
+    identifier: OGL-Canada-2.0
+  - alias:
+    - Open Government Licence v1.0
+    identifier: OGL-UK-1.0
+  - alias:
+    - Open Government Licence v2.0
+    identifier: OGL-UK-2.0
+  - alias:
+    - Open Government Licence v3.0
+    identifier: OGL-UK-3.0
+  - alias:
+    - Open Public License v1.0
+    identifier: OPL-1.0
+  - alias:
+    - The Parity Public License 6.0.0
+    identifier: Parity-6.0.0
+  - alias:
+    - The Parity Public License 7.0.0
+    identifier: Parity-7.0.0
+  - alias:
+    - ODC Public Domain Dedication & License 1.0
+    identifier: PDDL-1.0
+  - alias:
+    - PolyForm Noncommercial License 1.0.0
+    identifier: PolyForm-Noncommercial-1.0.0
+  - alias:
+    - PolyForm Small Business License 1.0.0
+    identifier: PolyForm-Small-Business-1.0.0
+  - alias:
+    - Python Software Foundation License 2.0
+    identifier: PSF-2.0
+  - alias:
+    - psfrag License
+    identifier: psfrag
+  - alias:
+    - Rdisc License
+    identifier: Rdisc
+  - alias:
+    - Red Hat eCos Public License v1.1
+    identifier: RHeCos-1.1
+  - alias:
+    - RSA Message-Digest License
+    identifier: RSA-MD
+  - alias:
+    - Sax Public Domain Notice
+    identifier: SAX-PD
+  - alias:
+    - SCEA Shared Source License
+    identifier: SCEA
+  - alias:
+    - SGI Free Software License B v1.0
+    identifier: SGI-B-1.0
+  - alias:
+    - SGI Free Software License B v1.1
+    identifier: SGI-B-1.1
+  - alias:
+    - Solderpad Hardware License v0.5
+    identifier: SHL-0.5
+  - alias:
+    - Solderpad Hardware License, Version 0.51
+    identifier: SHL-0.51
+  - alias:
+    - Sun Industry Standards Source License v1.2
+    - SUN INDUSTRY STANDARDS SOURCE LICENSE Version 1.2
+    identifier: SISSL-1.2
+  - alias:
+    - Secure Messaging Protocol Public License
+    identifier: SMPPL
+  - alias:
+    - Spencer License 86
+    identifier: Spencer-86
+  - alias:
+    - Spencer License 94
+    identifier: Spencer-94
+  - alias:
+    - Spencer License 99
+    identifier: Spencer-99
+  - alias:
+    - SSH OpenSSH license
+    identifier: SSH-OpenSSH
+  - alias:
+    - SSH short notice
+    identifier: SSH-short
+  - alias:
+    - Server Side Public License, v 1
+    identifier: SSPL-1.0
+  - alias:
+    - SugarCRM Public License v1.1.3
+    identifier: SugarCRM-1.1.3
+  - alias:
+    - TAPR Open Hardware License v1.0
+    identifier: TAPR-OHL-1.0
+  - alias:
+    - TCP Wrappers License
+    identifier: TCP-wrappers
+  - alias:
+    - TMate Open Source License
+    identifier: TMate
+  - alias:
+    - TORQUE v2.5+ Software License v1.1
+    identifier: TORQUE-1.1
+  - alias:
+    - Trusster Open Source License
+    identifier: TOSL
+  - alias:
+    - Technische Universitaet Berlin License 1.0
+    identifier: TU-Berlin-1.0
+  - alias:
+    - Technische Universitaet Berlin License 2.0
+    identifier: TU-Berlin-2.0
+  - alias:
+    - VOSTROM Public License for Open Source
+    identifier: VOSTROM
+  - alias:
+    - W3C Software Notice and License (1998-07-20)
+    identifier: W3C-19980720
+  - alias:
+    - W3C Software Notice and Document License (2015-05-13)
+    identifier: W3C-20150513
+  - alias:
+    - Wsuipa License
+    identifier: Wsuipa
+  - alias:
+    - Xerox License
+    identifier: Xerox
+  - alias:
+    - XSkat License
+    identifier: XSkat
+  - alias:
+    - Yahoo! Public License v1.0
+    identifier: YPL-1.0
+  - alias:
+    - Zed License
+    identifier: Zed
+  - alias:
+    - Zimbra Public License v1.4
+    identifier: Zimbra-1.4
+  - alias:
+    - Zope Public License 1.1
+    identifier: ZPL-1.1
+  - alias:
+    - Commons Clause License v1.0
+    identifier: Commons Clause
+  - alias:
+    - DMIT License
+    identifier: DMIT
+  - alias:
+    - GNU Affero General Public License v3.0 only
+    - AGPLv3
+    - AGPL-3.0
+    identifier: AGPL-3.0-only
+  - alias:
+    - GNU Affero General Public License v3.0 or later
+    - AGPLv3+
+    identifier: AGPL-3.0-or-later
+  - alias:
+    - Adaptive Public License 1.0
+    identifier: APL-1.0
+  - alias:
+    - Apple Public Source License 1.0
+    - Apple Public Source License version 1.0
+    identifier: APSL-1.0
+  - alias:
+    - Apple Public Source License 1.1
+    - Apple Public Source License version 1.1
+    identifier: APSL-1.1
+  - alias:
+    - Apple Public Source License 1.2
+    - Apple Public Source License version 1.2
+    identifier: APSL-1.2
+  - alias:
+    - Artistic License 1.0
+    - Artistic 1.0
+    identifier: Artistic-1.0
+  - alias:
+    - Artistic License 1.0 w/clause 8
+    identifier: Artistic-1.0-cl8
+  - alias:
+    - Artistic License 1.0 (Perl)
+    - (perl)
+    - Perl
+    - "license: perl"
+    identifier: Artistic-1.0-Perl
+  - alias:
+    - Lawrence Berkeley National Labs BSD variant license
+    identifier: BSD-3-Clause-LBNL
+  - alias:
+    - Cryptographic Autonomy License 1.0
+    identifier: CAL-1.0
+  - alias:
+    - Cryptographic Autonomy License 1.0 (Combined Work Exception)
+    identifier: CAL-1.0-Combined-Work-Exception
+  - alias:
+    - CeCILL Free Software License Agreement v2.1
+    identifier: CECILL-2.1
+  - alias:
+    - CUA Office Public License v1.0
+    identifier: CUA-OPL-1.0
+  - alias:
+    - Educational Community License v1.0
+    identifier: ECL-1.0
+  - alias:
+    - Eiffel Forum License v1.0
+    identifier: EFL-1.0
+  - alias:
+    - Entessa Public License v1.0
+    identifier: Entessa
+  - alias:
+    - Frameworx Open License 1.0
+    identifier: Frameworx-1.0
+  - alias:
+    - "Licence Libre du Quebec - Permissive version 1.1"
+    identifier: LiLiQ-P-1.1
+  - alias:
+    - "Licence Libre du Quebec - Reciprocite version 1.1"
+    identifier: LiLiQ-R-1.1
+  - alias:
+    - "Licence Libre du Quebec - Reciprocite forte version 1.1"
+    identifier: LiLiQ-Rplus-1.1
+  - alias:
+    - Lucent Public License Version 1.0
+    identifier: LPL-1.0
+  - alias:
+    - Mozilla Public License 2.0 (no copyleft exception)
+    identifier: MPL-2.0-no-copyleft-exception
+  - alias:
+    - Multics License
+    identifier: Multics
+  - alias:
+    - NASA Open Source Agreement 1.3
+    identifier: NASA-1.3
+  - alias:
+    - Non-Profit Open Software License 3.0
+    identifier: NPOSL-3.0
+  - alias:
+    - OCLC Research Public License 2.0
+    identifier: OCLC-2.0
+  - alias:
+    - SIL Open Font License 1.1 with no Reserved Font Name
+    identifier: OFL-1.1-no-RFN
+  - alias:
+    - SIL Open Font License 1.1 with Reserved Font Name
+    identifier: OFL-1.1-RFN
+  - alias:
+    - Open Group Test Suite License
+    identifier: OGTSL
+  - alias:
+    - OSET Public License version 2.1
+    identifier: OSET-PL-2.1
+  - alias:
+    - Reciprocal Public License 1.1
+    identifier: RPL-1.1
+  - alias:
+    - Reciprocal Public License 1.5
+    identifier: RPL-1.5
+  - alias:
+    - Ricoh Source Code Public License
+    identifier: RSCPL
+  - alias:
+    - Simple Public License 2.0
+    identifier: SimPL-2.0
+  - alias:
+    - Upstream Compatibility License v1.0
+    identifier: UCL-1.0
+  - alias:
+    - Sybase Open Watcom Public License 1.0
+    identifier: Watcom-1.0
+  - alias:
+    - X.Net License
+    identifier: Xnet
+  - alias:
+    - Artistic license
+    identifier: artistic
+  - alias:
+    - Artistic license 2.0
+    identifier: artistic-2.0
+  - alias:
+    - Verbatim License
+    - verbatim copying
+    identifier: Verbatim
+  - alias:
+    - Liberation Font License
+    - LIBERATION font software
+    identifier: Liberation
+  - alias:
+    - Trusted Computing Group License
+    - Trusted Computing Group (TCG)
+    identifier: TCGL
+  - alias:
+    - Nmap License
+    - NMAP LICENSE
+    identifier: Nmap
+  - alias:
+    - gnuplot License
+    identifier: gnuplot
+  - alias:
+    - Distributed Management Task Force
+    identifier: DMTF
+  Good Licenses:
+  - alias:
+    - BSD Zero Clause License
+    - Zero-Clause BSD
+    - Copyright (C) 2006 by Rob Landley <rob@landley.net>
+    identifier: 0BSD
+  - alias:
+    - Attribution Assurance License
+    - ATTRIBUTION ASSURANCE LICENSE
+    identifier: AAL
+  - alias:
+    - Academic Free License v1.1
+    - Academic Free License version 1.1
+    identifier: AFL-1.1
+  - alias:
+    - Academic Free License v1.2
+    - Academic Free License version 1.2
+    identifier: AFL-1.2
+  - alias:
+    - Academic Free License v2.0
+    - Academic Free License version 2.0
+    identifier: AFL-2.0
+  - alias:
+    - Academic Free License v2.1
+    - Academic Free License version 2.1
+    - AFLv2.1
+    identifier: AFL-2.1
+  - alias:
+    - Academic Free License v3.0
+    - Academic Free License version 3.0
+    - AFL
+    identifier: AFL-3.0
+  - alias:
+    - Apache License 1.1
+    - Apache Software License, Version 1.1
+    - ASL-1.1
+    - ASL 1.1
+    identifier: Apache-1.1
+  - alias:
+    - Apache License 2.0
+    - Apache License v2.0
+    - Apache 2.0 License
+    - Apache License Version 2.0
+    - Apache Software License 2.0
+    - "http://www.apache.org/licenses/LICENSE-2.0"
+    - Apache-2
+    - Apache2
+    - Apache 2
+    - Apache2.0
+    - Apache 2.0
+    - Apachev2
+    - Apache v2
+    - Apache v2.0
+    - ASL-2.0
+    - ASL 2.0
+    - ASL2.0
+    identifier: Apache-2.0
+  - alias:
+    - Apple Public Source License 2.0
+    - Apple Public Source License Version 2.0
+    - APSL 2.0
+    identifier: APSL-2.0
+  - alias:
+    - Artistic License 2.0
+    - Copyright (c) 2000-2006, The Perl Foundation
+    - Artistic 2.0
+    identifier: Artistic-2.0
+  - alias:
+    - BSD 1-Clause License
+    identifier: BSD-1-Clause
+  - alias:
+    - BSD 2-Clause "Simplified" License
+    - BSD 2-Clause
+    - BSD-2-Clause
+    - 2-clause BSD License
+    - BSD 3-Clause "New" or "Revised" License
+    - BSD-3-Clause
+    identifier: BSD
+  - alias:
+    - BSD-2-Clause Plus Patent License
+    identifier: BSD-2-Clause-Patent
+  - alias:
+    - Boost Software License 1.0
+    - Boost Software License - Version 1.0
+    - Boost
+    identifier: BSL-1.0
+  - alias:
+    - Computer Associates Trusted Open Source License 1.1
+    - COMPUTER ASSOCIATES TRUSTED OPEN SOURCE LICENSE
+    - Computer Associates Trusted Open Source License Version 1.1
+    - CATOSL
+    identifier: CATOSL-1.1
+  - alias:
+    - Common Development and Distribution License 1.0
+    - COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0
+    identifier: CDDL-1.0
+  - alias:
+    - CNRI Python License
+    - CNRIs License Agreement is retained in Python 1.6b1
+    - CNRI OPEN SOURCE LICENSE AGREEMENT
+    identifier: CNRI-Python
+  - alias:
+    - Common Public Attribution License 1.0
+    - Common Public Attribution License Version 1.0 (CPAL)
+    - CPAL
+    identifier: CPAL-1.0
+  - alias:
+    - Common Public License 1.0
+    - Common Public License Version 1.0
+    - CPL
+    identifier: CPL-1.0
+  - alias:
+    - Educational Community License v2.0
+    - Educational Community License version 2.0
+    - ECL 2.0
+    identifier: ECL-2.0
+  - alias:
+    - Eiffel Forum License v2.0
+    - Eiffel Forum License, version 2
+    - EFL 2.0
+    identifier: EFL-2.0
+  - alias:
+    - Eclipse Public License 1.0
+    - Eclipse Public License v1.0
+    - Eclipse Public License - v 1.0
+    identifier: EPL-1.0
+  - alias:
+    - Eclipse Public License 2.0
+    - Eclipse Public License v2.0
+    - Eclipse Public License - v 2.0
+    identifier: EPL-2.0
+  - alias:
+    - EU DataGrid Software License
+    - EU Datagrid
+    identifier: EUDatagrid
+  - alias:
+    - European Union Public License 1.1
+    - EUPL V.1.1
+    - EUPL 1.1
+    identifier: EUPL-1.1
+  - alias:
+    - European Union Public License 1.2
+    - EUPL v. 1.2
+    - EUPL 1.2
+    identifier: EUPL-1.2
+  - alias:
+    - Fair License
+    identifier: Fair
+  - alias:
+    - GNU General Public License v2.0 only
+    - GNU GENERAL PUBLIC LICENSE Version 2
+    - GPL(==-2)
+    - GPL-2.0
+    - GPL-2.0 License
+    - GPL2
+    - GPLV2
+    - GPLv2
+    - GPL-2
+    - GPL 2.0
+    - GPL v2
+    - GPL v2.0
+    - GNU GPL v2
+    identifier: GPL-2.0-only
+  - alias:
+    - GNU General Public License v2.0 or later
+    - GPL(>=-2)
+    - GPL(>=-2.0)
+    - GPL(>=2)
+    - GPL-2+
+    - GPL-2.0+
+    - GPLv2+
+    - GPLV2+
+    identifier: GPL-2.0-or-later
+  - alias:
+    - GNU General Public License v3.0 only
+    - version 3 of the GNU General Public License
+    - GPL-3.0
+    - GPLV3
+    - GPLv3
+    - GPL3
+    - GPL-3
+    - GPL3.0
+    identifier: GPL-3.0-only
+  - alias:
+    - GNU General Public License v3.0 or later
+    - GPL(>=-3)
+    - GPL(>=3)
+    - GPL-3+
+    - GPL-3.0+
+    - GPLv3+
+    identifier: GPL-3.0-or-later
+  - alias:
+    - Historical Permission Notice and Disclaimer
+    identifier: HPND
+  - alias:
+    - Intel Open Source License
+    identifier: Intel
+  - alias:
+    - IPA Font License
+    identifier: IPA
+  - alias:
+    - ICU License
+    identifier: ICU
+  - alias:
+    - IBM Public License v1.0
+    - IBM PUBLIC LICENSE
+    identifier: IPL-1.0
+  - alias:
+    - ISC License
+    - ISC license
+    - Copyright © 2004-2013 by Internet Systems Consortium, Inc. (“ISC”)
+    identifier: ISC
+  - alias:
+    - GNU Library General Public License v2 only
+    - first released version of the library GPL
+    - GNU LIBRARY GENERAL PUBLIC LICENSE Version 2
+    - LGPL-2.0
+    - LGPLv2
+    - LGPL-2
+    - LGPL v2.0
+    identifier: LGPL-2.0-only
+  - alias:
+    - GNU Library General Public License v2 or later
+    - LGPL(>=-2)
+    - LGPL(>=2)
+    - LGPL-2.0+
+    - LGPL-2+
+    - LGPLv2+
+    identifier: LGPL-2.0-or-later
+  - alias:
+    - GNU Lesser General Public License v2.1 only
+    - GNU Library Public License, version 2, hence the version number 2.1
+    - LGPL-2.1
+    - LGPLv2.1
+    - LGPL 2.1
+    identifier: LGPL-2.1-only
+  - alias:
+    - GNU Lesser General Public License v2.1 or later
+    - LGPL(>=-2.1)
+    - LGPL-2.1+
+    - LGPLv2.1+
+    - LGPL v2.1
+    identifier: LGPL-2.1-or-later
+  - alias:
+    - GNU Lesser General Public License v3.0 only
+    - version 3 of the GNU Lesser General Public License
+    - LGPL-3.0
+    - LGPLv3
+    - LGPL-3
+    - LGPL v3
+    identifier: LGPL-3.0-only
+  - alias:
+    - GNU Lesser General Public License v3.0 or later
+    - LGPL-3+
+    - LGPL-3.0+
+    - LGPLv3+
+    - LGPL3+
+    identifier: LGPL-3.0-or-later
+  - alias:
+    - Lucent Public License v1.02
+    - Lucent Public License Version 1.02
+    - LPL
+    identifier: LPL-1.02
+  - alias:
+    - LaTeX Project Public License v1.3c
+    - LPPL Version 1.3c
+    identifier: LPPL-1.3c
+  - alias:
+    - The MirOS Licence
+    identifier: MirOS
+  - alias:
+    - MIT License
+    - MIT license
+    - MIT-LICENSE
+    - (MIT)
+    - (mit)
+    - "http://opensource.org/licenses/MIT"
+    - MIT/X
+    - expat
+    identifier: MIT
+  - alias:
+    - Motosoto License
+    - Motosoto Open Source License
+    identifier: Motosoto
+  - alias:
+    - Mozilla Public License 1.0
+    - MOZILLA PUBLIC LICENSE Version 1.0
+    - Mozilla Public License Version 1.0
+    - MPLv1.0
+    identifier: MPL-1.0
+  - alias:
+    - Mozilla Public License 1.1
+    - Mozilla Public License Version 1.1
+    - MPLv1.1
+    identifier: MPL-1.1
+  - alias:
+    - Mozilla Public License 2.0
+    - "https://mozilla.org/MPL/2.0/"
+    - Mozilla Public License, v. 2.0
+    - Mozilla Public License Version 2.0
+    - MPLv2.0
+    - MPLv2
+    - MPL-2
+    - MPL2
+    - MPL 2.0
+    identifier: MPL-2.0
+  - alias:
+    - Microsoft Public License
+    identifier: MS-PL
+  - alias:
+    - Microsoft Reciprocal License
+    identifier: MS-RL
+  - alias:
+    - Mulan Permissive Software License, Version 2
+    - "http://license.coscl.org.cn/MulanPSL2"
+    - Mulan PSL v2
+    - Mulan PSL V2
+    - Mulan 2.0
+    - Mulan v2
+    identifier: MulanPSL-2.0
+  - alias:
+    - Naumen Public License
+    identifier: Naumen
+  - alias:
+    - University of Illinois/NCSA Open Source License
+    identifier: NCSA
+  - alias:
+    - Nethack General Public License
+    identifier: NGPL
+  - alias:
+    - Nokia Open Source License
+    identifier: Nokia
+  - alias:
+    - NTP License
+    identifier: NTP
+  - alias:
+    - SIL Open Font License 1.1
+    - SIL Open Font License, Version 1.1
+    identifier: OFL-1.1
+  - alias:
+    - Open Software License 1.0
+    - Open Software License version 1.0
+    - OSL 1.0
+    identifier: OSL-1.0
+  - alias:
+    - Open Software License 2.0
+    - Open Software License version 2.0
+    - OSL 2.0
+    identifier: OSL-2.0
+  - alias:
+    - Open Software License 2.1
+    - Open Software License version 2.1
+    - OSL 2.1
+    identifier: OSL-2.1
+  - alias:
+    - Open Software License 3.0
+    - Open Software License version 3.0
+    - OSL 3.0
+    identifier: OSL-3.0
+  - alias:
+    - PHP License v3.0
+    - The PHP License version 3.0
+    identifier: PHP-3.0
+  - alias:
+    - PostgreSQL License
+    identifier: PostgreSQL
+  - alias:
+    - Python License 2.0
+    - Python License, Version 2
+    - PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
+    identifier: Python-2.0
+  - alias:
+    - Q Public License 1.0
+    - Q Public License version 1.0
+    identifier: QPL-1.0
+  - alias:
+    - RealNetworks Public Source License v1.0
+    - RealNetworks Public Source License version 1.0
+    identifier: RPSL-1.0
+  - alias:
+    - Sun Industry Standards Source License v1.1
+    identifier: SISSL
+  - alias:
+    - Sleepycat License
+    - Sleepycat Software
+    identifier: Sleepycat
+  - alias:
+    - Sun Public License v1.0
+    - SUN PUBLIC LICENSE Version 1.0
+    - Sun Public License Version 1.0
+    identifier: SPL-1.0
+  - alias:
+    - Universal Permissive License v1.0
+    - Universal Permissive License (UPL), Version 1.0
+    identifier: UPL-1.0
+  - alias:
+    - Vovida Software License v1.0
+    - The Vovida Software License, Version 1.0
+    identifier: VSL-1.0
+  - alias:
+    - W3C Software Notice and License (2002-12-31)
+    - "http://www.w3.org/Consortium/Legal/2002"
+    identifier: W3C
+  - alias:
+    - zlib License
+    - zlib
+    - zlib/libpng
+    identifier: Zlib
+  - alias:
+    - Zope Public License 2.0
+    - Zope Public License (ZPL) Version 2.0
+    - ZPLv2.0
+    - ZPL 2.0
+    identifier: ZPL-2.0
+  - alias:
+    - Mulan Permissive Software License v1
+    - Mulan PSL v1
+    - Mulan v1.0
+    - Mulan 2.0
+    identifier: MulanPSL-1.0
+  - alias:
+    - Zope Public License 2.1
+    - Zope Public License (ZPL) Version 2.1
+    - ZPLv2.1
+    - ZPL 2.1
+    identifier: ZPL-2.1
+  - alias:
+    - OpenSSL License
+    - "http://www.openssl.org/"
+    identifier: OpenSSL
+  - alias:
+    - Independent JPEG Group License
+    - Independent JPEG Group
+    identifier: IJG
+  - alias:
+    - Creative Commons Attribution 1.0 Generic
+    - Creative Commons Attribution 1.0
+    identifier: CC-BY-1.0
+  - alias:
+    - Creative Commons Attribution 3.0 Unported
+    - Creative Commons Attribution 3.0
+    identifier: CC-BY-3.0
+  - alias:
+    - Creative Commons Attribution Share Alike 1.0 Generic
+    - Creative Commons Attribution-ShareAlike 1.0
+    identifier: CC-BY-SA-1.0
+  - alias:
+    - Creative Commons Attribution 4.0 International
+    identifier: CC-BY-4.0
+  - alias:
+    - Creative Commons Attribution Share Alike 4.0 International
+    - Creative Commons Attribution-ShareAlike 4.0 International
+    identifier: CC-BY-SA-4.0
+  - alias:
+    - Ruby License
+    identifier: Ruby
+  - alias:
+    - Creative Commons Zero v1.0 Universal
+    - CC0
+    identifier: CC0-1.0
+  - alias:
+    - TCL/TK License
+    - copyrighted by the Regents of the University of California, Sun Microsystems, Inc.
+    identifier: TCL
+  - alias:
+    - zlib/libpng License with Acknowledgement
+    - Copyright (c) 2002-2007 Charlie Poole
+    - zlib with acknowledgement
+    - zlib/libpng License with Acknowledgement
+    identifier: zlib-acknowledgement
+  - alias:
+    - The Unicode Character Database
+    identifier: UCD
+  - alias:
+    - GNU Free Documentation License v1.3 only
+    - GNU Free Documentation License, Version 1.3
+    - GFDLv1.3
+    - GFDL 1.3
+    - GFDL-1.3
+    identifier: GFDL-1.3-only
+  - alias:
+    - GNU General Public License v1.0 only
+    - GNU General Public License, version 1
+    - GPL v1.0
+    - GPL 1.0
+    - GPL-1.0
+    identifier: GPL-1.0-only
+  - alias:
+    - GNU General Public License v1.0 or later
+    - GPL+
+    - GPL v1.0+
+    - GPL 1.0+
+    - GPL-1.0+
+    - GPLv1+
+    identifier: GPL-1.0-or-later
+  - alias:
+    - Common Development and Distribution License 1.1
+    - COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.1
+    identifier: CDDL-1.1
+  - alias:
+    - Creative Commons Attribution Share Alike 3.0 Unported
+    - Attribution-ShareAlike 3.0
+    identifier: CC-BY-SA-3.0
+  - alias:
+    - NetCDF license
+    - Copyright 1993-2014 University Corporation for Atmospheric Research/Unidata
+    identifier: NetCDF
+  - alias:
+    - ImageMagick License
+    - ImageMagick license
+    identifier: ImageMagick
+  - alias:
+    - Do What The F*ck You Want To Public License
+    identifier: WTFPL
+  - alias:
+    - Freetype Project License
+    identifier: FTL
+  - alias:
+    - Saxpath License
+    identifier: Saxpath
+  - alias:
+    - JasPer License
+    identifier: JasPer-2.0
+  - alias:
+    - XPP License
+    identifier: xpp
+  - alias:
+    - Unicode License Agreement - Data Files and Software (2015)
+    identifier: Unicode-DFS-2015
+  - alias:
+    - Unicode License Agreement - Data Files and Software (2016)
+    identifier: Unicode-DFS-2016
+  - alias:
+    - Unicode Terms of Use
+    identifier: Unicode-TOU
+  - alias:
+    - Sendmail License
+    identifier: Sendmail
+  - alias:
+    - Sendmail License 8.23
+    identifier: Sendmail-8.23
+  - alias:
+    - Open LDAP Public License v1.1
+    identifier: OLDAP-1.1
+  - alias:
+    - Open LDAP Public License v1.2
+    identifier: OLDAP-1.2
+  - alias:
+    - Open LDAP Public License v1.3
+    identifier: OLDAP-1.3
+  - alias:
+    - Open LDAP Public License v1.4
+    identifier: OLDAP-1.4
+  - alias:
+    - Open LDAP Public License v2.0 (or possibly 2.0A and 2.0B)
+    identifier: OLDAP-2.0
+  - alias:
+    - Open LDAP Public License v2.0.1
+    identifier: OLDAP-2.0.1
+  - alias:
+    - Open LDAP Public License v2.1
+    identifier: OLDAP-2.1
+  - alias:
+    - Open LDAP Public License v2.2
+    identifier: OLDAP-2.2
+  - alias:
+    - Open LDAP Public License v2.2.1
+    identifier: OLDAP-2.2.1
+  - alias:
+    - Open LDAP Public License 2.2.2
+    identifier: OLDAP-2.2.2
+  - alias:
+    - Open LDAP Public License v2.4
+    identifier: OLDAP-2.4
+  - alias:
+    - Open LDAP Public License v2.5
+    identifier: OLDAP-2.5
+  - alias:
+    - Open LDAP Public License v2.6
+    identifier: OLDAP-2.6
+  - alias:
+    - Open LDAP Public License v2.8
+    identifier: OLDAP-2.8
+  - alias:
+    - libtiff License
+    identifier: libtiff
+  - alias:
+    - libpng License
+    - libpng-1.0.6
+    - LibPng
+    identifier: Libpng
+  - alias:
+    - PNG Reference Library version 2
+    identifier: libpng-2.0
+  - alias:
+    - Arphic Public License
+    - ARPHIC PUBLIC LICENSE
+    identifier: Arphic
+  - alias:
+    - Adobe Postscript AFM License
+    - 14 PostScript(R) AFM files
+    identifier: APAFML
+  - alias:
+    - xinetd License
+    - allowing xinetd as maintained by me (Rob Braun)
+    identifier: xinetd
+  - alias:
+    - Vim License
+    identifier: Vim
+  - alias:
+    - Scheme Widget Library (SWL) Software License Agreement
+    identifier: SWL
+  - alias:
+    - Original SSLeay License
+    identifier: SSLeay
+  - alias:
+    - SNIA Public License 1.1
+    - Storage Networking Industry Association
+    identifier: SNIA
+  - alias:
+    - Qhull License
+    - www.qhull.org
+    identifier: Qhull
+  - alias:
+    - psutils License
+    - PS Utilities Package
+    identifier: psutils
+  - alias:
+    - Plexus Classworlds License
+    - "http://classwords.codehaus.org/"
+    identifier: Plexus
+  - alias:
+    - Open Market License
+    - copyrighted by Open Market
+    identifier: OML
+  - alias:
+    - Old FSF Documentation License
+    identifier: OFSFDL
+  - alias:
+    - MIT +no-false-attribs License
+    identifier: MITNFA
+  - alias:
+    - Leptonica License
+    - Leptonica
+    identifier: Leptonica
+  - alias:
+    - Interbase Public License v1.0
+    - INTERBASE PUBLIC LICENSE Version 1.0
+    identifier: Interbase-1.0
+  - alias:
+    - GL2PS License
+    - GL2PS LICENSE Version 2
+    identifier: GL2PS
+  - alias:
+    - FSF All Permissive License
+    identifier: FSFAP
+  - alias:
+    - BSD Protection License
+    identifier: BSD-Protection
+  - alias:
+    - BSD with attribution
+    - "Universidad de Palermo, Argentina"
+    identifier: BSD-3-Clause-Attribution
+  - alias:
+    - Afmparse License
+    - (C) 1988, 1989 by Adobe Systems Incorporated
+    identifier: Afmparse
+  - alias:
+    - public domain
+    identifier: Public Domain
+  Need Review Licenses:
+  - alias:
+    - Apache License 1.0
+    - Copyright (c) 1995-1999 The Apache Group
+    - ASL 1.0
+    identifier: Apache-1.0
+  - alias:
+    - BitTorrent Open Source License v1.1
+    identifier: BitTorrent-1.1
+  - alias:
+    - BSD 2-Clause FreeBSD License
+    identifier: BSD-2-Clause-FreeBSD
+  - alias:
+    - BSD 3-Clause Clear License
+    identifier: BSD-3-Clause-Clear
+  - alias:
+    - BSD 4-Clause "Original" or "Old" License
+    identifier: BSD-4-Clause
+  - alias:
+    - CeCILL Free Software License Agreement v2.0
+    identifier: CECILL-2.0
+  - alias:
+    - CeCILL-B Free Software License Agreement
+    identifier: CECILL-B
+  - alias:
+    - CeCILL-C Free Software License Agreement
+    identifier: CECILL-C
+  - alias:
+    - Clarified Artistic License
+    identifier: ClArtistic
+  - alias:
+    - Condor Public License v1.1
+    identifier: Condor-1.1
+  - alias:
+    - GNU Free Documentation License v1.1 only
+    identifier: GFDL-1.1-only
+  - alias:
+    - GNU Free Documentation License v1.1 or later
+    identifier: GFDL-1.1-or-later
+  - alias:
+    - GNU Free Documentation License v1.2 only
+    identifier: GFDL-1.2-only
+  - alias:
+    - GNU Free Documentation License v1.2 or later
+    identifier: GFDL-1.2-or-later
+  - alias:
+    - GNU Free Documentation License v1.3 or later
+    identifier: GFDL-1.3-or-later
+  - alias:
+    - gSOAP Public License v1.3b
+    identifier: gSOAP-1.3b
+  - alias:
+    - iMatix Standard Function Library Agreement
+    identifier: iMatix
+  - alias:
+    - Imlib2 License
+    identifier: Imlib2
+  - alias:
+    - LaTeX Project Public License v1.2
+    identifier: LPPL-1.2
+  - alias:
+    - LaTeX Project Public License v1.3a
+    identifier: LPPL-1.3a
+  - alias:
+    - Netizen Open Source License
+    identifier: NOSL
+  - alias:
+    - Netscape Public License v1.0
+    identifier: NPL-1.0
+  - alias:
+    - Netscape Public License v1.1
+    identifier: NPL-1.1
+  - alias:
+    - ODC Open Database License v1.0
+    identifier: ODbL-1.0
+  - alias:
+    - SIL Open Font License 1.0
+    identifier: OFL-1.0
+  - alias:
+    - Open LDAP Public License v2.3
+    identifier: OLDAP-2.3
+  - alias:
+    - Open LDAP Public License v2.7
+    identifier: OLDAP-2.7
+  - alias:
+    - Open Software License 1.1
+    - Open Software License version 1.1
+    - OSL 1.1
+    - OSL-1.1
+    identifier: OSL-1.1
+  - alias:
+    - PHP License v3.01
+    identifier: PHP-3.01
+  - alias:
+    - SGI Free Software License B v2.0
+    identifier: SGI-B-2.0
+  - alias:
+    - Standard ML of New Jersey License
+    identifier: SMLNJ
+  - alias:
+    - The Unlicense
+    identifier: Unlicense
+  - alias:
+    - X11 License
+    identifier: X11
+  - alias:
+    - XFree86 License 1.1
+    identifier: XFree86-1.1
+  - alias:
+    - Yahoo! Public License v1.1
+    identifier: YPL-1.1
+  - alias:
+    - Zend License v2.0
+    identifier: Zend-2.0
+  - alias:
+    - Zimbra Public License v1.3
+    identifier: Zimbra-1.3

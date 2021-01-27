@@ -40,9 +40,9 @@ class TestCheckPkgLicense(unittest.TestCase):
         "spec_fail": "spec_fail",
         "no_src": "no_src",
         "src_success": "rubygem-mail",
-        "src_fail": "pkgship",
+        "src_fail": "perl-Date-Calc",
         "spec_src_same": "rubygem-mail",
-        "spec_src_diff": "pkgship"
+        "spec_src_diff": "perl-Date-Calc"
     }
 
     def bind_func(self, check):
@@ -95,7 +95,7 @@ class TestCheckPkgLicense(unittest.TestCase):
         self._test_check_license_in_src("src_success", SUCCESS)
 
     def test_check_license_in_src_failed(self):
-        self._test_check_license_in_src("src_fail", WARNING)
+        self._test_check_license_in_src("src_fail", FAILED)
 
     def _test_check_license_same(self, dir_key, predict):
         os.chdir(os.path.join(self.DIR_PATH,
@@ -116,7 +116,7 @@ class TestCheckPkgLicense(unittest.TestCase):
     def test_check_license_same_succeed(self):
         self._test_check_license_same("spec_src_same", SUCCESS)
 
-    def test_cehck_license_same_failed(self):
+    def test_check_license_same_failed(self):
         self._test_check_license_same("spec_src_diff", WARNING)
 
 

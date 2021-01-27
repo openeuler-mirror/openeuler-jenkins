@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import chardet
+import yaml
 
 from src.ac.common.pyrpm import Spec, replace_macros
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
@@ -45,45 +46,65 @@ class PkgLicense(object):
                            "mit",
                            "pom.xml",
                            "meta.yml",
+                           "meta.json",
                            "pkg-info"]
     
     LICENSE_TARGET_PAT  = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?$")
 
-    WHITE_LIST_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    LICENSE_YAML_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "config",
-                                   "license_list")
-    LICENSE_TRANS_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                     "config",
-                                     "license_translations")
+                                   "Licenses.yaml")
 
     def __init__(self):
         self._white_black_list = {}
         self._license_translation = {}
 
-    def _load_license_dict(self, filename):
-        """
-        read the dict from license file
-        """
-        result = {}
-        if not os.path.isfile(filename):
-            logger.warning("not found the config file: %s", os.path.basename(filename))
-            return result
-        with open(filename, "r") as f:
-            for line in f:
-                if line.startswith("#"):
-                    continue
-                k, v = line.rsplit(",", 1)
-                k = PkgLicense._auto_decode_str(k.strip())
-                v = PkgLicense._auto_decode_str(v.strip())
-                result[k] = v
-        return result
-
     def load_config(self):
         """
-        Load the license white list and translation list into dict
+        load licenses' alias and id from Licenses.yaml
+        Software License:
+            Bad Licenses:
+                - alias: []
+                  identifier: str
+                ...
+            Good Licenses: []
+            Need Review Licenses: []
         """
-        self._white_black_list = self._load_license_dict(self.WHITE_LIST_PATH)
-        self._license_translation = self._load_license_dict(self.LICENSE_TRANS_PATH)
+        if not os.path.exists(self.LICENSE_YAML_PATH):
+            logger.warning("not found License config: %s", self.LICENSE_YAML_PATH)
+            return
+        data = {}
+        with open(self.LICENSE_YAML_PATH, "r") as f:
+            try:
+                data = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                logger.exception("yaml load error: %s", str(e))
+                return
+        self._parse_tag_license(data["Software Licenses"]["Bad Licenses"], 
+                                     "black")
+        self._parse_tag_license(data["Software Licenses"]["Good Licenses"], 
+                                     "white")
+        self._parse_tag_license(data["Software Licenses"]["Need Review Licenses"], 
+                                     "need review")
+
+    def _parse_tag_license(self, licenses, tag):
+        """
+        add friendly list to self._white_black_list :
+        {
+            license_id: tag,
+            ...
+        }
+        add license translation into self._license_translation
+        {
+            alias: license_id
+        }
+        """
+        for lic in licenses:
+            if lic["identifier"] not in self._white_black_list:
+                self._white_black_list[lic["identifier"]] = tag
+            for oname in lic["alias"]:
+                if oname not in self._license_translation:
+                    self._license_translation[oname] = lic["identifier"]
 
     def check_license_safe(self, licenses):
         """
@@ -91,7 +112,7 @@ class PkgLicense(object):
         """
         result = True
         for lic in licenses:
-            res = self._white_black_list.get(lic, "Need review")
+            res = self._white_black_list.get(lic, "unknow")
             if res == "white":
                 logger.info("This license: %s is safe", lic)
             elif res == "black":
@@ -115,9 +136,9 @@ class PkgLicense(object):
     @staticmethod
     def split_license(licenses):
         """
-        分割spec license字段的license
+        分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
         """
-        license_set = re.split(r'/\s?|\(|\)|\,|[Aa][Nn][Dd]|or|OR|\s?/g', licenses)
+        license_set = re.split(r'\(|\)|\,|\W+[Aa][Nn][Dd]\W+|\s+-?or-?\s+|\s+/\s+', licenses)
         for index in range(len(license_set)): # 去除字符串首尾空格
             license_set[index] = license_set[index].strip()
         return set(filter(None, license_set)) # 去除list中空字符串
@@ -181,7 +202,11 @@ class PkgLicense(object):
         """
         if not charset:
             return ""
-        return data.decode(charset)
+        try:
+            return data.decode(charset)
+        except UnicodeDecodeError as e:
+            logger.exception("decode error: %s", str(e))
+            return ""
 
     @staticmethod
     def _auto_decode_str(data):
@@ -193,6 +218,4 @@ class PkgLicense(object):
         Check if the licenses from SPEC is the same as the licenses from LICENSE file.
         if same, return True. if not same return False.
         """
-        if not licenses_for_source_files:
-            return False
         return licenses_for_spec.issuperset(licenses_for_source_files)
