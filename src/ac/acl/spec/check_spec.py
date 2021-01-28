@@ -64,7 +64,7 @@ class CheckSpec(BaseCheck):
         :return boolean
         """
         if self._tbranch:
-            if "lts" in self._tbranch.lower():
+            if "lts-next" not in self._tbranch.lower() and "lts" in self._tbranch.lower():
                 return True
 
         return False
