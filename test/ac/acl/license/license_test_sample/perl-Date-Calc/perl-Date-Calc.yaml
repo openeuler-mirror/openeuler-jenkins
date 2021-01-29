@@ -1,0 +1,4 @@
+version_control: metacpan
+src_repo: Date-Calc
+tag_prefix: "^v"
+seperator: "."
