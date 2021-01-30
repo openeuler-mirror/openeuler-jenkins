@@ -639,7 +639,6 @@ Software Licenses:
   - alias:
     - Artistic License 1.0 (Perl)
     - (perl)
-    - Perl
     - "license: perl"
     identifier: Artistic-1.0-Perl
   - alias:
@@ -834,6 +833,7 @@ Software Licenses:
     - 2-clause BSD License
     - BSD 3-Clause "New" or "Revised" License
     - BSD-3-Clause
+    - BSD 3-Clause
     identifier: BSD
   - alias:
     - BSD-2-Clause Plus Patent License
@@ -1095,6 +1095,7 @@ Software Licenses:
   - alias:
     - SIL Open Font License 1.1
     - SIL Open Font License, Version 1.1
+    - SIL OFL 1.1
     identifier: OFL-1.1
   - alias:
     - Open Software License 1.0
@@ -1427,6 +1428,9 @@ Software Licenses:
   - alias:
     - public domain
     identifier: Public Domain
+  - alias:
+    - Zend License v2.0
+    identifier: Zend-2.0
   Need Review Licenses:
   - alias:
     - Apache License 1.0
@@ -1504,6 +1508,7 @@ Software Licenses:
     identifier: ODbL-1.0
   - alias:
     - SIL Open Font License 1.0
+    - SIL OFL 1.0
     identifier: OFL-1.0
   - alias:
     - Open LDAP Public License v2.3
@@ -1538,9 +1543,6 @@ Software Licenses:
   - alias:
     - Yahoo! Public License v1.1
     identifier: YPL-1.1
-  - alias:
-    - Zend License v2.0
-    identifier: Zend-2.0
   - alias:
     - Zimbra Public License v1.3
     identifier: Zimbra-1.3

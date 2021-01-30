@@ -138,7 +138,7 @@ class PkgLicense(object):
         """
         分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
         """
-        license_set = re.split(r'\(|\)|\,|\W+[Aa][Nn][Dd]\W+|\s+-?or-?\s+|\s+/\s+', licenses)
+        license_set = re.split(r'\(|\)|\,|\s+[Aa][Nn][Dd]\s+|\s+-?or-?\s+|\s+/\s+', licenses)
         for index in range(len(license_set)): # 去除字符串首尾空格
             license_set[index] = license_set[index].strip()
         return set(filter(None, license_set)) # 去除list中空字符串
