@@ -34,7 +34,8 @@ class SinglePackageBuild(object):
         "openEuler-EPOL-LTS": ["bringInRely"],
         "openEuler-20.09": ["openEuler:20.09", "openEuler:20.09:Epol"],
         "mkopeneuler-20.03": ["openEuler:Extras"],
-        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol"]
+        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol"],
+        "openEuler-21.03": ["openEuler:21.03", "openEuler:21.03:Epol", "openEuler:21.03:Extras"]
     }
 
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
