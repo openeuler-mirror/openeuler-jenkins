@@ -51,7 +51,7 @@ class ESProxy(object):
 
             logger.debug("insert result: {}".format(rs))
             return rs["result"] == "created"
-        except elasticsearch.RequestError:
+        except elasticsearch.ElasticsearchException:
             logger.exception("elastic search insert document exception")
             return False
 
@@ -94,6 +94,6 @@ class ESProxy(object):
             logger.debug("update result: {}".format(rs))
 
             return True
-        except elasticsearch.RequestError:
+        except elasticsearch.ElasticsearchException:
             logger.exception("elastic search update by query exception")
             return False
