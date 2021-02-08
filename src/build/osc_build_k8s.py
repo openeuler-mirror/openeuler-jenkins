@@ -19,6 +19,7 @@ import sys
 import logging.config
 import logging
 import argparse
+import warnings
 from xml.etree import ElementTree
 
 
@@ -240,42 +241,59 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
 
+    logger.info("using credential {}".format(args.account.split(":")[0]))
+    logger.info("cloning repository https://gitee.com/{}/{}.git".format(args.owner, args.repo))
+    logger.info("clone depth 1")
+    logger.info("checking out pull request {}".format(args.pr))
+
     from src.utils.dist_dataset import DistDataset
     from src.proxy.git_proxy import GitProxy
     from src.proxy.obs_proxy import OBSProxy
     from src.proxy.es_proxy import ESProxy
+    from src.proxy.kafka_proxy import KafkaProducerProxy
     from src.utils.shell_cmd import shell_cmd_live
 
     dd = DistDataset()
     dd.set_attr_stime("spb.job.stime")
+    dd.set_attr("spb.job.link", os.environ["BUILD_URL"])
+    dd.set_attr("spb.trigger.reason", os.environ["BUILD_CAUSE"])
+
+    # suppress python warning
+    warnings.filterwarnings("ignore")
+    logging.getLogger("kafka").setLevel(logging.WARNING)
 
     ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
+    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
     dd.set_attr_stime("spb.scm.stime")
     gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
     repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.owner, args.repo)
     if not gp.fetch_pull_request(repo_url, args.pr, depth=1):
+        logger.info("fetch finished -")
+
         dd.set_attr("spb.scm.result", "failed")
         dd.set_attr_etime("spb.scm.etime")
         dd.set_attr_etime("spb.job.etime")
-        dd.set_attr("spb.job.result", "failed")
+        #dd.set_attr("spb.job.result", "failed")
 
         # upload to es
         query = {"term": {"id": args.comment_id}}
         script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch),
                 "params": dd.to_dict()}
         ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
+        kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
         sys.exit(-1)
     else:
         gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
+        logger.info("fetch finished +")
         dd.set_attr("spb.scm.result", "successful")
         dd.set_attr_etime("spb.scm.etime")
 
     dd.set_attr_stime("spb.build.stime")
     spb = SinglePackageBuild(args.package, args.arch, args.branch)
     rs = spb.build(args.workspace, args.code)
-    dd.set_attr("spb.job.result", "failed" if rs else "successful")
+    dd.set_attr("spb.build.result", "failed" if rs else "successful")
     dd.set_attr_etime("spb.build.etime")
 
     dd.set_attr_etime("spb.job.etime")
@@ -284,4 +302,5 @@ if "__main__" == __name__:
     query = {"term": {"id": args.comment_id}}
     script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch), "params": dd.to_dict()}
     ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
+    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
     sys.exit(rs)

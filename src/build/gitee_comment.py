@@ -23,6 +23,7 @@ import logging
 import json
 import yaml
 import argparse
+import warnings
 
 from yaml.error import YAMLError
 
@@ -267,6 +268,7 @@ if "__main__" == __name__:
     from src.ac.framework.ac_result import ACResult, SUCCESS
     from src.proxy.gitee_proxy import GiteeProxy
     from src.proxy.es_proxy import ESProxy
+    from src.proxy.kafka_proxy import KafkaProducerProxy
     from src.proxy.jenkins_proxy import JenkinsProxy
     from src.utils.dist_dataset import DistDataset
 
@@ -279,9 +281,9 @@ if "__main__" == __name__:
 
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
     url, build_time, reason = jp.get_job_build_info(os.environ.get("JOB_NAME"), int(os.environ.get("BUILD_ID")))
+    dd.set_attr_ctime("comment.job.ctime", build_time)
     dd.set_attr("comment.job.link", url)
     dd.set_attr("comment.trigger.reason", reason)
-    dd.set_attr_ctime("comment.job.ctime", build_time)
 
     dd.set_attr_stime("comment.build.stime")
     
@@ -305,10 +307,16 @@ if "__main__" == __name__:
     comment.comment_at(args.committer, gp)
 
     dd.set_attr_etime("comment.job.etime")
-    dd.set_attr("comment.job.result", "successful")
+    #dd.set_attr("comment.job.result", "successful")
+
+    # suppress python warning
+    warnings.filterwarnings("ignore")
+    logging.getLogger("kafka").setLevel(logging.WARNING)
 
     # upload to es
     ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
+    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
     query = {"term": {"id": args.comment_id}}
     script = {"lang": "painless", "source": "ctx._source.comment = params.comment", "params": dd.to_dict()}
-    ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
+    #ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
+    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
