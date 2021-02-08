@@ -1,5 +1,5 @@
 Software Licenses:
-  Bad Licenses:
+  Not Free Licenses:
   - alias:
     - Abstyles License
     - APREAMBL.TEX, version 1.10e
@@ -756,7 +756,29 @@ Software Licenses:
   - alias:
     - Distributed Management Task Force
     identifier: DMTF
-  Good Licenses:
+  - alias:
+    - zlib/libpng License with Acknowledgement
+    - Copyright (c) 2002-2007 Charlie Poole
+    - zlib with acknowledgement
+    - zlib/libpng License with Acknowledgement
+    identifier: zlib-acknowledgement
+  - alias:
+    - Common Development and Distribution License 1.1
+    - COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.1
+    identifier: CDDL-1.1
+  - alias:
+    - Unicode Terms of Use
+    identifier: Unicode-TOU
+  - alias:
+    - Adobe Postscript AFM License
+    - 14 PostScript(R) AFM files
+    identifier: APAFML
+  - alias:
+    - Academic Free License v2.1
+    - Academic Free License version 2.1
+    - AFLv2.1
+    identifier: AFL-2.1
+  Free Licenses:
   - alias:
     - BSD Zero Clause License
     - Zero-Clause BSD
@@ -778,11 +800,6 @@ Software Licenses:
     - Academic Free License v2.0
     - Academic Free License version 2.0
     identifier: AFL-2.0
-  - alias:
-    - Academic Free License v2.1
-    - Academic Free License version 2.1
-    - AFLv2.1
-    identifier: AFL-2.1
   - alias:
     - Academic Free License v3.0
     - Academic Free License version 3.0
@@ -1223,12 +1240,6 @@ Software Licenses:
     - copyrighted by the Regents of the University of California, Sun Microsystems, Inc.
     identifier: TCL
   - alias:
-    - zlib/libpng License with Acknowledgement
-    - Copyright (c) 2002-2007 Charlie Poole
-    - zlib with acknowledgement
-    - zlib/libpng License with Acknowledgement
-    identifier: zlib-acknowledgement
-  - alias:
     - The Unicode Character Database
     identifier: UCD
   - alias:
@@ -1253,10 +1264,6 @@ Software Licenses:
     - GPL-1.0+
     - GPLv1+
     identifier: GPL-1.0-or-later
-  - alias:
-    - Common Development and Distribution License 1.1
-    - COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.1
-    identifier: CDDL-1.1
   - alias:
     - Creative Commons Attribution Share Alike 3.0 Unported
     - Attribution-ShareAlike 3.0
@@ -1290,9 +1297,6 @@ Software Licenses:
   - alias:
     - Unicode License Agreement - Data Files and Software (2016)
     identifier: Unicode-DFS-2016
-  - alias:
-    - Unicode Terms of Use
-    identifier: Unicode-TOU
   - alias:
     - Sendmail License
     identifier: Sendmail
@@ -1356,10 +1360,6 @@ Software Licenses:
     - Arphic Public License
     - ARPHIC PUBLIC LICENSE
     identifier: Arphic
-  - alias:
-    - Adobe Postscript AFM License
-    - 14 PostScript(R) AFM files
-    identifier: APAFML
   - alias:
     - xinetd License
     - allowing xinetd as maintained by me (Rob Braun)

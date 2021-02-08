@@ -80,9 +80,9 @@ class PkgLicense(object):
             except yaml.YAMLError as e:
                 logger.exception("yaml load error: %s", str(e))
                 return
-        self._parse_tag_license(data["Software Licenses"]["Bad Licenses"], 
+        self._parse_tag_license(data["Software Licenses"]["Not Free Licenses"], 
                                      "black")
-        self._parse_tag_license(data["Software Licenses"]["Good Licenses"], 
+        self._parse_tag_license(data["Software Licenses"]["Free Licenses"], 
                                      "white")
         self._parse_tag_license(data["Software Licenses"]["Need Review Licenses"], 
                                      "need review")
@@ -114,9 +114,9 @@ class PkgLicense(object):
         for lic in licenses:
             res = self._white_black_list.get(lic, "unknow")
             if res == "white":
-                logger.info("This license: %s is safe", lic)
+                logger.info("This license: %s is free", lic)
             elif res == "black":
-                logger.error("This license: %s is not safe", lic)
+                logger.error("This license: %s is not free", lic)
                 result = False
             else: 
                 logger.warning("This license: %s need to be review", lic)
