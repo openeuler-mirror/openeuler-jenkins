@@ -23,6 +23,7 @@ import json
 import argparse
 import importlib
 import datetime
+import warnings
 
 from yaml.error import YAMLError
 
@@ -191,12 +192,16 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("ac")
 
-    logger.info("------------------AC START--------------")
+    logger.info("using credential {}".format(args.account.split(":")[0]))
+    logger.info("cloning repository https://gitee.com/{}/{}.git".format(args.community, args.repo))
+    logger.info("clone depth 4")
+    logger.info("checking out pull request {}".format(args.pr))
 
     # notify gitee
     from src.proxy.gitee_proxy import GiteeProxy
     from src.proxy.git_proxy import GitProxy
     from src.proxy.es_proxy import ESProxy
+    from src.proxy.kafka_proxy import KafkaProducerProxy
     from src.utils.dist_dataset import DistDataset
 
     dd = DistDataset()
@@ -214,7 +219,12 @@ if "__main__" == __name__:
     ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
     dd.set_attr_ctime("access_control.job.ctime", ctime)
 
+    # suppress python warning
+    warnings.filterwarnings("ignore")
+    logging.getLogger("kafka").setLevel(logging.WARNING)
+
     ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
+    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
     dd.set_attr_stime("access_control.scm.stime")
@@ -225,13 +235,18 @@ if "__main__" == __name__:
         dd.set_attr_etime("access_control.scm.etime")
 
         dd.set_attr_etime("access_control.job.etime")
-        dd.set_attr("access_control.job.result", "successful")
+        #dd.set_attr("access_control.job.result", "successful")
         ep.insert(index="openeuler_statewall_ac", body=dd.to_dict())
+        kp.send("openeuler_statewall_ci_ac", value=dd.to_dict())
+        logger.info("fetch finished -")
         sys.exit(-1)
     else:
         gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
+        logger.info("fetch finished +")
         dd.set_attr("access_control.scm.result", "successful")
         dd.set_attr_etime("access_control.scm.etime") 
+
+    logger.info("--------------------AC START---------------------")
 
     # build start
     dd.set_attr_stime("access_control.build.stime")
@@ -249,5 +264,6 @@ if "__main__" == __name__:
     ac.save(args.output)
 
     dd.set_attr_etime("access_control.job.etime")
-    dd.set_attr("access_control.job.result", "successful")
+    #dd.set_attr("access_control.job.result", "successful")
     ep.insert(index="openeuler_statewall_ac", body=dd.to_dict())
+    kp.send("openeuler_statewall_ci_ac", value=dd.to_dict())
