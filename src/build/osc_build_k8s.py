@@ -260,6 +260,7 @@ if "__main__" == __name__:
 
     # suppress python warning
     warnings.filterwarnings("ignore")
+    logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
     ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)

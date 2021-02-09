@@ -238,7 +238,7 @@ def init_args():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", type=int, dest="pr", help="pull request number")
-    parser.add_argument("-m", type=int, dest="comment_id", help="uniq comment id")
+    parser.add_argument("-m", type=str, dest="comment_id", help="uniq comment id")
     parser.add_argument("-c", type=str, dest="committer", help="commiter")
     parser.add_argument("-o", type=str, dest="owner", help="gitee owner")
     parser.add_argument("-r", type=str, dest="repo", help="repo name")
@@ -311,6 +311,7 @@ if "__main__" == __name__:
 
     # suppress python warning
     warnings.filterwarnings("ignore")
+    logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
     # upload to es
