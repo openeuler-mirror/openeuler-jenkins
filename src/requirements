@@ -8,3 +8,5 @@ jsonpath
 mock
 tldextract
 chardet
+kafka
+elasticsearch
