@@ -924,7 +924,6 @@ Software Licenses:
     identifier: Fair
   - alias:
     - GNU General Public License v2.0 only
-    - GNU GENERAL PUBLIC LICENSE Version 2
     - GPL(==-2)
     - GPL-2.0
     - GPL-2.0 License
@@ -939,6 +938,7 @@ Software Licenses:
     identifier: GPL-2.0-only
   - alias:
     - GNU General Public License v2.0 or later
+    - GNU GENERAL PUBLIC LICENSE Version 2
     - GPL(>=-2)
     - GPL(>=-2.0)
     - GPL(>=2)
