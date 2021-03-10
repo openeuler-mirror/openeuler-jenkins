@@ -49,7 +49,7 @@ class PkgLicense(object):
                            "meta.json",
                            "pkg-info"]
     
-    LICENSE_TARGET_PAT  = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?$")
+    LICENSE_TARGET_PAT  = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?")
 
     LICENSE_YAML_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "config",
@@ -138,7 +138,7 @@ class PkgLicense(object):
         """
         分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
         """
-        license_set = re.split(r'\(|\)|\,|\s+[Aa][Nn][Dd]\s+|\s+-?or-?\s+|\s+/\s+', licenses)
+        license_set = re.split(r'\(|\)|\s+\,|\s+[Aa][Nn][Dd]\s+|\s+-?or-?\s+|\s+/\s+', licenses)
         for index in range(len(license_set)): # 去除字符串首尾空格
             license_set[index] = license_set[index].strip()
         return set(filter(None, license_set)) # 去除list中空字符串
@@ -182,12 +182,14 @@ class PkgLicense(object):
         with open(copying, "rb") as f:
             data = f.read()
         data = PkgLicense._auto_decode_str(data)
+        blank_pat = re.compile(r"\s+")
+        data = blank_pat.sub(" ", data)
         if not data:
             return licenses_in_file
         for word in self._license_translation:
             try:
                 if word in data:
-                    pattern_str = r'(^{word}$)|(^{word}(\s+))|((\s+){word}$)|((\s+){word}(\s+))' \
+                    pattern_str = r'(^{word}$)|(^{word}(\W+))|((\W+){word}$)|((\W+){word}(\W+))' \
                                   .format(word=word)
                     if re.search(pattern_str, data):
                         licenses_in_file.add(word)
