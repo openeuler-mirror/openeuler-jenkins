@@ -101,8 +101,8 @@ class RPMSpecAdapter(object):
         :return: 0~eq, 1~gt, -1~lt
         """
         # replace continued chars to dot
-        version_n = re.sub("[a-zA-Z_-]+", ".", version_n).strip().strip(".")
-        version_o = re.sub("[a-zA-Z_-]+", ".", version_o).strip().strip(".")
+        version_n = re.sub("[a-zA-Z_-}]+", ".", version_n).strip().strip(".")
+        version_o = re.sub("[a-zA-Z_-}]+", ".", version_o).strip().strip(".")
         # replace continued dots to a dot
         version_n = re.sub("\.+", ".", version_n)
         version_o = re.sub("\.+", ".", version_o)
