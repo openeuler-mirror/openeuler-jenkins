@@ -27,6 +27,8 @@ import warnings
 
 from yaml.error import YAMLError
 
+from src.ac.framework.ac_result import FAILED
+
 
 class AC(object):
     """
@@ -60,6 +62,11 @@ class AC(object):
             check_element = self._ac_check_elements[element]
             logger.debug("check {}".format(element))
 
+            # show in gitee, must starts with "check_"
+            hint = check_element.get("hint", "check_{}".format(element))
+            if not hint.startswith("check_"):
+                hint = "check_{}".format(hint)
+
             # import module
             module_path = check_element.get("module", "{}.check_{}".format(element, element))   # eg: spec.check_spec
             try:
@@ -83,6 +90,7 @@ class AC(object):
                 try:
                     entry = entry(workspace, repo, check_element)       # new a instance
                 except Exception as exc:
+                    self._ac_check_result.append({"name": hint, "result": FAILED.val})
                     logger.exception("new a instance of class {} exception, {}".format(entry_name, exc))
                     continue
 
@@ -98,10 +106,6 @@ class AC(object):
                 logger.exception("check exception, {} {}".format(element, exc))
                 continue
 
-            # show in gitee, must starts with "check_"
-            hint = check_element.get("hint", "check_{}".format(element))
-            if not hint.startswith("check_"):
-                hint = "check_{}".format(hint)
             self._ac_check_result.append({"name": hint, "result": result.val})
             dataset.set_attr("access_control.build.acl.{}".format(element), result.hint)
 
