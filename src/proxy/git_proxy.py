@@ -2,6 +2,7 @@
 import os
 import logging
 from cStringIO import StringIO
+import retrying
 
 from src.utils.shell_cmd import shell_cmd_live
 
@@ -37,6 +38,8 @@ class GitProxy(object):
 
         return cls(repo_dir)
 
+    @retrying.retry(retry_on_result=lambda result: result is False, 
+            stop_max_attempt_number=3, wait_fixed=2)
     def fetch_pull_request(self, url, pull_request, depth=1, progress=False):
         """
         fetch pr
@@ -48,9 +51,10 @@ class GitProxy(object):
         """
         fetch_cmd = "cd {}; git fetch {} --depth {} {} +refs/pull/{}/MERGE:refs/pull/{}/MERGE".format(
             self._repo_dir, "--progress" if progress else "", depth, url, pull_request, pull_request)
-        ret, _, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
+        ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
             logger.error("git fetch failed, {}".format(ret))
+            logger.error("{}".format(out))
             return False
 
         return True

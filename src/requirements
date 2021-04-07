@@ -10,3 +10,4 @@ tldextract
 chardet
 kafka
 elasticsearch
+retrying
