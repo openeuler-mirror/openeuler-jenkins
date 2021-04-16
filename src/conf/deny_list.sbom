@@ -1,0 +1,13 @@
+{
+    "comment": "Component Denylist",
+    "components": [
+        {
+            "publish": "openeuler",
+            "name": "pkgship"
+        },
+        {
+            "publish": "openeuler",
+            "name": "openeuler-jenkins"
+        }
+    ]
+}
