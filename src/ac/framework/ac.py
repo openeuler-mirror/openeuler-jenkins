@@ -51,6 +51,20 @@ class AC(object):
 
         logger.debug("check list: {}".format(self._ac_check_elements))
 
+    @staticmethod
+    def is_repo_support_check(repo, check_element):
+        """
+        仓库是否支持检查
+        不在allow_list或者在deny_list，则不支持检查
+        :param repo:
+        :param check_element:
+        :return: 允许/True，否则False
+        """
+        allow_list = check_element.get("allow_list") or []
+        deny_list = check_element.get("deny_list") or []
+
+        return False if (allow_list and repo not in allow_list) or repo in deny_list else True
+
     def check_all(self, workspace, repo, dataset, **kwargs):
         """
         门禁检查
@@ -66,6 +80,10 @@ class AC(object):
             hint = check_element.get("hint", "check_{}".format(element))
             if not hint.startswith("check_"):
                 hint = "check_{}".format(hint)
+
+            if not self.__class__.is_repo_support_check(repo, check_element):
+                logger.debug("{} not support check".format(repo))
+                continue
 
             # import module
             module_path = check_element.get("module", "{}.check_{}".format(element, element))   # eg: spec.check_spec
@@ -183,6 +201,14 @@ def init_args():
     parser.add_argument("-z", type=str, dest="trigger_time", help="job trigger time")
     parser.add_argument("-l", type=str, dest="trigger_link", help="job trigger link")
 
+    # scanoss
+    parser.add_argument("--scanoss-api-key", type=str, dest="scanoss_api_key", help="scanoss api key")
+    parser.add_argument("--scanoss-api-url", type=str, dest="scanoss_api_url", 
+            default="https://osskb.org/api/scan/direct", help="scanoss api url")
+    parser.add_argument("--scanoss-output", type=str, dest="scanoss_output", 
+            default="scanoss_result", help="scanoss result output")
+    parser.add_argument("--scanoss-repo-path", type=str, dest="scanoss_repo", help="scanoss result repo path")
+
     return parser.parse_args()
 
 
@@ -262,9 +288,13 @@ if "__main__" == __name__:
     gp.delete_tag_of_pr(args.pr, "ci_failed")
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
+    # scanoss conf
+    scanoss = {"api_key": args.scanoss_api_key, "api_url": args.scanoss_api_url, 
+        "output": args.scanoss_output, "repo_path": args.scanoss_repo}
+
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
-    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch)
+    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss)
     dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
 

@@ -19,6 +19,8 @@ src-openeuler:
     hint: check_package_license
     module: package_license.check_license
     entry: CheckLicense
+  sca:
+    exclude: True
 openeuler:
   spec:
     exclude: True
@@ -28,3 +30,8 @@ openeuler:
     exclude: True
   package_license:
     exclude: True
+  sca:
+    hint: check_sca
+    module: sca.check_sca
+    entry: CheckSCA
+    allow_list: ["openeuler-jenkins", "pkgship"]
