@@ -47,7 +47,11 @@ class ScanOSS(object):
         :param result:
         :return: True/没有代码引用，否则False
         """
-        json_format = json.loads(result)
+        try:
+            json_format = json.loads(result)
+        except ValueError:
+            logger.exception("illegal scanoss result, \"{}\"".format(result))
+            return True
 
         snippets = 0
         files = 0
