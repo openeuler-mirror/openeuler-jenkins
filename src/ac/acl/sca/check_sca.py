@@ -49,7 +49,7 @@ class CheckSCA(BaseCheck):
         """
         for filepath in files:
             try:
-                shutil.copy(filepath, self._work_diff_dir)
+                shutil.copy(os.path.join(self._work_dir, filepath), self._work_diff_dir)
             except IOError:
                 logger.exception("copy {} to {} exception".format(filepath, self._work_diff_dir))
 
