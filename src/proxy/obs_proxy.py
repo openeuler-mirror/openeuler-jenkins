@@ -120,7 +120,7 @@ class OBSProxy(object):
         :return:
         """
         package_path = "{}/{}".format(project, package)
-        cmd = "cd {}; osc build {} {} {} --no-verify --clean".format(
+        cmd = "cd {}; osc build {} {} {} --no-verify --clean --noservice".format(
             package_path, repo, arch, "--disable-debuginfo" if not debug else "")
 
         logger.info("osc build {} {} {} --no-verify --clean".format(

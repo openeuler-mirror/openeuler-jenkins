@@ -139,7 +139,7 @@ class GiteeRepo(object):
                 if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
             if patch_dir.startswith(".git"):
                 continue
-            for leading in xrange(max_leading + 1):
+            for leading in range(max_leading + 1):
                 logger.debug("try dir {} -p{}".format(patch_dir, leading))
                 if GitProxy.apply_patch_at_dir(os.path.join(self._decompress_dir, patch_dir), 
                         os.path.join(self._work_dir, patch), leading):

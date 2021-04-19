@@ -3,11 +3,12 @@ jenkinsapi
 colorlog
 threadpool
 PyYAML
-gevent==1.2.2
+gevent
 jsonpath
 mock
 tldextract
 chardet
-kafka
+kafka-python
 elasticsearch
 retrying
+scanoss-scanner

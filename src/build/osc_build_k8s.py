@@ -35,8 +35,17 @@ class SinglePackageBuild(object):
         "openEuler-EPOL-LTS": ["bringInRely"],
         "openEuler-20.09": ["openEuler:20.09", "openEuler:20.09:Epol"],
         "mkopeneuler-20.03": ["openEuler:Extras"],
-        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol"],
-        "openEuler-21.03": ["openEuler:21.03", "openEuler:21.03:Epol", "openEuler:21.03:Extras"]
+        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol", 
+            "openEuler:20.03:LTS:SP1:Extras"],
+        "openEuler-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2", "openEuler:20.03:LTS:SP2:Epol", 
+            "openEuler:20.03:LTS:SP2:Extras"],
+        "openEuler-21.03": ["openEuler:21.03", "openEuler:21.03:Epol", "openEuler:21.03:Extras"],
+        "oepkg_openstack-common_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:common"],
+        "oepkg_openstack-queens_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:queens"],
+        "oepkg_openstack-rocky_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:rocky"],
+        "oepkg_openstack-common_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:common"],
+        "oepkg_openstack-queens_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:queens"],
+        "oepkg_openstack-rocky_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:rocky"]
     }
 
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
@@ -242,7 +251,7 @@ if "__main__" == __name__:
     logger = logging.getLogger("build")
 
     logger.info("using credential {}".format(args.account.split(":")[0]))
-    logger.info("cloning repository https://gitee.com/{}/{}.git".format(args.owner, args.repo))
+    logger.info("cloning repository https://gitee.com/{}/{}.git ".format(args.owner, args.repo))
     logger.info("clone depth 1")
     logger.info("checking out pull request {}".format(args.pr))
 
@@ -263,7 +272,6 @@ if "__main__" == __name__:
     logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
-    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
     kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
@@ -282,7 +290,6 @@ if "__main__" == __name__:
         query = {"term": {"id": args.comment_id}}
         script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch),
                 "params": dd.to_dict()}
-        ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
         kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
         sys.exit(-1)
     else:
@@ -302,6 +309,5 @@ if "__main__" == __name__:
     # upload to es
     query = {"term": {"id": args.comment_id}}
     script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch), "params": dd.to_dict()}
-    ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
     kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
     sys.exit(rs)

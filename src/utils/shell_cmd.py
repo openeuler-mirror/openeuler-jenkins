@@ -42,6 +42,7 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
         while True:
             line = p.stdout.readline()
             if line:
+                line = line.decode("utf-8")
                 line = line.strip()
                 no_fmt_logger.info(line) if verbose else no_fmt_logger.debug(line)
                 if cap_out and line and line != "\n":
