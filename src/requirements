@@ -8,6 +8,7 @@ jsonpath
 mock
 tldextract
 chardet
-kafka
+kafka-python
 elasticsearch
 retrying
+scanoss-scanner

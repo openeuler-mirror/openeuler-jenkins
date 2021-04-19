@@ -1,5 +1,5 @@
 # -*- encoding=utf-8 -*-
-from urllib import quote as urlquote
+from urllib.parse import quote
 
 from jenkinsapi.jenkinsbase import JenkinsBase
 
@@ -11,7 +11,7 @@ def resolve_job_folders(self, jobs):
             jobs.remove(job)
             jobs += self.process_job_folder(job, self.baseurl)
         else:
-            job["url"] = '%s/job/%s' % (self.baseurl, urlquote(job['name']))
+            job["url"] = '%s/job/%s' % (self.baseurl, quote(job['name']))
 
     return jobs
 
