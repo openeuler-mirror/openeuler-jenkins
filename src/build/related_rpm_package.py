@@ -37,7 +37,8 @@ class RelatedRpms(object):
         "openEuler-EPOL-LTS": ["bringInRely"],
         "openEuler-20.09": ["openEuler:20.09"],
         "mkopeneuler-20.03": ["openEuler:Extras"],
-        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1"]
+        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol"],
+        "openEuler-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2", "openEuler:20.03:LTS:SP2:Epol"]
     }
 
     def __init__(self, obs_addr, obs_repo_url, branch_name, package_arch):
