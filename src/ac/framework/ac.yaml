@@ -34,4 +34,4 @@ openeuler:
     hint: check_sca
     module: sca.check_sca
     entry: CheckSCA
-    allow_list: ["openeuler-jenkins", "pkgship"]
+    allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform"]

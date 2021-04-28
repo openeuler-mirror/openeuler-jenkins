@@ -8,6 +8,18 @@
         {
             "publish": "openeuler",
             "name": "openeuler-jenkins"
+        },
+        {
+            "publish": "openeuler",
+            "name": "stratovirt"
+        },
+        {
+            "publish": "openeuler",
+            "name": "secGear"
+        },
+        {
+            "publish": "openeuler",
+            "name": "isula-transform"
         }
     ]
 }
