@@ -40,9 +40,9 @@ class SinglePackageBuild(object):
         "openEuler-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2", "openEuler:20.03:LTS:SP2:Epol", 
             "openEuler:20.03:LTS:SP2:Extras"],
         "openEuler-21.03": ["openEuler:21.03", "openEuler:21.03:Epol", "openEuler:21.03:Extras"],
-        "oepkg_openstack-common_oe-20.03-LTS_SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:common"],
-        "oepkg_openstack-queens_oe-20.03-LTS_SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:queens"],
-        "oepkg_openstack-rocky_oe-20.03-LTS_SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:rocky"]
+        "oepkg_openstack-common_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:common"],
+        "oepkg_openstack-queens_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:queens"],
+        "oepkg_openstack-rocky_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:rocky"]
     }
 
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
