@@ -47,7 +47,10 @@ class ObsPackageBuildReport(object):
             "openEuler:21.03:Extras": "openEuler-21.03",
             "openEuler:20.03:LTS:SP2:oepkg:openstack:common": "oepkg_openstack-common_oe-20.03-LTS-SP2",
             "openEuler:20.03:LTS:SP2:oepkg:openstack:queens": "oepkg_openstack-queens_oe-20.03-LTS-SP2",
-            "openEuler:20.03:LTS:SP2:oepkg:openstack:rocky": "oepkg_openstack-rocky_oe-20.03-LTS-SP2"
+            "openEuler:20.03:LTS:SP2:oepkg:openstack:rocky": "oepkg_openstack-rocky_oe-20.03-LTS-SP2",
+            "openEuler:20.03:LTS:Next:oepkg:openstack:common": "oepkg_openstack-common_oe-20.03-LTS-Next",
+            "openEuler:20.03:LTS:Next:oepkg:openstack:queens": "oepkg_openstack-queens_oe-20.03-LTS-Next",
+            "openEuler:20.03:LTS:Next:oepkg:openstack:rocky": "oepkg_openstack-rocky_oe-20.03-LTS-Next"
         }
 
     GITEE_OWNER = "src-openeuler"
