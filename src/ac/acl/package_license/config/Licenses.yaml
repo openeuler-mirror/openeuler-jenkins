@@ -638,8 +638,6 @@ Software Licenses:
     identifier: Artistic-1.0-cl8
   - alias:
     - Artistic License 1.0 (Perl)
-    - (perl)
-    - "license: perl"
     identifier: Artistic-1.0-Perl
   - alias:
     - Lawrence Berkeley National Labs BSD variant license
@@ -779,6 +777,10 @@ Software Licenses:
     - AFLv2.1
     identifier: AFL-2.1
   Free Licenses:
+  - alias:
+    - (perl)
+    - "license: perl"
+    identifier: Perl License
   - alias:
     - BSD Zero Clause License
     - Zero-Clause BSD

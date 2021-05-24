@@ -94,7 +94,7 @@ class CheckLicense(BaseCheck):
         else:
             logger.error("licenses in src:{} and in spec:{} are not same".format(self._license_in_src,
                                                                                    self._license_in_spec))
-            return FAILED
+            return WARNING
 
     def __call__(self, *args, **kwargs):
         """
