@@ -1,0 +1,106 @@
+# replace VERSION before run
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
+
+# Install qemu 5.2.0
+RUM set -eux; \
+    yum update; yum clean all; \
+    yum -y groupinstall "Development Tools"; \
+    yum -y insall pixman-devel zlib-* glib2 glib2-devel perl tar xz zip unzip wget; \
+    cd /usr/src; \
+    wget -q http://121.36.53.23/bisheng_riscv/ninja-linux.zip; \
+    unzip ninja-linux.zip; \
+    cp ninja /usr/bin; \
+    wget -q http:121.36.53.23/bisheng_riscv/qemu-5.2.0.tar.xz; \
+    tar xJf qemu-5.2.0.tar.xz; \
+    cd qemu-5.2.0 && mkdir build && cd build; \
+    ../configure --target-list=riscv64-linux-user,riscv64-softmmu; \
+    make install -j; \
+    rm -rf /usr/src/qemu-5.2.0* /usr/src/ninja*;
+
+# RISCV toolchain
+RUN cd /opt; \
+    wget -q http://121.36.53.23/bisheng_riscv/riscv_toolchain_linux64.tar.xz; \
+    tar xJf riscv_toolchain_linux64.tar.xz; \
+    rm riscv_toolchain_linux64.tar.xz;
+
+# fedora sysroot
+RUN cd /opt; \
+    wget -q http://121.36.53.23/bisheng_riscv/fedora28_riscv_smlroot.tar.xz; \
+    tar xJf fedora28_riscv_smlroot.tar.xz; \
+    ln -s /opt/fedora28_riscv_root/usr/lib64/ld-linux-riscv64-lp64d.so.1 /lib/ld-linux-riscv64-lp64d.so.1; \
+    rm fedora28_riscv_smlroot.tar.xz;
+
+# Packages for openjdk build
+RUN set -eux; \
+    yum -y install java-1.8.0-openjdk-devel cups-devel libXtst-devel libXt-devel libXrender-devel libXi-devel alsa-lib-devel libffi-devel elfutils-libelf-devel libstdc++-static libatomic
+
+# Test tool packages
+RUN set -eux; \
+    yum -y install gcc gcc-c++ unzip zlib-devel perl-devel libcurl-devel openssl-devel mercurial perl perl-Test-Simple xorg-x11-server-Xorg xorg-x11-server-Xvfb
+
+# JTREG
+RUN cd /opt; \
+    wget -q http://121.36.53.23/bisheng_riscv/jtreg-4.2.0-tip.tar.gz; \
+    mkdir jtreg-4; tar -xf jtreg-4.2.0-tip.tar.gz -C jtreg-4 --strip-components 1; \
+    wget -q http://121.36.53.23/bisheng_riscv/jtreg-5.1-b01.tar.gz; \
+    mkdir jtreg-5; tar -xf jtreg-5.1-b01.tar.gz -c jtreg-5 --strip-components 1; \
+    rm jtreg*.tar.gz;
+
+# AdoptOpenJDK 8/10/11/16
+RUN mkdir -p /usr/lib/jvm && cd /usr/lib/jvm; \
+    wget -q http://121.36.53.23/bisheng_riscv/OpenJDK8U-jdk_x64_linux_hotspot_8u292b10.tar.gz -O jdk-8.tar.gz; \
+    wget -q http://121.36.53.23/bisheng_riscv/OpenJDK10U-jdk_x64_linux_hotspot_10.0.2_13.tar.gz -O jdk-10.tar.gz; \
+    wget -q http://121.36.53.23/bisheng_riscv/OpenJDK11U-jdk_x64_linux_hotspot_11.0.11_9.tar.gz -O jdk-11.tar.gz; \
+    wget -q http://121.36.53.23/bisheng_riscv/OpenJDK16U-jdk_x64_linux_hotspot_16.0.1_9.tar.gz -O jdk-16.tar.gz; \
+    for tar in *.tar.gz; do tar xf $tar; done; \
+    rm *.tar.gz; \
+    ln -s jdk8* jdk-8; \
+    ln -s jdk-10* jdk-10; \
+    ln -s jdk-11* jdk-11; \
+    ln -s jdk-16* jdk-16;
+
+ENV \
+    JDK8_BOOT_DIR="/usr/lib/jvm/jdk-8" \
+    JDK10_BOOT_DIR="/usr/lib/jvm/jdk-10" \
+    JDK11_BOOT_DIR="/usr/lib/jvm/jdk-11" \
+    JDK16_BOOT_DIR="/usr/lib/jvm/jdk-16" \
+    JTREG4_DIR="/opt/jtreg-4" \
+    JTREG5_DIR="/opt/jtreg-5"
+
+# Jenkins Agent
+RUN set -eux; \
+    yum install -y python3 python3-pip cpio bsdtar expect openssh sudo shadow curl wget vim git strace 
+
+ARG VERSION=4.3
+ARG user=jenkins
+ARG group=jenkins
+ARG uid=1000
+ARG gid=1000
+ARG AGENT_WORKDIR=/home/${user}/agent
+
+RUN curl --create-dirs -fsSLo /usr/share/jenkins/agent.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
+    && chmod 755 /usr/share/jenkins \
+    && chmod 644 /usr/share/jenkins/agent.jar \
+    && ln -sf /usr/share/jenkins/agent.jar /usr/share/jenkins/slave.jar
+
+RUN curl --create-dirs -fsSLo /usr/local/bin/jenkins-agent http://121.36.53.23/AdoptOpenJDK/jenkins-agent
+
+RUN chmod a+rx /usr/local/openjdk-11 \
+     && chmod a+rx /usr/local/bin/jenkins-agent \
+     && ln -s /usr/local/bin/jenkins-agent /usr/local/bin/jenkins-slave
+
+RUN groupadd -g ${gid} ${group}
+RUN useradd -c "Jenkins user" -d /home/${user} -u ${uid} -g ${gid} -m ${user}
+RUN echo "${user} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
+USER ${user}
+ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir /home/${user}/.jenkins && mkdir -p ${AGENT_WORKDIR}
+
+VOLUME /home/${user}/.jenkins
+VOLUME ${AGENT_WORKDIR}
+WORKDIR ${AGENT_WORKDIR}
+
+
+ENTRYPOINT ["jenkins-agent"]
