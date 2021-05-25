@@ -251,7 +251,7 @@ if "__main__" == __name__:
     logger = logging.getLogger("build")
 
     logger.info("using credential {}".format(args.account.split(":")[0]))
-    logger.info("cloning repository https://gitee.com/{}/{}.git".format(args.owner, args.repo))
+    logger.info("cloning repository https://gitee.com/{}/{}.git ".format(args.owner, args.repo))
     logger.info("clone depth 1")
     logger.info("checking out pull request {}".format(args.pr))
 
@@ -272,7 +272,6 @@ if "__main__" == __name__:
     logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
-    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
     kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
@@ -291,7 +290,6 @@ if "__main__" == __name__:
         query = {"term": {"id": args.comment_id}}
         script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch),
                 "params": dd.to_dict()}
-        ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
         kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
         sys.exit(-1)
     else:
@@ -311,6 +309,5 @@ if "__main__" == __name__:
     # upload to es
     query = {"term": {"id": args.comment_id}}
     script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch), "params": dd.to_dict()}
-    ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
     kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
     sys.exit(rs)

@@ -315,9 +315,7 @@ if "__main__" == __name__:
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
     # upload to es
-    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
     kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
     query = {"term": {"id": args.comment_id}}
     script = {"lang": "painless", "source": "ctx._source.comment = params.comment", "params": dd.to_dict()}
-    #ep.update_by_query(index="openeuler_statewall_ac", query=query, script=script)
     kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())

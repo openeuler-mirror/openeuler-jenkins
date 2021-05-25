@@ -2,7 +2,7 @@
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:VERSION
 
 RUN set -eux; \
-    yum install -y tar wget python3 expect osc vim openssh shadow git
+    yum install -y tar wget 
 
 # Default to UTF-8 file.encoding
 ENV LANG C.UTF-8
@@ -33,9 +33,11 @@ RUN set -eux; \
 # this "case" statement is generated via "update.sh"
 	case "$arch" in \
 # arm64v8
-		arm64 | aarch64) downloadUrl=https://github.com/AdoptOpenJDK/openjdk11-upstream-binaries/releases/download/jdk-11.0.8%2B10/OpenJDK11U-jdk_aarch64_linux_11.0.8_10.tar.gz ;; \
+		arm64 | aarch64) downloadUrl=http://121.36.53.23/AdoptOpenJDK/openjdk_aarch64.tgz ;; \
 # amd64
-		amd64 | i386:x86-64 | x86_64) downloadUrl=https://github.com/AdoptOpenJDK/openjdk11-upstream-binaries/releases/download/jdk-11.0.8%2B10/OpenJDK11U-jdk_x64_linux_11.0.8_10.tar.gz ;; \
+		amd64 | i386:x86-64 | x86_64) downloadUrl=http://121.36.53.23/AdoptOpenJDK/openjdk_x64.tgz ;; \
+		#arm64 | aarch64) downloadUrl=https://github.com/AdoptOpenJDK/openjdk11-upstream-binaries/releases/download/jdk-11.0.8%2B10/OpenJDK11U-jdk_aarch64_linux_11.0.8_10.tar.gz ;; \
+		#amd64 | i386:x86-64 | x86_64) downloadUrl=https://github.com/AdoptOpenJDK/openjdk11-upstream-binaries/releases/download/jdk-11.0.8%2B10/OpenJDK11U-jdk_x64_linux_11.0.8_10.tar.gz ;; \
 # fallback
 		*) echo >&2 "error: unsupported architecture: '$arch'"; exit 1 ;; \
 	esac; \

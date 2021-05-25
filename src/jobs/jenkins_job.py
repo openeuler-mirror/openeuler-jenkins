@@ -68,7 +68,7 @@ class JenkinsJobs(object):
             """
             batch = (len(target_jobs) + concurrency - 1) / concurrency
             _failed_jobs = []
-            for index in xrange(batch):
+            for index in range(batch):
                 works = [gevent.spawn(self.dispatch, action, job, jenkins_proxy) 
                         for job in target_jobs[index * concurrency: (index + 1) * concurrency]]
                 logger.info("{} works, {}/{} ".format(len(works), index + 1, batch))
@@ -86,7 +86,7 @@ class JenkinsJobs(object):
 
         failed_jobs = run_once(real_jobs)
 
-        for index in xrange(retry):
+        for index in range(retry):
             if not failed_jobs:
                 break
             logger.info("{} jobs failed, retrying {}/{}".format(len(failed_jobs), index + 1, retry))

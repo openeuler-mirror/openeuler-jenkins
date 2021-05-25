@@ -82,7 +82,7 @@ class CheckSCA(BaseCheck):
         # 保存详细结果到web server
         if not result:
             self.save_scanoss_result(scan.html)
-            logger.warning("click to view scanoss detail: {}".format(self._scanoss_result_repo_path))
+            logger.warning("click {} view scanoss detail".format(self._scanoss_result_repo_path))
 
         return SUCCESS if result else FAILED
 
