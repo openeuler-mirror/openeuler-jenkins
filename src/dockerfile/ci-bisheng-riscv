@@ -10,7 +10,7 @@ RUN set -eux; \
     wget -q http://121.36.53.23/bisheng_riscv/ninja-linux.zip; \
     unzip ninja-linux.zip; \
     cp ninja /usr/bin; \
-    wget -q http:121.36.53.23/bisheng_riscv/qemu-5.2.0.tar.xz; \
+    wget -q http://121.36.53.23/bisheng_riscv/qemu-5.2.0.tar.xz; \
     tar xJf qemu-5.2.0.tar.xz; \
     cd qemu-5.2.0 && mkdir build && cd build; \
     ../configure --target-list=riscv64-linux-user,riscv64-softmmu; \
