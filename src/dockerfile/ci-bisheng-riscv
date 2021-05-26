@@ -5,7 +5,7 @@ FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
 RUN set -eux; \
     yum update; yum clean all; \
     yum -y groupinstall "Development Tools"; \
-    yum -y insall pixman-devel zlib-* glib2 glib2-devel perl tar xz zip unzip wget; \
+    yum -y install pixman-devel zlib-* glib2 glib2-devel perl tar xz zip unzip wget; \
     cd /usr/src; \
     wget -q http://121.36.53.23/bisheng_riscv/ninja-linux.zip; \
     unzip ninja-linux.zip; \
