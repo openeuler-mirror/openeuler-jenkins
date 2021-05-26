@@ -265,8 +265,7 @@ if "__main__" == __name__:
         dd.set_attr_etime("access_control.scm.etime")
 
         dd.set_attr_etime("access_control.job.etime")
-        #dd.set_attr("access_control.job.result", "successful")
-        kp.send("openeuler_statewall_ci_ac", value=dd.to_dict())
+        kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
         logger.info("fetch finished -")
         sys.exit(-1)
     else:
@@ -297,5 +296,4 @@ if "__main__" == __name__:
     ac.save(args.output)
 
     dd.set_attr_etime("access_control.job.etime")
-    #dd.set_attr("access_control.job.result", "successful")
-    kp.send("openeuler_statewall_ci_ac", value=dd.to_dict())
+    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
