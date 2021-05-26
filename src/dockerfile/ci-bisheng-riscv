@@ -43,7 +43,7 @@ RUN cd /opt; \
     wget -q http://121.36.53.23/bisheng_riscv/jtreg-4.2.0-tip.tar.gz; \
     mkdir jtreg-4; tar -xf jtreg-4.2.0-tip.tar.gz -C jtreg-4 --strip-components 1; \
     wget -q http://121.36.53.23/bisheng_riscv/jtreg-5.1-b01.tar.gz; \
-    mkdir jtreg-5; tar -xf jtreg-5.1-b01.tar.gz -c jtreg-5 --strip-components 1; \
+    mkdir jtreg-5; tar -xf jtreg-5.1-b01.tar.gz -C jtreg-5 --strip-components 1; \
     rm jtreg*.tar.gz;
 
 # AdoptOpenJDK 8/10/11/16
