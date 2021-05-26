@@ -2,7 +2,7 @@
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
 
 # Install qemu 5.2.0
-RUM set -eux; \
+RUN set -eux; \
     yum update; yum clean all; \
     yum -y groupinstall "Development Tools"; \
     yum -y insall pixman-devel zlib-* glib2 glib2-devel perl tar xz zip unzip wget; \
