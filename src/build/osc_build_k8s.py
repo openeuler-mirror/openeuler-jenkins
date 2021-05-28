@@ -66,7 +66,7 @@ class SinglePackageBuild(object):
         需要构建obs repo列表
         :return: list<dict>
         """
-        return OBSProxy.list_repos_of_arch(project, self._package, self._arch)
+        return OBSProxy.list_repos_of_arch(project, self._package, self._arch, show_exclude=True)
 
     def build_obs_repos(self, project, repos, work_dir, code_dir):
         """
