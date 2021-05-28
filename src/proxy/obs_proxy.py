@@ -51,14 +51,15 @@ class OBSProxy(object):
         return rs
 
     @staticmethod
-    def list_repos_of_arch(project, package, arch):
+    def list_repos_of_arch(project, package, arch, show_exclude=False):
         """
         获取包的repo列表
         :param project:
         :param package:
         :return:
         """
-        cmd = "osc results {} {} -a {}".format(project, package, arch)
+        cmd = "osc results {} {} {} -a {}".format(
+                "--show-exclude" if show_exclude else "", project, package, arch)
         ret, out, _ = shell_cmd_live(cmd, cap_out=True)
         if ret:
             logger.debug("list obs repos of arch error, {}".format(ret))
