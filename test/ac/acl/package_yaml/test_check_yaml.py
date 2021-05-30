@@ -17,7 +17,7 @@
 """
 
 import unittest
-import mock
+from unittest import mock
 import sys
 import os
 import types
@@ -48,7 +48,7 @@ class TestCheckYamlField(unittest.TestCase):
         self.cy = CheckPackageYaml("", "", "")
         def set_yaml(self, file):
             self._gr.yaml_file = file
-        self.cy.set_yaml = types.MethodType(set_yaml, self.cy, CheckPackageYaml) # python3该接口有变化 为实例动态绑定接口
+        self.cy.set_yaml = types.MethodType(set_yaml, self.cy)
 
     def test_none_file(self):
         self.cy.set_yaml(None)
@@ -104,8 +104,8 @@ class TestCheckYamlRepo(unittest.TestCase):
             self._gr.yaml_file = file
         def set_spec(self, file):
             self._spec = RPMSpecAdapter(file)
-        self.cy.set_yaml = types.MethodType(set_yaml, self.cy, CheckPackageYaml) # python3该接口有变化 为实例动态绑定接口
-        self.cy.set_spec = types.MethodType(set_spec, self.cy, CheckPackageYaml) # python3该接口有变化 为实例动态绑定接口
+        self.cy.set_yaml = types.MethodType(set_yaml, self.cy)
+        self.cy.set_spec = types.MethodType(set_spec, self.cy)
 
     def test_none_file(self):
         self.cy.set_yaml(None)

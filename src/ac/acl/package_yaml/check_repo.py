@@ -225,6 +225,8 @@ class MetacpanReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
             logging.warning("illegal url: \"\"")
             return []
         response = self.get_request_response(url)
+        if not response:
+            return []
         resp_lines = response.text.splitlines()
         release_tags = []
         tag_condition = "value=\"/release"
@@ -328,6 +330,8 @@ class GnuftpReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         response = self.get_request_response(url)
         pattern = re.compile("href=\"(.*)\">(.*)</a>")
         release_tags = []
+        if not response:
+            return []
         for line in response.text.splitlines():
             search_result = pattern.search(line)
             if search_result:

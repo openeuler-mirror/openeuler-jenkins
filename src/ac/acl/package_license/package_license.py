@@ -157,11 +157,11 @@ class PkgLicense(object):
             for filename in filenames:  
                 if (filename.lower() in self.LICENSE_FILE_TARGET 
                     or self.LICENSE_TARGET_PAT.search(filename.lower())):
-                    logger.info("scan the license target file: %s", filename)
+                    logger.info("scan the license target file: %s", os.path.join(root, filename).replace(srcdir, ""))
                     licenses_in_file.update(
                         self.scan_licenses(
                             os.path.join(root, filename)))
-        logger.info("all licenses from src: %s", ", ".join([data.encode("utf-8") for data in licenses_in_file]))
+        logger.info("all licenses from src: %s", ", ".join([data for data in licenses_in_file]))
         return licenses_in_file
 
     def scan_licenses(self, copying):
