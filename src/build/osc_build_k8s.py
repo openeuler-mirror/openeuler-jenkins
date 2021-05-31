@@ -199,6 +199,7 @@ class SinglePackageBuild(object):
             logger.error("branch \"{}\" not support yet".format(self._branch))
             return 1
 
+        has_any_repo_build = False
         for project in self.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
             logger.debug("start build project {}".format(project))
 
@@ -208,6 +209,7 @@ class SinglePackageBuild(object):
                 continue
 
             logger.debug("build obs repos: {}".format(obs_repos))
+            has_any_repo_build = True
             ret = self.build_obs_repos(project, obs_repos, work_dir, code_dir)
             if ret > 0:
                 logger.debug("build run return {}".format(ret))
@@ -215,6 +217,11 @@ class SinglePackageBuild(object):
                 return 1     # finish if any error
             else:
                 logger.info("build {} {} {} ... {}".format(project, self._package, self._arch, "ok"))
+
+        # if no repo build, regard as fail
+        if not has_any_repo_build:
+            logger.error("package not in any obs projects, please add package into obs")
+            return 1
 
         return 0
 
