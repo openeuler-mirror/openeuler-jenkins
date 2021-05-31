@@ -123,7 +123,7 @@ class CheckSpec(BaseCheck):
         if not homepage:
             return SUCCESS
 
-        for _ in xrange(retrying):
+        for _ in range(retrying):
             if 0 == do_requests("get", homepage, timeout=timeout):
                 return SUCCESS
             time.sleep(interval)

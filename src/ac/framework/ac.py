@@ -136,7 +136,7 @@ class AC(object):
         :return:
         """
         for filename in os.listdir(acl_dir):
-            if os.path.isdir(os.path.join(acl_dir, filename)):
+            if filename != "__pycache__" and os.path.isdir(os.path.join(acl_dir, filename)):
                 self._ac_check_elements[filename] = {}     # don't worry, using default when checking
 
     def load_check_elements_from_conf(self, conf_file, community):
@@ -223,7 +223,7 @@ if "__main__" == __name__:
     logger = logging.getLogger("ac")
 
     logger.info("using credential {}".format(args.account.split(":")[0]))
-    logger.info("cloning repository https://gitee.com/{}/{}.git".format(args.community, args.repo))
+    logger.info("cloning repository https://gitee.com/{}/{}.git ".format(args.community, args.repo))
     logger.info("clone depth 4")
     logger.info("checking out pull request {}".format(args.pr))
 
@@ -254,7 +254,6 @@ if "__main__" == __name__:
     logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
-    ep = ESProxy(os.environ["ESUSERNAME"], os.environ["ESPASSWD"], os.environ["ESURL"], verify_certs=False)
     kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
@@ -266,9 +265,7 @@ if "__main__" == __name__:
         dd.set_attr_etime("access_control.scm.etime")
 
         dd.set_attr_etime("access_control.job.etime")
-        #dd.set_attr("access_control.job.result", "successful")
-        ep.insert(index="openeuler_statewall_ac", body=dd.to_dict())
-        kp.send("openeuler_statewall_ci_ac", value=dd.to_dict())
+        kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
         logger.info("fetch finished -")
         sys.exit(-1)
     else:
@@ -299,6 +296,4 @@ if "__main__" == __name__:
     ac.save(args.output)
 
     dd.set_attr_etime("access_control.job.etime")
-    #dd.set_attr("access_control.job.result", "successful")
-    ep.insert(index="openeuler_statewall_ac", body=dd.to_dict())
-    kp.send("openeuler_statewall_ci_ac", value=dd.to_dict())
+    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
