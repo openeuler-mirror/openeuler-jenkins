@@ -22,6 +22,8 @@ import logging.config
 import logging
 import yaml
 
+from src.build.obs_repo_source import OBSRepoSource
+
 
 class ExtraWork(object):
     """
@@ -156,10 +158,57 @@ class ExtraWork(object):
         except IOError:
             logger.exception("save check abi comment exception")
 
+    def check_install_rpm(self, branch_name, arch, install_root):
+        """
+        检查生成的rpm是否可以安装
+        :param branch_name: 分支名
+        :param arch: cpu架构
+        :param install_root: 安装根路径
+        :return:
+        """
+        logger.info("*** start check install start ***")
+
+        # 1. prepare install root directory
+        _ = not os.path.exists(install_root) and os.mkdir(install_root)
+        logger.info("create install root directory: {}".format(install_root))
+
+        repo_name_prefix = "check_install"
+
+        # 2. prepare repo
+        repo_source = OBSRepoSource("http://119.3.219.20:82")   # obs 实时构建repo地址
+        repo_config = repo_source.generate_repo_info(branch_name, arch, "check_install")
+        logger.info("repo source config:\n{}".format(repo_config))
+
+        # write to /etc/yum.repos.d
+        with open("obs_realtime.repo", "w+") as f:
+            f.write(repo_config)
+
+        # 3. dnf install using repo name start with "check_install"
+        names = []
+        packages = []
+        for name, package in self._rpm_package.iter_all_rpm():
+            # ignore debuginfo rpm
+            if "debuginfo" in name or "debugsource" in name:
+                logger.debug("ignore debug rpm: {}".format(name))
+                continue
+            names.append(name)
+            packages.append(package)
+
+        logger.info("install rpms: {}".format(names))
+        if packages:
+            check_install_cmd = "sudo dnf install -y --disablerepo=* --enablerepo={}* --installroot={}" \
+                    "--setopt=reposdir=. {}".format(repo_name_prefix, install_root, " ".join(packages))
+            ret, _, _ = shell_cmd_live(check_install_cmd, verbose=True)
+            if ret:
+                logger.error("install rpms error, {}, {}".format(ret, err))
+            else:
+                logger.info("install rpm success")
+
+
 if "__main__" == __name__:
     args = argparse.ArgumentParser()
 
-    args.add_argument("-f", type=str, dest="func", choices=("notify", "checkabi"), help="function")
+    args.add_argument("-f", type=str, dest="func", choices=("notify", "checkabi", "checkinstall"), help="function")
 
     args.add_argument("-p", type=str, dest="package", help="obs package")
     args.add_argument("-a", type=str, dest="arch", help="build arch")
@@ -180,6 +229,8 @@ if "__main__" == __name__:
     args.add_argument("-b", type=str, dest="obs_repo_url", help="obs repo where rpm saved")
     args.add_argument("-s", type=str, dest="obs_addr", help="obs address")
     args.add_argument("-r", type=str, dest="branch_name", help="obs project name")
+
+    args.add_argument("--install-root", type=str, dest="install_root", help="check install root dir")
     args = args.parse_args()
     
     _ = not os.path.exists("log") and os.mkdir("log")
@@ -203,3 +254,5 @@ if "__main__" == __name__:
         # run before copy rpm to rpm repo
         ew.check_rpm_abi(args.rpm_repo_url, args.arch, args.output, args.committer, args.comment_file, 
                         args.obs_addr, args.branch_name, args.obs_repo_url)
+    elif args.func == "checkinstall":
+        ew.check_install_rpm(args.branch_name, args.arch, args.install_root)

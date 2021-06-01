@@ -180,3 +180,24 @@ class BuildRPMPackage(object):
             for filename in filenames:
                 name = self.extract_rpm_name(filename)
                 self._rpm_packages["srpm"][name] = {"name": name, "fullname": filename}
+
+    def iter_all_rpm(self):
+        """
+        遍历所有rpm包，返回包在local的路径
+        :return:
+        """
+        packages = self._rpm_packages.get("rpm", {})
+        for name in packages:
+            package = packages[name]
+            yield name, os.path.join(self._rpmbuild_dir, "RPMS", package["arch"], package["fullname"])
+
+    def iter_all_srpm(self):
+        """
+        遍历所有source rpm包，返回包在local的路径
+        :return:
+        """
+        packages = self._rpm_packages.get("rpm", {})
+
+        for name in packages:
+            package = packages[name]
+            yield name, os.path.join(self._rpmbuild_dir, "SRPMS", package["fullname"])
