@@ -51,6 +51,8 @@ class OBSRepoSource(object):
         :param repo_name_prefix:
         :return:
         """
+        repo_config = ""
+
         if branch == "master":
             obs_path_part = "openEuler:/Mainline"
         elif "openstack" in branch:
@@ -58,12 +60,27 @@ class OBSRepoSource(object):
             vendor, openstack, os = branch.split("_")
             obs_path_part = (":/").join(
                 [os.replace("-", ":/"), vendor.replace("-", ":/"), openstack.replace("-", ":/")])
+            obs_path_part_common = (":/").join(
+                [os.replace("-", ":/"),  vendor.replace("-", ":/"), "openstack:/common"])
+            obs_path_part_base = (":/").join([os.replace("-", ":/")])
+
+            # openstack need common and base
+            if "openstack-common" != openstack:
+                # openstack common
+                url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part_common, arch)
+                if do_requests("GET", url) == 0:
+                    logger.debug("add openstack common repo: {}".format(url))
+                    repo_config += self.repo_format("openstack_common", repo_name_prefix + "_openstack_common", url)
+
+            # openstack base
+            url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part_base, arch)
+            if do_requests("GET", url) == 0:
+                logger.debug("add openstack base repo: {}".format(url))
+                repo_config += self.repo_format("openstack_base", repo_name_prefix + "_openstack_base", url)
         else:
             obs_path_part = branch.replace("-", ":/")
 
         logger.debug("branch={}, obs_path_part={}".format(branch, obs_path_part))
-
-        repo_config = ""
 
         # main
         url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part, arch)
