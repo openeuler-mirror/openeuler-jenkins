@@ -197,8 +197,8 @@ class ExtraWork(object):
         logger.info("install rpms: {}".format(names))
         if packages:
             check_install_cmd = "sudo dnf install -y --disablerepo=* --enablerepo={}* --installroot={}" \
-                    "--setopt=reposdir=. {}".format(repo_name_prefix, install_root, " ".join(packages))
-            ret, _, _ = shell_cmd_live(check_install_cmd, verbose=True)
+                    " --setopt=reposdir=. {}".format(repo_name_prefix, install_root, " ".join(packages))
+            ret, _, err = shell_cmd_live(check_install_cmd, verbose=True)
             if ret:
                 logger.error("install rpms error, {}, {}".format(ret, err))
             else:
