@@ -72,7 +72,7 @@ class ObsMetaStrategy(object):
         index = 0
         for dirpath, dirnames, filenames in os.walk(self._obs_meta_path):
             # 忽略.osc目录
-            if re.search("\.osc|\.git", dirpath):
+            if re.search("\.osc|\.git|\:Bak", dirpath):
                 continue
 
             for filename in filenames:
