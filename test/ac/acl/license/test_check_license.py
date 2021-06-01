@@ -17,7 +17,7 @@
 """
 
 import unittest
-import mock
+from unittest import mock
 import sys
 import os
 import types
@@ -52,9 +52,9 @@ class TestCheckPkgLicense(unittest.TestCase):
             self._pkg_license.load_config()
         def decompress(self):
             self._gr.decompress_all()
-        check.get_work_tar_dir = types.MethodType(get_work_tar_dir, check, CheckLicense)
-        check.load_license_config = types.MethodType(load_license_config, check, CheckLicense)
-        check.decompress = types.MethodType(decompress, check, CheckLicense)
+        check.get_work_tar_dir = types.MethodType(get_work_tar_dir, check)
+        check.load_license_config = types.MethodType(load_license_config, check)
+        check.decompress = types.MethodType(decompress, check)
 
     def _test_check_license_in_spec(self, dir_key, predict):
         os.chdir(os.path.join(self.DIR_PATH,
@@ -64,9 +64,9 @@ class TestCheckPkgLicense(unittest.TestCase):
         self.bind_func(cl)
         cl.load_license_config()
         self.assertEqual(cl.check_license_in_spec(), predict)
-    
+
     def test_check_license_in_spec_none(self):
-        self._test_check_license_in_spec("no_spec", WARNING)
+        self._test_check_license_in_spec("no_spec", FAILED)
     
     def test_check_license_in_spec_succeed(self):
         self._test_check_license_in_spec("spec_success", SUCCESS)
@@ -89,8 +89,9 @@ class TestCheckPkgLicense(unittest.TestCase):
             shutil.rmtree(cl.get_work_tar_dir())
 
     def test_check_license_none(self):
-        self._test_check_license_in_src("no_src", WARNING)
-    
+        # 源码中不存在license由日志保存，不返回失败结果
+        self._test_check_license_in_src("no_src", SUCCESS)
+
     def test_check_license_in_src_succeed(self):
         self._test_check_license_in_src("src_success", SUCCESS)
 

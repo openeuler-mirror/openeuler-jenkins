@@ -637,6 +637,7 @@ Software Licenses:
     - Artistic License 1.0 w/clause 8
     identifier: Artistic-1.0-cl8
   - alias:
+    - The "Artistic License"
     - Artistic License 1.0 (Perl)
     identifier: Artistic-1.0-Perl
   - alias:
