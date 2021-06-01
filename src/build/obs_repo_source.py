@@ -68,7 +68,7 @@ class OBSRepoSource(object):
         # main
         url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part, arch)
         if do_requests("GET", url) == 0:
-            logger.debug("add man repo: {}".format(url))
+            logger.debug("add main repo: {}".format(url))
             repo_config += self.repo_format(repo_name_prefix + "_main", repo_name_prefix + "_main", url)
 
         # epol
