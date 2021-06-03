@@ -60,9 +60,9 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
         logger.debug("return code {}".format(ret))
         while True:
             line= p.stderr.readline()
-            err = line.decode("utf-8").strip()
-            if not err:
+            if not line:
                 break
+            err = line.decode("utf-8").strip()
             no_fmt_logger.error(err) if verbose else no_fmt_logger.debug(err)
 
     return ret, out, err if cap_err else None
