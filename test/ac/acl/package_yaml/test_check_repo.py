@@ -29,6 +29,8 @@ from src.ac.acl.package_yaml.check_repo import ReleaseTagsFactory
 
 logging.getLogger('test_logger')
 
+ACCESS2INTERNET = False
+
 class TestGetReleaseTags(unittest.TestCase):
     TEST_YAML_DIR = {
         "hg": os.path.join(os.path.dirname(os.path.realpath(__file__)), "repo_test_sample/hg_test/hg_test.yaml"),
@@ -63,6 +65,7 @@ class TestGetReleaseTags(unittest.TestCase):
         release_tags = ReleaseTagsFactory.get_release_tags(vc)
         return release_tags.get_tags(sr)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_hg_release_tags(self):
         release_tags = self._get_test_tags("hg")
         self.assertEqual(len(release_tags) > 0, True)
@@ -72,14 +75,17 @@ class TestGetReleaseTags(unittest.TestCase):
     #     release_tags = self._get_test_tags("github")
     #     self.assertEqual(len(release_tags) > 0, True)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_git_release_tags(self):
         release_tags = self._get_test_tags("git")
         self.assertEqual(len(release_tags) > 0, True)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_gitlab_gnome_release_tags(self):
         release_tags = self._get_test_tags("gitlab.gnome")
         self.assertEqual(len(release_tags) > 0, True)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_svn_release_tags(self):
         release_tags = self._get_test_tags("svn")
         self.assertEqual(len(release_tags) > 0, True)
@@ -89,14 +95,17 @@ class TestGetReleaseTags(unittest.TestCase):
     #     release_tags = self._get_test_tags("metacpan")
     #     self.assertEqual(len(release_tags) > 0, True)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_pypi_release_tags(self):
         release_tags = self._get_test_tags("pypi")
         self.assertEqual(len(release_tags) > 0, True)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_rubygem_release_tags(self):
         release_tags = self._get_test_tags("rubygem")
         self.assertEqual(len(release_tags) > 0, True)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_get_gitee_release_tags(self):
         release_tags = self._get_test_tags("gitee")
         self.assertEqual(len(release_tags) > 0, True)

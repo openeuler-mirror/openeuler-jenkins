@@ -205,5 +205,6 @@ class CheckPackageYaml(BaseCheck):
     def __call__(self, *args, **kwargs):
         logger.info("check {} yaml ...".format(self._repo))
         self._yaml_changed = self.is_change_package_yaml() # yaml文件变更 进行检查
-        return self.start_check_with_order("fields", "repo_domain", "repo_name", "repo")
+        # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_repo暂时关闭
+        return self.start_check_with_order("fields", "repo_domain", "repo_name")
 

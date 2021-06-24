@@ -37,6 +37,8 @@ from src.ac.acl.package_yaml.check_repo import HgReleaseTags, GithubReleaseTags,
 
 logging.getLogger('test_logger')
 
+ACCESS2INTERNET = False
+
 class TestCheckYamlField(unittest.TestCase):
 
     TEST_YAML_DIR = {
@@ -107,18 +109,21 @@ class TestCheckYamlRepo(unittest.TestCase):
         self.cy.set_yaml = types.MethodType(set_yaml, self.cy)
         self.cy.set_spec = types.MethodType(set_spec, self.cy)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_none_file(self):
         self.cy.set_yaml(None)
         self.cy.check_fields()
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
     
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     def test_NA_repo(self):
         self.cy.set_yaml(self.TEST_YAML_DIR["na"])
         self.cy.check_fields()
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
     
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(HgReleaseTags, "get_tags")
     def test_hg_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["hg"])
@@ -127,6 +132,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(HgReleaseTags, "get_tags")
     def test_hg_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["hg"])
@@ -135,6 +141,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GithubReleaseTags, "get_tags")
     def test_github_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["github"])
@@ -143,6 +150,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GithubReleaseTags, "get_tags")
     def test_github_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["github"])
@@ -151,6 +159,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GitReleaseTags, "get_tags")
     def test_git_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["git"])
@@ -159,6 +168,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GitReleaseTags, "get_tags")
     def test_git_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["git"])
@@ -167,6 +177,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GitlabReleaseTags, "get_tags")
     def test_gitlab_gnome_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["gitlab.gnome"])
@@ -175,6 +186,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GitlabReleaseTags, "get_tags")
     def test_gitlab_gnome_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["gitlab.gnome"])
@@ -183,6 +195,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(SvnReleaseTags, "get_tags")
     def test_svn_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["svn"])
@@ -191,6 +204,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(SvnReleaseTags, "get_tags")
     def test_svn_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["svn"])
@@ -199,6 +213,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(MetacpanReleaseTags, "get_tags")
     def test_metacpan_repoo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["metacpan"])
@@ -207,6 +222,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(MetacpanReleaseTags, "get_tags")
     def test_metacpan_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["metacpan"])
@@ -215,6 +231,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(PypiReleaseTags, "get_tags")
     def test_pypi_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["pypi"])
@@ -223,6 +240,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(PypiReleaseTags, "get_tags")
     def test_pypi_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["pypi"])
@@ -231,6 +249,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(RubygemReleaseTags, "get_tags")
     def test_rubygem_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["rubygem"])
@@ -239,6 +258,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(RubygemReleaseTags, "get_tags")
     def test_rubygem_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["rubygem"])
@@ -247,6 +267,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GiteeReleaseTags, "get_tags")
     def test_gitee_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["gitee"])
@@ -255,6 +276,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GiteeReleaseTags, "get_tags")
     def test_gitee_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["gitee"])
@@ -263,6 +285,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, WARNING)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GnuftpReleaseTags, "get_tags")
     def test_gnu_ftp_repo_success(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["gnu-ftp"])
@@ -271,6 +294,7 @@ class TestCheckYamlRepo(unittest.TestCase):
         result = self.cy.check_repo()
         self.assertEqual(result, SUCCESS)
 
+    @unittest.skipIf((not ACCESS2INTERNET), "skip testcase need to access internet")
     @mock.patch.object(GnuftpReleaseTags, "get_tags")
     def test_gnu_ftp_repo_failed(self, mock_get_tags):
         self.cy.set_yaml(self.TEST_YAML_DIR["gnu-ftp"])
