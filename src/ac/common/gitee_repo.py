@@ -103,9 +103,11 @@ class GiteeRepo(object):
         :return:
         """
         if self._is_compress_zip_file(file_path):
-            decompress_cmd = "cd {}; unzip -d {} {}".format(self._work_dir, self._decompress_dir, file_path)
+            decompress_cmd = "cd {}; timeout 120s unzip -o -d {} {}".format(
+                    self._work_dir, self._decompress_dir, file_path)
         elif self._is_compress_tar_file(file_path):
-            decompress_cmd = "cd {}; tar -C {} -xavf {}".format(self._work_dir, self._decompress_dir, file_path)
+            decompress_cmd = "cd {}; timeout 120s tar -C {} -xavf {}".format(
+                    self._work_dir, self._decompress_dir, file_path)
         else:
             logger.warning("unsupport compress file: {}".format(file_path))
             return False
