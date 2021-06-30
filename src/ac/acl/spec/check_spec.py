@@ -201,4 +201,5 @@ class CheckSpec(BaseCheck):
         self._ex_exclusive_arch()
         self._tbranch = kwargs.get("tbranch", None)
 
-        return self.start_check()
+        # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
+        return self.start_check_with_order("version", "patches")
