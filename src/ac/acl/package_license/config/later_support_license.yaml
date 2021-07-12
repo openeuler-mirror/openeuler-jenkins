@@ -1,0 +1,19 @@
+GPL:
+  versions:
+    - "1.0"
+    - "2.0"
+    - "3.0"
+LGPL:
+  versions:
+    - "2.0"
+    - "2.1"
+    - "3.0"
+AGPL:
+  versions:
+    - "1.0"
+    - "3.0"
+GFDL:
+  versions:
+    - "1.1"
+    - "1.2"
+    - "1.3"

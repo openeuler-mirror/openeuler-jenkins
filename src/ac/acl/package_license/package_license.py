@@ -54,10 +54,14 @@ class PkgLicense(object):
     LICENSE_YAML_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                    "config",
                                    "Licenses.yaml")
+    LATER_SUPPORT_LICENSE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                   "config",
+                                   "later_support_license.yaml")
 
     def __init__(self):
         self._white_black_list = {}
         self._license_translation = {}
+        self._later_support_license = {}
 
     def load_config(self):
         """
@@ -77,6 +81,12 @@ class PkgLicense(object):
         with open(self.LICENSE_YAML_PATH, "r") as f:
             try:
                 data = yaml.safe_load(f)
+            except yaml.YAMLError as e:
+                logger.exception("yaml load error: %s", str(e))
+                return
+        with open(self.LATER_SUPPORT_LICENSE_PATH, "r") as f:
+            try:
+                self._later_support_license = yaml.safe_load(f)
             except yaml.YAMLError as e:
                 logger.exception("yaml load error: %s", str(e))
                 return
@@ -215,9 +225,22 @@ class PkgLicense(object):
         return PkgLicense._decode_str(data, chardet.detect(data)["encoding"])
 
     @staticmethod
-    def check_licenses_is_same(licenses_for_spec, licenses_for_source_files):
+    def check_licenses_is_same(licenses_for_spec, licenses_for_source_files, later_support_license):
         """
         Check if the licenses from SPEC is the same as the licenses from LICENSE file.
         if same, return True. if not same return False.
         """
-        return licenses_for_spec.issuperset(licenses_for_source_files)
+        all_licenses_for_spec = set()
+        for license in licenses_for_spec:
+            if "-or-later" in license:
+                [l, v] = license.split("-or-later")[0].split("-", 1)
+                if l not in later_support_license:
+                    all_licenses_for_spec.add(license)
+                    continue
+                for version in later_support_license[l]["versions"]:
+                    if version >= v:
+                        all_licenses_for_spec.add(f"{l}-{version}-or-later")
+                        all_licenses_for_spec.add(f"{l}-{version}-only")
+            else:
+                all_licenses_for_spec.add(license)
+        return all_licenses_for_spec.issuperset(licenses_for_source_files)

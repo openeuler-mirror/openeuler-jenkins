@@ -24,6 +24,7 @@ import types
 import logging.config
 import logging
 import shutil
+from src.ac.acl.package_license.package_license import PkgLicense
 
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
 from src.ac.acl.package_license.check_license import CheckLicense
@@ -119,6 +120,11 @@ class TestCheckPkgLicense(unittest.TestCase):
 
     def test_check_license_same_failed(self):
         self._test_check_license_same("spec_src_diff", WARNING)
+
+    def test_check_license_same_later_version(self):
+        cl = PkgLicense()
+        cl.load_config()
+        self.assertEqual(cl.check_licenses_is_same(["GPL-1.0-or-later"], ["GPL-3.0-only"], cl._later_support_license), True)
 
 
 if __name__ == "__main__":
