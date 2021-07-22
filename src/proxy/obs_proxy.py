@@ -67,8 +67,13 @@ class OBSProxy(object):
 
         rs = []
         for line in out:
-            repo, arch, state = line.split()
-            rs.append({"repo": repo, "state": state})
+            try:
+                repo, arch, state = line.split()
+                mpac = package
+            except ValueError:
+                repo, arch, pac, state = line.split()
+                mpac = pac.split(":")[-1]
+            rs.append({"repo": repo, "mpac": mpac, "state": state})
 
         return rs
 
@@ -110,22 +115,23 @@ class OBSProxy(object):
         return True
 
     @staticmethod
-    def build_package(project, package, repo, arch, debug=False):
+    def build_package(project, package, repo, arch, mpac, debug=False):
         """
         build
         :param project:
         :param package:
         :param repo:
         :param arch:
+        :param mpac: multibuild package
         :param debug:
         :return:
         """
         package_path = "{}/{}".format(project, package)
-        cmd = "cd {}; osc build {} {} {} --no-verify --clean --noservice".format(
-            package_path, repo, arch, "--disable-debuginfo" if not debug else "")
+        cmd = "cd {}; osc build {} {} {} --no-verify --clean --noservice -M {}".format(
+            package_path, repo, arch, "--disable-debuginfo" if not debug else "", mpac)
 
-        logger.info("osc build {} {} {} --no-verify --clean".format(
-            repo, arch, "--disable-debuginfo" if not debug else ""))
+        logger.info("osc build {} {} {} --no-verify --clean --noservice -M {}".format(
+            repo, arch, "--disable-debuginfo" if not debug else "", mpac))
         ret, _, _ = shell_cmd_live(cmd, verbose=True)
 
         if ret:
