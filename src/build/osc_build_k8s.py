@@ -97,7 +97,10 @@ class SinglePackageBuild(object):
 
         # osc build
         for repo in repos:
-            if not OBSProxy.build_package(project, self._package, repo["repo"], self._arch):
+            if repo["state"] == "excluded":
+                logger.info("repo {} excluded".format(repo["repo"]))
+                continue
+            if not OBSProxy.build_package(project, self._package, repo["repo"], self._arch, repo["mpac"]):
                 logger.error("build {} ... failed".format(repo["repo"]))
                 return 3
 
