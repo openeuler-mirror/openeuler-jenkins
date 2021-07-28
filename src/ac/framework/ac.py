@@ -209,6 +209,9 @@ def init_args():
             default="scanoss_result", help="scanoss result output")
     parser.add_argument("--scanoss-repo-path", type=str, dest="scanoss_repo", help="scanoss result repo path")
 
+    parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
+                        default="http://124.71.75.234:8384/api/openlibing/codecheck/start", help="codecheck api url")
+
     return parser.parse_args()
 
 
@@ -289,9 +292,14 @@ if "__main__" == __name__:
     scanoss = {"api_key": args.scanoss_api_key, "api_url": args.scanoss_api_url, 
         "output": args.scanoss_output, "repo_path": args.scanoss_repo}
 
+    codecheck = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
+        "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url
+    }
+
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
-    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss)
+    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss,
+                 codecheck=codecheck)
     dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
 
