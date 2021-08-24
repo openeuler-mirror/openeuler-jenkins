@@ -21,6 +21,8 @@ src-openeuler:
     entry: CheckLicense
   sca:
     exclude: True
+  openlibing:
+    exclude: True
 openeuler:
   spec:
     exclude: True
@@ -34,7 +36,7 @@ openeuler:
     hint: check_sca
     module: sca.check_sca
     entry: CheckSCA
-    allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform", "kunpengsecl"]
+    allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform", "kunpengsecl", "release-tools"]
   openlibing:
     hint: check_openlibing
     module: openlibing.check_code
