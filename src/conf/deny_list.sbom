@@ -2,23 +2,23 @@
     "comment": "Component Denylist",
     "components": [
         {
-            "publish": "openeuler",
+            "publisher": "openeuler",
             "name": "pkgship"
         },
         {
-            "publish": "openeuler",
+            "publisher": "openeuler",
             "name": "openeuler-jenkins"
         },
         {
-            "publish": "openeuler",
+            "publisher": "openeuler",
             "name": "stratovirt"
         },
         {
-            "publish": "openeuler",
+            "publisher": "openeuler",
             "name": "secGear"
         },
         {
-            "publish": "openeuler",
+            "publisher": "openeuler",
             "name": "isula-transform"
         }
     ]

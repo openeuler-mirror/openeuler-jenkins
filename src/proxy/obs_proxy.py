@@ -115,7 +115,7 @@ class OBSProxy(object):
         return True
 
     @staticmethod
-    def build_package(project, package, repo, arch, mpac, debug=False):
+    def build_package(project, package, repo, arch, mpac, debug=False, root_build=False):
         """
         build
         :param project:
@@ -127,11 +127,13 @@ class OBSProxy(object):
         :return:
         """
         package_path = "{}/{}".format(project, package)
-        cmd = "cd {}; osc build {} {} {} --no-verify --clean --noservice -M {}".format(
-            package_path, repo, arch, "--disable-debuginfo" if not debug else "", mpac)
+        root_opt = "--userootforbuild" if root_build else ""
+        debuginfo_opt = "--disable-debuginfo" if not debug else ""
+        cmd = "cd {}; osc build {} {} {} {} --no-verify --clean --noservice -M {}".format(
+            package_path, repo, arch, root_opt, debuginfo_opt, mpac)
 
-        logger.info("osc build {} {} {} --no-verify --clean --noservice -M {}".format(
-            repo, arch, "--disable-debuginfo" if not debug else "", mpac))
+        logger.info("osc build {} {} {} {} --no-verify --clean --noservice -M {}".format(
+            repo, arch, root_opt, debuginfo_opt, mpac))
         ret, _, _ = shell_cmd_live(cmd, verbose=True)
 
         if ret:
