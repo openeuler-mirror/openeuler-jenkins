@@ -101,9 +101,9 @@ class SinglePackageBuild(object):
             if repo["state"] == "excluded" and repo["mpac"] == "raspberrypi-kernel":
                 logger.info("repo {}:{} excluded".format(repo["repo"], repo["mpac"]))
                 continue
-            root_build = True if repo["mpac"] == "iproute" else False
+            root_build = repo["mpac"] == "iproute"
             if not OBSProxy.build_package(
-                    project, self._package, repo["repo"], self._arch, repo["mpac"], root_build):
+                    project, self._package, repo["repo"], self._arch, repo["mpac"], root_build=root_build):
                 logger.error("build {} ... failed".format(repo["repo"]))
                 return 3
 
