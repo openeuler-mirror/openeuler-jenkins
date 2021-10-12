@@ -29,3 +29,8 @@
 > choose an openjdk image that from stable openeuler version
 
 - swr.cn-north-4.myhuaweicloud.com/openeuler/ci/soe:{version}
+
+## openeuler image based on openeuler-sp2
+> install the python packages required by release-tools based on sp2
+> Dockerfile: release-tools-dockerfile
+- docker image name: openeuler-sp2-release-tools
