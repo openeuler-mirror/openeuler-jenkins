@@ -36,7 +36,7 @@ openeuler:
     entry: CheckSCA
     allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform", "kunpengsecl"]
   openlibing:
-    hint: check_openlibing
+    hint: code_check
     module: openlibing.check_code
     entry: CheckCode
     allow_list: ["pkgship", "kunpengsecl", "release-tools"]
