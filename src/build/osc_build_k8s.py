@@ -104,7 +104,8 @@ class SinglePackageBuild(object):
                 continue
             root_build = repo["mpac"] in self.PACKAGES_USE_ROOT
             if not OBSProxy.build_package(
-                    project, self._package, repo["repo"], self._arch, repo["mpac"], root_build=root_build):
+                    project, self._package, repo["repo"], self._arch, repo["mpac"], 
+                    root_build=root_build, disable_cpio=True):
                 logger.error("build {} ... failed".format(repo["repo"]))
                 return 3
 
