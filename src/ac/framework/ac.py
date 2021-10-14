@@ -202,12 +202,8 @@ def init_args():
     parser.add_argument("-l", type=str, dest="trigger_link", help="job trigger link")
 
     # scanoss
-    parser.add_argument("--scanoss-api-key", type=str, dest="scanoss_api_key", help="scanoss api key")
-    parser.add_argument("--scanoss-api-url", type=str, dest="scanoss_api_url", 
-            default="https://osskb.org/api/scan/direct", help="scanoss api url")
     parser.add_argument("--scanoss-output", type=str, dest="scanoss_output", 
             default="scanoss_result", help="scanoss result output")
-    parser.add_argument("--scanoss-repo-path", type=str, dest="scanoss_repo", help="scanoss result repo path")
 
     parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
                         default="http://124.71.75.234:8384/api/openlibing/codecheck/start", help="codecheck api url")
@@ -289,8 +285,7 @@ if "__main__" == __name__:
     gp.create_tags_of_pr(args.pr, "ci_processing")
 
     # scanoss conf
-    scanoss = {"api_key": args.scanoss_api_key, "api_url": args.scanoss_api_url, 
-        "output": args.scanoss_output, "repo_path": args.scanoss_repo}
+    scanoss = {"output": args.scanoss_output}
 
     codecheck = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
         "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url
