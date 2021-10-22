@@ -6,6 +6,14 @@
             "name": "pkgship"
         },
         {
+            "publisher": "openeuler-mirror",
+            "name": "pkgship"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "pkgship"
+        },
+        {
             "publisher": "openeuler",
             "name": "openeuler-jenkins"
         },
@@ -14,7 +22,19 @@
             "name": "openeuler-jenkins"
         },
         {
+            "publisher": "src-openeuler",
+            "name": "openeuler-jenkins"
+        },
+        {
             "publisher": "openeuler",
+            "name": "stratovirt"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "stratovirt"
+        },
+        {
+            "publisher": "src-openeuler",
             "name": "stratovirt"
         },
         {
@@ -22,8 +42,184 @@
             "name": "secGear"
         },
         {
+            "publisher": "openeuler-mirror",
+            "name": "secGear"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "secGear"
+        },
+        {
             "publisher": "openeuler",
             "name": "isula-transform"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "isula-transform"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "isula-transform"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "kernel"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "async-libfuse"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "authz"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "clibcni"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "isula-build"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "iSulad"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "iSulad-img"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "iSula-libutils"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "isula-transform"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "lcr"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "lib-shim-v2"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "lxcfs-tools"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "syscontainer-tools"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "A-Tune"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "A-Tune-Collector"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "A-Tune-UI"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "prefetch_tuning"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "wisdom-advisor"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "qemu"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "vmtop"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "kernel"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "async-libfuse"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "authz"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "clibcni"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "isula-build"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "iSulad"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "iSulad-img"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "iSula-libutils"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "isula-transform"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "lcr"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "lib-shim-v2"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "lxcfs-tools"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "syscontainer-tools"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "A-Tune"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "A-Tune-Collector"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "A-Tune-UI"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "prefetch_tuning"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "wisdom-advisor"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "qemu"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "vmtop"
         }
     ]
 }
