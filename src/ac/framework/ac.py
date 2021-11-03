@@ -209,8 +209,9 @@ def init_args():
             default="scanoss_result", help="scanoss result output")
     parser.add_argument("--scanoss-repo-path", type=str, dest="scanoss_repo", help="scanoss result repo path")
 
+    parser.add_argument("--codecheck-api-key", type=str, dest="codecheck_api_key", help="codecheck api key")
     parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
-                        default="http://124.71.75.234:8384/api/openlibing/codecheck/start", help="codecheck api url")
+                        default="https://majun.osinfra.cn:8384/api/openlibing/codecheck", help="codecheck api url")
 
     return parser.parse_args()
 
@@ -293,7 +294,7 @@ if "__main__" == __name__:
         "output": args.scanoss_output, "repo_path": args.scanoss_repo}
 
     codecheck = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
-        "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url
+        "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url, "codecheck_api_key": args.codecheck_api_key
     }
 
     # build
