@@ -17,6 +17,7 @@
 """
 
 import logging
+import time
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
@@ -40,14 +41,45 @@ class CheckCode(BaseCheck):
         super(CheckCode, self).__init__(workspace, repo, conf)
 
     @staticmethod
-    def get_codecheck_result(pr_url, codecheck_api_url):
+    def get_codecheck_result(pr_url, codecheck_api_url, codecheck_api_key):
         """
         通过api调用codecheck
         """
-        data = {"pr_url": pr_url}
+        # get codecheck Api Token
+        codecheck_token_api_url = '{}/token/{}'.format(codecheck_api_url, codecheck_api_key)
+        token_resp = {}
+        rs = do_requests("get", codecheck_token_api_url, obj=token_resp)
+        if rs != 0 or token_resp.get("code", "") != "200":
+            logger.error("get dynamic token failed")
+            return 'false', {}
+
+        token = token_resp.get("data")
+        data = {"pr_url": pr_url, "token": token}
         response_content = {}
+        # 创建codecheck检查任务
+        codecheck_task_api_url = "{}/task".format(codecheck_api_url)
+        rs = do_requests("get", codecheck_task_api_url, querystring=data, obj=response_content)
+        if rs != 0 or response_content.get('code', '') != '200':
+            logger.error("create codecheck task failed; {}".format(response_content.get('msg', '')))
+            return 'false', {}
+
+        uuid = response_content.get('uuid')
+        task_id = response_content.get('task_id')
+        data = {"uuid": uuid, "token": token}
+        codecheck_status_api_url = '{}/{}/status'.format(codecheck_api_url, task_id)
+        current_time = 0
         logger.info("codecheck probably need to 3min")
-        rs = do_requests("get", codecheck_api_url, querystring=data, timeout=180, obj=response_content)
+        # 定时3min
+        while current_time < 180:
+            time.sleep(10)
+            response_content = {}
+            # 检查codecheck任务的执行状态
+            rs = do_requests("get", codecheck_status_api_url, querystring=data, obj=response_content)
+            if rs == 0 and response_content.get('code') == '100':
+                current_time = current_time + 10
+                continue
+            else:
+                break
         return rs, response_content
 
     def check_code(self):
@@ -55,7 +87,7 @@ class CheckCode(BaseCheck):
         开始进行codecheck检查
         """
         # 等待计算结果
-        rs, response_content = self.get_codecheck_result(self._pr_url, self._codecheck_api_url)
+        rs, response_content = self.get_codecheck_result(self._pr_url, self._codecheck_api_url, self._codecheck_api_key)
 
         # 判断是否计算完成
         if rs != 0:
@@ -70,12 +102,12 @@ class CheckCode(BaseCheck):
             "state": "pass(通过)/no pass(不通过)"
             }
             """
+            logger.warning("click {} view code check detail".format(response_content.get('data')))
             # 只有codecheck完成且codecheck检查的代码中存在bug，返回检查项失败的结果，以detail结尾，会显示具体的代码bug所在位置。
             if response_content.get("state") == "no pass":
-                logger.warning("click {} view code check detail".format(response_content.get('data')))
                 return FAILED
         else:
-            logger.error("code check failed, info :{}".format(response_content.get('msg')))
+            logger.error("code check failed, info : {}".format(response_content.get('msg')))
 
         return SUCCESS
 
@@ -93,5 +125,6 @@ class CheckCode(BaseCheck):
         self._pr_url = codecheck_conf.get("pr_url", "")
         self._pr_number = codecheck_conf.get("pr_number", "")
         self._codecheck_api_url = codecheck_conf.get("codecheck_api_url", "")
+        self._codecheck_api_key = codecheck_conf.get('codecheck_api_key', "")
 
         return self.start_check()
