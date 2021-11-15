@@ -71,11 +71,12 @@ class SinglePackageBuild(object):
         """
         return OBSProxy.list_repos_of_arch(project, self._package, self._arch, show_exclude=True)
 
-    def build_obs_repos(self, project, repos, work_dir, code_dir):
+    def build_obs_repos(self, project, repos, spec, work_dir, code_dir):
         """
         build
         :param project: 项目名
         :param repos: obs repo
+        :param spec: 指定spec文件
         :param code_dir: 码云代码在本地路径
         :param work_dir:
         :return:
@@ -105,7 +106,7 @@ class SinglePackageBuild(object):
                 continue
             root_build = repo["mpac"] in self.PACKAGES_USE_ROOT
             if not OBSProxy.build_package(
-                    project, self._package, repo["repo"], self._arch, repo["mpac"], 
+                    project, self._package, repo["repo"], self._arch, spec, repo["mpac"], 
                     root_build=root_build, disable_cpio=True):
                 logger.error("build {} ... failed".format(repo["repo"]))
                 return 3
@@ -193,9 +194,10 @@ class SinglePackageBuild(object):
 
         return True
 
-    def build(self, work_dir, code_dir):
+    def build(self, spec, work_dir, code_dir):
         """
         入口
+        :param spec: 指定spec文件
         :param work_dir: obs工作目录
         :param code_dir: 代码目录
         :return:
@@ -219,7 +221,7 @@ class SinglePackageBuild(object):
 
             logger.debug("build obs repos: {}".format(obs_repos))
             has_any_repo_build = True
-            ret = self.build_obs_repos(project, obs_repos, work_dir, code_dir)
+            ret = self.build_obs_repos(project, obs_repos, spec, work_dir, code_dir)
             if ret > 0:
                 logger.debug("build run return {}".format(ret))
                 logger.error("build {} {} {} ... {}".format(project, self._package, self._arch, "failed"))
@@ -254,6 +256,7 @@ def init_args():
     parser.add_argument("-t", type=str, dest="account", help="gitee account")
 
     parser.add_argument("-o", type=str, dest="owner", default="src-openeuler", help="gitee owner")
+    parser.add_argument("--spec", type=str, dest="spec", default="", help="spec files")
 
     return parser.parse_args()
 
@@ -316,7 +319,7 @@ if "__main__" == __name__:
 
     dd.set_attr_stime("spb.build.stime")
     spb = SinglePackageBuild(args.package, args.arch, args.branch)
-    rs = spb.build(args.workspace, args.code)
+    rs = spb.build(args.spec, args.workspace, args.code)
     dd.set_attr("spb.build.result", "failed" if rs else "successful")
     dd.set_attr_etime("spb.build.etime")
 
