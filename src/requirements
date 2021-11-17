@@ -11,4 +11,4 @@ chardet
 kafka-python
 elasticsearch
 retrying
-scanoss-scanner
+scanoss
