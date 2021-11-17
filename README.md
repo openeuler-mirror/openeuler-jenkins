@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository is used to store the jenkins scripts in openEuler Community.
+This repository is used to store the Jenkins scripts in the openEuler community.
 
 ## License
 
