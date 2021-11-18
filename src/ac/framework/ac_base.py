@@ -57,27 +57,27 @@ class BaseCheck(object):
         result = SUCCESS
         for name in items:
             try:
-                logger.debug("check {}".format(name))
+                logger.debug("check %s", name)
                 method = getattr(self, "check_{}".format(name))
                 rs = method()
-                logger.debug("{} -> {}".format(name, rs))
+                logger.debug("%s -> %s", name, rs)
             except Exception as e:
                 # 忽略代码错误
-                logger.exception("internal error: {}".format(e))
+                logger.exception("internal error: %s", e)
                 continue
 
             ignored = True if self._conf and name in self._conf.get("ignored", []) else False
-            logger.debug("{} ignore: {}".format(name, ignored))
+            logger.debug("%s ignore: %s", name, ignored)
 
             if rs is SUCCESS:
-                logger.info("check {:<30}pass".format(name))
+                logger.info("check %s pass", name)
             elif rs is WARNING:
-                logger.warning("check {:<30}warning{}".format(name, " [ignored]" if ignored else ""))
+                logger.warning("check %s warning %s", name, " [ignored]" if ignored else "")
             elif rs is FAILED:
-                logger.error("check {:<30}fail{}".format(name, " [ignored]" if ignored else ""))
+                logger.error("check %s fail %s", name, " [ignored]" if ignored else "")
             else:
                 # never here
-                logger.exception("check {:<30}exception{}".format(name, " [ignored]" if ignored else ""))
+                logger.exception("check %s exception %s", name, " [ignored]" if ignored else "")
                 continue
 
             if not ignored:
@@ -91,6 +91,6 @@ class BaseCheck(object):
         """
         members = inspect.getmembers(self, inspect.ismethod)
         items = [member[0].replace("check_", "") for member in members if member[0].startswith("check_")]
-        logger.debug("check items: {}".format(items))
+        logger.debug("check items: %s", items)
 
         return self.start_check_with_order(*items)

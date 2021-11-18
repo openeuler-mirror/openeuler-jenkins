@@ -73,13 +73,13 @@ class LinterCheck(object):
         * (E) error, for probable bugs in the code
         * (F) fatal, if an error occurred which prevented pylint from doing
         """
-        logger.debug("check python file: {}".format(filepath))
+        logger.debug("check python file: %s", filepath)
         # E0401: import module error
         pylint_cmd = "pylint3 --disable=E0401 {}".format(filepath)
         ret, out, _ = shell_cmd_live(pylint_cmd, cap_out=True, verbose=True)
 
         if ret:
-            logger.debug("pylint ret, {}".format(ret))
+            logger.debug("pylint ret, %s", ret)
 
         return cls.get_summary_of_pylint(out)
 
@@ -88,12 +88,12 @@ class LinterCheck(object):
         """
         Check golang code by golint
         """
-        logger.debug("check go file: {}".format(filepath))
+        logger.debug("check go file: %s", filepath)
         golint_cmd = "golint {}".format(filepath)
         ret, out, _ = shell_cmd_live(golint_cmd, cap_out=True, verbose=True)
 
         if ret:
-            logger.debug("golint error, {}".format(ret))
+            logger.debug("golint error, %s", ret)
             return {}
 
         return cls.get_summary_of_golint(out)
@@ -103,13 +103,13 @@ class LinterCheck(object):
         """
         Check c/c++ code by splint
         """
-        logger.debug("check c/c++ file: {}".format(filepath))
+        logger.debug("check c/c++ file: %s", filepath)
         splint_cmd = "splint {}".format(filepath)
         #ret, out, _ = shell_cmd_live(splint_cmd, cap_out=True, verbose=True)
         ret, out, _ = shell_cmd(splint_cmd)
 
         if ret:
-            logger.debug("splint error, {}".format(ret))
+            logger.debug("splint error, %s", ret)
             return {}
 
         return cls.get_summary_of_splint(out)

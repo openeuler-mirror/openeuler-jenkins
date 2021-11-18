@@ -46,10 +46,10 @@ class ESProxy(object):
         :return:
         """
         try:
-            logger.debug("es insert: {}".format(body))
+            logger.debug("es insert: %s", body)
             rs = self._es.index(index, body=body)
 
-            logger.debug("insert result: {}".format(rs))
+            logger.debug("insert result: %s", rs)
             return rs["result"] == "created"
         except elasticsearch.ElasticsearchException:
             logger.exception("elastic search insert document exception")
@@ -62,9 +62,9 @@ class ESProxy(object):
         :param body:
         :return:
         """
-        logger.debug("es search: {}".format(body))
+        logger.debug("es search: %s", body)
         rs = self._es.search(index=index, body=body)
-        logger.debug("result: {}".format(rs))
+        logger.debug("result: %s", rs)
 
         return rs['hits']['hits']
 
@@ -89,9 +89,9 @@ class ESProxy(object):
         """
         try:
             body = {"query": query, "script": script}
-            logger.debug("es update: {}".format(body))
+            logger.debug("es update: %s", body)
             rs = self._es.update_by_query(index, body=body)
-            logger.debug("update result: {}".format(rs))
+            logger.debug("update result: %s", rs)
 
             return True
         except elasticsearch.ElasticsearchException:

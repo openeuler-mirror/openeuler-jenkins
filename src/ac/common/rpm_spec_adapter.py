@@ -70,7 +70,7 @@ class RPMSpecAdapter(object):
         """
         try:
             value = self.buildarch
-            logger.debug("build arch: {}".format(value))
+            logger.debug("build arch: %s", value)
             if "x86_64" in value.lower():
                 return True
 
@@ -85,7 +85,7 @@ class RPMSpecAdapter(object):
         """
         try:
             value = self.buildarch
-            logger.debug("build arch: {}".format(value))
+            logger.debug("build arch: %s", value)
             if "aarch64" in value.lower():
                 return True
 
@@ -111,7 +111,7 @@ class RPMSpecAdapter(object):
         version_n = "{}{}".format(version_n, '.0' * (len(version_o.split('.')) - len(version_n.split('.'))))
         version_o = "{}{}".format(version_o, '.0' * (len(version_n.split('.')) - len(version_o.split('.'))))
 
-        logger.debug("compare versions: {} vs {}".format(version_n, version_o))
+        logger.debug("compare versions: %s vs %s", version_n, version_o)
         z = zip(version_n.split("."), version_o.split("."))
 
         for p in z:
@@ -121,7 +121,7 @@ class RPMSpecAdapter(object):
                 elif int(p[0]) > int(p[1]):
                     return 1
             except ValueError as exc:
-                logger.debug("check version exception, {}".format(exc))
+                logger.debug("check version exception, %s", exc)
                 continue
 
         return 0

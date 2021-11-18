@@ -82,7 +82,7 @@ class Comment(object):
         base_job_name = os.environ.get("JOB_NAME")
         base_build_id = os.environ.get("BUILD_ID")
         base_build_id = int(base_build_id)
-        logger.debug("base_job_name: {}, base_build_id: {}".format(base_job_name, base_build_id))
+        logger.debug("base_job_name: %s, base_build_id: %s", base_job_name, base_build_id)
         base_build = jenkins_proxy.get_build(base_job_name, base_build_id)
         logger.debug("get base build")
         self._up_builds = jenkins_proxy.get_upstream_builds(base_build)
@@ -120,7 +120,7 @@ class Comment(object):
 
         try:
             acl = json.loads(os.environ["ACL"])
-            logger.debug("ac result: {}".format(acl))
+            logger.debug("ac result: %s", acl)
         except ValueError:
             logger.exception("invalid ac result format")
             return []
@@ -138,7 +138,7 @@ class Comment(object):
                 comments.append(self.__class__.comment_html_table_tr_rowspan(
                     item["name"], ac_result.emoji, ac_result.hint))
 
-        logger.info("ac comment: {}".format(comments))
+        logger.info("ac comment: %s", comments)
 
         return comments
 
@@ -158,7 +158,7 @@ class Comment(object):
             comments.append(self.__class__.comment_html_table_tr(
                 name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno))
 
-        logger.info("build comment: {}".format(comments))
+        logger.info("build comment: %s", comments)
 
         return comments
 
@@ -178,25 +178,25 @@ class Comment(object):
             return False
 
         for check_abi_comment_file in self._check_abi_comment_files:
-            logger.debug("check abi comment file: {}".format(check_abi_comment_file))
+            logger.debug("check abi comment file: %s", check_abi_comment_file)
             if not os.path.exists(check_abi_comment_file):      # check abi评论文件存在
                 continue
             for build in builds:
                 name = build.job._data["fullName"]
-                logger.debug("check build {}".format(name))
+                logger.debug("check build %s", name)
                 if not match(name, check_abi_comment_file):     # 找到匹配的jenkins build
                     continue
-                logger.debug("build \"{}\" match".format(name))
+                logger.debug("build \"%s\" match", name)
 
                 status = build.get_status()
-                logger.debug("build state: {}".format(status))
+                logger.debug("build state: %s", status)
                 if ACResult.get_instance(status) == SUCCESS:    # 保证build状态成功
                     with open(check_abi_comment_file, "r") as f:
                         try:
                             content = yaml.safe_load(f)
                         except YAMLError: # yaml base exception
                             logger.exception("illegal yaml format of check abi comment file ")
-                        logger.debug("comment: {}".format(content))
+                        logger.debug("comment: %s", content)
                         for item in content:
                             ac_result = ACResult.get_instance(item.get("result"))
                             comments.append(self.__class__.comment_html_table_tr(
@@ -204,7 +204,7 @@ class Comment(object):
                                 "markdown" if "link" in item else "", hashtag=False))
                 break
 
-        logger.info("check abi comment: {}".format(comments))
+        logger.info("check abi comment: %s", comments)
 
         return comments
 

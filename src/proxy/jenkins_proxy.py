@@ -55,7 +55,7 @@ class JenkinsProxy(object):
             self._jenkins.create_job(job, config)
             return True
         except Exception as e:
-            logger.exception("create job exception, {}".format(e))
+            logger.exception("create job exception, %s", e)
             return False
 
     def update_job(self, job, config):
@@ -70,7 +70,7 @@ class JenkinsProxy(object):
             jks_job.update_config(config)
             return True
         except Exception as e:
-            logger.exception("update job exception, {}".format(e))
+            logger.exception("update job exception, %s", e)
             return False
 
     def get_config(self, job):
@@ -82,7 +82,7 @@ class JenkinsProxy(object):
         try:
             return self._jenkins[job].get_config()
         except Exception as e:
-            logger.exception("get config exception, {}".format(e))
+            logger.exception("get config exception, %s", e)
             return None
 
     def get_build(self, job, build_no):
@@ -95,7 +95,7 @@ class JenkinsProxy(object):
         try:
             return self._jenkins[job].get_build(build_no)
         except Exception as e:
-            logger.exception("get job build exception, {}".format(e))
+            logger.exception("get job build exception, %s", e)
             return None
 
     @classmethod
@@ -109,7 +109,7 @@ class JenkinsProxy(object):
             parent_build = build.get_upstream_build()
             return parent_build.get_upstream_build() if parent_build else None
         except Exception as e:
-            logger.exception("get grandpa build exception, {}".format(e))
+            logger.exception("get grandpa build exception, %s", e)
             return None
 
     def _get_upstream_jobs(self, job):
@@ -119,22 +119,22 @@ class JenkinsProxy(object):
         :param job: Jenkins Job object
         :return:
         """
-        logger.debug("get upstream jobs of {}".format(job._data["fullName"]))
+        logger.debug("get upstream jobs of %s", job._data["fullName"])
         jobs = []
         for project in job._data["upstreamProjects"]:   # but is the only way of get upstream projects info
             url = project.get("url")
             name = project.get("name")
-            logger.debug("upstream project: {} {}".format(url, name))
+            logger.debug("upstream project: %s %s", url, name)
 
             m = re.match("(.*)/job/.*", url)    # remove last part of job url, greedy match
             base_url = m.group(1)
-            logger.debug("base url {}".format(base_url))
+            logger.debug("base url %s", base_url)
 
             try:
                 j = jenkins.Jenkins(base_url, self._username, self._token, timeout=self._timeout)
                 jobs.append(j[name])
             except Exception as e:
-                logger.exception("get job of {} exception".format(url))
+                logger.exception("get job of %s exception", url)
                 continue
 
         return jobs
@@ -167,17 +167,17 @@ class JenkinsProxy(object):
         cause_build = cause_job.get_build(cause_build_id)
         cause_cause_build_id = cause_build.get_upstream_build_number()
         
-        logger.debug("cause_build_id: {}, cause_job_name: {}, cause_cause_build_id: {}".format(
-            cause_build_id, cause_job_name, cause_cause_build_id))
+        logger.debug("cause_build_id: %s, cause_job_name: %s, cause_cause_build_id: %s",
+                     cause_build_id, cause_job_name, cause_cause_build_id)
 
         upstream_builds = []
         for upstream_job in upstream_jobs:
-            logger.debug("{}".format(upstream_job._data["fullName"]))
+            logger.debug("%s", upstream_job._data["fullName"])
             for build_id in upstream_job.get_build_ids():
-                logger.debug("try build id {}".format(build_id))
+                logger.debug("try build id %s", build_id)
                 a_build = upstream_job.get_build(build_id)
                 if a_build.get_upstream_build_number() == cause_cause_build_id:
-                    logger.debug("build id {} match".format(build_id))
+                    logger.debug("build id %s match", build_id)
                     upstream_builds.append(a_build)
                     break
 

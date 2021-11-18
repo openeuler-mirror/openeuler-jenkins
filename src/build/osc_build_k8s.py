@@ -102,16 +102,16 @@ class SinglePackageBuild(object):
         # osc build
         for repo in repos:
             if repo["state"] == "excluded" and repo["mpac"] == "raspberrypi-kernel":
-                logger.info("repo {}:{} excluded".format(repo["repo"], repo["mpac"]))
+                logger.info("repo %s:%s excluded", repo["repo"], repo["mpac"])
                 continue
             root_build = repo["mpac"] in self.PACKAGES_USE_ROOT
             if not OBSProxy.build_package(
                     project, self._package, repo["repo"], self._arch, spec, repo["mpac"], 
                     root_build=root_build, disable_cpio=True):
-                logger.error("build {} ... failed".format(repo["repo"]))
+                logger.error("build %s ... failed", repo["repo"])
                 return 3
 
-            logger.info("build {} ... ok".format(repo["repo"]))
+            logger.info("build %s ... ok", repo["repo"])
 
         logger.debug("build all repos ... finished")
 
@@ -189,7 +189,7 @@ class SinglePackageBuild(object):
         ret, _, _ = shell_cmd_live(cmd, verbose=True)
 
         if ret:
-            logger.error("prepare build environ error, {}".format(ret))
+            logger.error("prepare build environ error, %s", ret)
             return False
 
         return True
@@ -203,31 +203,31 @@ class SinglePackageBuild(object):
         :return:
         """
         if self._branch in self.BUILD_IGNORED_GITEE_BRANCH:
-            logger.error("branch \"{}\" ignored".format(self._branch))
+            logger.error("branch \"%s\" ignored", self._branch)
             return 0
 
         if self._branch not in self.GITEE_BRANCH_PROJECT_MAPPING:
-            logger.error("branch \"{}\" not support yet".format(self._branch))
+            logger.error("branch \"%s\" not support yet", self._branch)
             return 1
 
         has_any_repo_build = False
         for project in self.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
-            logger.debug("start build project {}".format(project))
+            logger.debug("start build project %s", project)
 
             obs_repos = self.get_need_build_obs_repos(project)
             if not obs_repos:
-                logger.info("all repos ignored of project {}".format(project))
+                logger.info("all repos ignored of project %s", project)
                 continue
 
-            logger.debug("build obs repos: {}".format(obs_repos))
+            logger.debug("build obs repos: %s", obs_repos)
             has_any_repo_build = True
             ret = self.build_obs_repos(project, obs_repos, spec, work_dir, code_dir)
             if ret > 0:
-                logger.debug("build run return {}".format(ret))
-                logger.error("build {} {} {} ... {}".format(project, self._package, self._arch, "failed"))
+                logger.debug("build run return %s", ret)
+                logger.error("build %s %s %s ... %s", project, self._package, self._arch, "failed")
                 return 1     # finish if any error
             else:
-                logger.info("build {} {} {} ... {}".format(project, self._package, self._arch, "ok"))
+                logger.info("build %s %s %s ... %s", project, self._package, self._arch, "ok")
 
         # if no repo build, regard as fail
         if not has_any_repo_build:
@@ -269,10 +269,10 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
 
-    logger.info("using credential {}".format(args.account.split(":")[0]))
-    logger.info("cloning repository https://gitee.com/{}/{}.git ".format(args.owner, args.repo))
+    logger.info("using credential %s", args.account.split(":")[0])
+    logger.info("cloning repository https://gitee.com/%s/%s.git ", args.owner, args.repo)
     logger.info("clone depth 1")
-    logger.info("checking out pull request {}".format(args.pr))
+    logger.info("checking out pull request %s", args.pr)
 
     from src.utils.dist_dataset import DistDataset
     from src.proxy.git_proxy import GitProxy

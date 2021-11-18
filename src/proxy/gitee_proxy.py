@@ -35,7 +35,7 @@ class GiteeProxy(object):
         :param comment: 评论内容
         :return: 0成功，其它失败
         """
-        logger.debug("comment pull request {}".format(pr))
+        logger.debug("comment pull request %s", pr)
         comment_pr_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/comments".format(self._owner, self._repo, pr)
         data = {"access_token": self._token, "body": comment}
 
@@ -58,7 +58,7 @@ class GiteeProxy(object):
             logger.debug("create tags, but no tags")
             return True
 
-        logger.debug("create tags {} of pull request {}".format(tags, pr))
+        logger.debug("create tags %s of pull request %s", tags, pr)
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
                 self._owner, self._repo, pr, self._token)
 
@@ -81,7 +81,7 @@ class GiteeProxy(object):
             logger.debug("replace tags, but no tags")
             return True
 
-        logger.debug("replace all tags with {} of pull request {}".format(tags, pr))
+        logger.debug("replace all tags with %s of pull request %s", tags, pr)
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
                 self._owner, self._repo, pr, self._token)
 
@@ -99,7 +99,7 @@ class GiteeProxy(object):
         :param tag: 标签
         :return: 0成功，其它失败
         """
-        logger.debug("delete tag {} of pull request {}".format(tag, pr))
+        logger.debug("delete tag %s of pull request %s", tag, pr)
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels/{}?access_token={}".format(
                 self._owner, self._repo, pr, tag, self._token)
 
@@ -128,7 +128,7 @@ class GiteeProxy(object):
             """
             handler = yaml.safe_load(response.text)
             repos.update({item["name"]: item["type"] for item in handler["repositories"]})
-            logger.info("repos from community: {}".format(len(repos)))
+            logger.info("repos from community: %s", len(repos))
         
         community_repo_url = "https://gitee.com/openeuler/community/raw/master/repository/src-openeuler.yaml"
         logger.info("requests repos from community, this will take multi seconds")
@@ -143,7 +143,7 @@ class GiteeProxy(object):
         :param state: pr状态
         :return: str or None
         """
-        logger.debug("get last pull request committer, branch: {}, state: {}".format(branch, state))
+        logger.debug("get last pull request committer, branch: %s, state: %s", branch, state)
         pr_url = "https://gitee.com/api/v5/repos/{}/{}/pulls?access_token={}&state={}&base={}" \
                  "&page=1&per_page=1".format(self._owner, self._repo, self._token, state, branch)
 
@@ -161,7 +161,7 @@ class GiteeProxy(object):
             if handler:
                 try:
                     committer[0] = handler[0]["user"]["login"]
-                    logger.debug("get last pr committer: {}".format(committer))
+                    logger.debug("get last pr committer: %s", committer)
                 except KeyError:
                     logger.exception("extract committer info from gitee exception")
 

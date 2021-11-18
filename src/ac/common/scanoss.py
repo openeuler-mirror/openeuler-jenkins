@@ -50,7 +50,7 @@ class ScanOSS(object):
         try:
             json_format = json.loads(result)
         except ValueError:
-            logger.exception("illegal scanoss result, \"{}\"".format(result))
+            logger.exception("illegal scanoss result, \"%s\"", result)
             return True
 
         snippets = 0
@@ -67,7 +67,7 @@ class ScanOSS(object):
 
                 detail_trs.append(self.__class__.detail_trs(filename, item))
 
-        logger.debug("snippets: {}, files: {}".format(snippets, files))
+        logger.debug("snippets: %s, files: %s", snippets, files)
         detail = "<table border=\"1\" cellspacing=\"0\" cellpadding=\"5\">{th}{trs}</table>".format(
             th=self.__class__.detail_th(), trs="\n".join(detail_trs))
 
@@ -161,7 +161,7 @@ class ScanOSS(object):
         :param directory: 需要扫描的目录
         :return:
         """
-        logger.debug("scan dir: {}".format(directory))
+        logger.debug("scan dir: %s", directory)
         #scanoss_cmd = "scanner.py --format {} {} --apiurl {} {}".format(
         #    "plain", "--key {}".format(self._key) if self._key else "", self._api_url, directory)
         scanoss_cmd = "scanner.py --blacklist {} --format {} {} --apiurl {} {}".format(
@@ -169,8 +169,8 @@ class ScanOSS(object):
         ret, out, err = shell_cmd(scanoss_cmd)
 
         if ret:
-            logger.error("scanoss error, {}".format(ret))
-            logger.error("{}".format(err))
+            logger.error("scanoss error, %s", ret)
+            logger.error("%s", err)
             return True
 
         return self.result_analysis(out)

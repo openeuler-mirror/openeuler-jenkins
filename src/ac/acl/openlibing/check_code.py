@@ -60,7 +60,7 @@ class CheckCode(BaseCheck):
         codecheck_task_api_url = "{}/task".format(codecheck_api_url)
         rs = do_requests("get", codecheck_task_api_url, querystring=data, obj=response_content)
         if rs != 0 or response_content.get('code', '') != '200':
-            logger.error("create codecheck task failed; {}".format(response_content.get('msg', '')))
+            logger.error("create codecheck task failed; %s", response_content.get('msg', ''))
             return 'false', {}
 
         uuid = response_content.get('uuid')
@@ -102,12 +102,12 @@ class CheckCode(BaseCheck):
             "state": "pass(通过)/no pass(不通过)"
             }
             """
-            logger.warning("click {} view code check detail".format(response_content.get('data')))
+            logger.warning("click %s view code check detail", response_content.get('data'))
             # 只有codecheck完成且codecheck检查的代码中存在bug，返回检查项失败的结果，以detail结尾，会显示具体的代码bug所在位置。
             if response_content.get("state") == "no pass":
                 return FAILED
         else:
-            logger.error("code check failed, info : {}".format(response_content.get('msg')))
+            logger.error("code check failed, info : %s", response_content.get('msg'))
 
         return SUCCESS
 
@@ -118,8 +118,8 @@ class CheckCode(BaseCheck):
         :param kwargs:
         :return:
         """
-        logger.info("check {} code ...".format(self._repo))
-        logger.debug("args: {}, kwargs: {}".format(args, kwargs))
+        logger.info("check %s code ...", self._repo)
+        logger.debug("args: %s, kwargs: %s", args, kwargs)
         codecheck_conf = kwargs.get("codecheck", {})
 
         self._pr_url = codecheck_conf.get("pr_url", "")

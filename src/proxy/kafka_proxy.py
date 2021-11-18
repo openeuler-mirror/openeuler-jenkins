@@ -49,12 +49,12 @@ class KafkaProducerProxy(object):
         :return:
         """
         try:
-            logger.debug("kafka send: {}, {}".format(key, value))
+            logger.debug("kafka send: %s, %s", key, value)
             future = self._kp.send(topic, value=value, key=key)
 
             rs = future.get(timeout=self._timeout)
 
-            logger.debug("kafka send result: {}".format(rs))
+            logger.debug("kafka send result: %s", rs)
             return True
         except errors.KafkaTimeoutError:
             logger.exception("kafka send timeout exception")

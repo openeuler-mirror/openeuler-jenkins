@@ -68,7 +68,7 @@ class CheckCodeStyle(BaseCheck):
         """
         gp = GitProxy(self._work_dir)
         diff_files = gp.diff_files_between_commits("HEAD~1", "HEAD~0")
-        logger.debug("diff files: {}".format(diff_files))
+        logger.debug("diff files: %s", diff_files)
 
         diff_code_files = []                # 仓库中变更的代码文件
         diff_patch_code_files = []          # patch内的代码文件
@@ -77,7 +77,7 @@ class CheckCodeStyle(BaseCheck):
                 diff_code_files.append(diff_file)
             elif GiteeRepo.is_patch_file(diff_file):
                 patch_dir = self._gr.patch_dir_mapping.get(diff_file)
-                logger.debug("diff patch {} apply at dir {}".format(diff_file, patch_dir))
+                logger.debug("diff patch %s apply at dir %s", diff_file, patch_dir)
                 if patch_dir is not None:
                     files_in_patch = gp.extract_files_path_of_patch(diff_file)
                     patch_code_files = [os.path.join(patch_dir, file_in_patch) 
@@ -88,13 +88,13 @@ class CheckCodeStyle(BaseCheck):
                         for code_file in patch_code_files 
                         if os.path.exists(code_file)])
 
-        logger.debug("diff code files: {}".format(diff_code_files))
-        logger.debug("diff patch code files: {}".format(diff_patch_code_files))
+        logger.debug("diff code files: %s", diff_code_files)
+        logger.debug("diff patch code files: %s", diff_patch_code_files)
 
         rs_1 = self.check_file_under_work_dir(diff_code_files)
-        logger.debug("check_file_under_work_dir: {}".format(rs_1))
+        logger.debug("check_file_under_work_dir: %s", rs_1)
         rs_2 = self.check_files_inner_patch(diff_patch_code_files)
-        logger.debug("check_files_inner_patch: {}".format(rs_2))
+        logger.debug("check_files_inner_patch: %s", rs_2)
 
         return rs_1 + rs_2
 
@@ -131,10 +131,10 @@ class CheckCodeStyle(BaseCheck):
         elif GiteeRepo.is_c_cplusplus_file(file_path):
             rs = LinterCheck.check_c_cplusplus(file_path)
         else:
-            logger.error("error when arrive here, unsupport file {}".format(file_path))
+            logger.error("error when arrive here, unsupport file %s", file_path)
             return SUCCESS
 
-        logger.info("Linter: {:<40} {}".format(file_path, rs))
+        logger.info("Linter: %s %s", file_path, rs)
         if rs.get("F", 0) > 0:
             return FAILED
 
@@ -150,7 +150,7 @@ class CheckCodeStyle(BaseCheck):
         :param kwargs:
         :return:
         """
-        logger.info("check {} repo ...".format(self._repo))
+        logger.info("check %s repo ...", self._repo)
 
         _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
         try:

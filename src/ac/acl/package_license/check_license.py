@@ -87,13 +87,14 @@ class CheckLicense(BaseCheck):
         check whether the license in spec file and in src file is same
         :return
         """
-        if self._pkg_license.check_licenses_is_same(self._license_in_spec, self._license_in_src, self._pkg_license._later_support_license):
-            logger.info("licenses in src:{} and in spec:{} are same".format(self._license_in_src,
-                                                                            self._license_in_spec))
+        if self._pkg_license.check_licenses_is_same(self._license_in_spec, self._license_in_src,
+                                                    self._pkg_license._later_support_license):
+            logger.info("licenses in src:%s and in spec:%s are same", self._license_in_src,
+                                                                            self._license_in_spec)
             return SUCCESS
         else:
-            logger.error("licenses in src:{} and in spec:{} are not same".format(self._license_in_src,
-                                                                                   self._license_in_spec))
+            logger.error("licenses in src:%s and in spec:%s are not same", self._license_in_src,
+                                                                                   self._license_in_spec)
             return WARNING
 
     def __call__(self, *args, **kwargs):
@@ -103,7 +104,7 @@ class CheckLicense(BaseCheck):
         :param kwargs:
         :return:
         """
-        logger.info("check {} license ...".format(self._repo))
+        logger.info("check %s license ...", self._repo)
 
         _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
         self._gr.decompress_all() # decompress all compressed file into work_tar_dir 

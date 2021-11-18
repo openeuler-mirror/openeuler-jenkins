@@ -53,7 +53,7 @@ class CheckSpec(BaseCheck):
         package_yaml = "{}.yaml".format(self._repo)     # package yaml file name
 
         if len(diff_files) == 1 and diff_files[0] == package_yaml:
-            logger.debug("diff files: {}".format(diff_files))
+            logger.debug("diff files: %s", diff_files)
             return True
 
         return False
@@ -94,7 +94,7 @@ class CheckSpec(BaseCheck):
 
         # if lts branch, version update is forbidden
         if self._is_lts_branch():
-            logger.debug("lts branch {}".format(self._tbranch))
+            logger.debug("lts branch %s", self._tbranch)
             if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
                 logger.error("version update of lts branch is forbidden")
                 return FAILED
@@ -106,8 +106,8 @@ class CheckSpec(BaseCheck):
                 logger.debug("revert commit")
                 return SUCCESS
 
-        logger.error("current version: {}-r{}, last version: {}-r{}".format(
-            self._spec.version, self._spec.release, spec_o.version, spec_o.release))
+        logger.error("current version: %s-r%s, last version: %s-r%s",
+            self._spec.version, self._spec.release, spec_o.version, spec_o.release)
         return FAILED
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
@@ -119,7 +119,7 @@ class CheckSpec(BaseCheck):
         :return:
         """
         homepage = self._spec.url
-        logger.debug("homepage: {}".format(homepage))
+        logger.debug("homepage: %s", homepage)
         if not homepage:
             return SUCCESS
 
@@ -137,15 +137,15 @@ class CheckSpec(BaseCheck):
         """
         patches_spec = set(self._spec.patches)
         patches_file = set(self._gr.patch_files_not_recursive())
-        logger.debug("spec patches: {}".format(patches_spec))
-        logger.debug("file patches: {}".format(patches_file))
+        logger.debug("spec patches: %s", patches_spec)
+        logger.debug("file patches: %s", patches_file)
         
         result = SUCCESS
         for patch in patches_spec - patches_file:
-            logger.error("patch {} lost".format(patch))
+            logger.error("patch %s lost", patch)
             result = FAILED
         for patch in patches_file - patches_spec:
-            logger.warning("patch {} redundant".format(patch))
+            logger.warning("patch %s redundant", patch)
 
         return result
 
@@ -164,7 +164,7 @@ class CheckSpec(BaseCheck):
             content = "x86-64"
 
         if content is not None:
-            logger.info("exclusive arch \"{}\"".format(content))
+            logger.info("exclusive arch \"%s\"", content)
             try:
                 with open("exclusive_arch", "w") as f:
                     f.write(content)
@@ -189,7 +189,7 @@ class CheckSpec(BaseCheck):
               "last_version": spec.version, "last_release": spec.release,
               "compare_version": compare_version, "compare_release": compare_release, "compare": compare}
 
-        logger.info("{}".format(rs))
+        logger.info("%s", rs)
         try:
             with open("pkgship_notify", "w") as f:
                 yaml.safe_dump(rs, f)
@@ -197,7 +197,7 @@ class CheckSpec(BaseCheck):
             logger.exception("save pkgship exception")
 
     def __call__(self, *args, **kwargs):
-        logger.info("check {} spec ...".format(self._repo))
+        logger.info("check %s spec ...", self._repo)
         self._ex_exclusive_arch()
         self._tbranch = kwargs.get("tbranch", None)
 

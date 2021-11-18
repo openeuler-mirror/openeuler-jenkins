@@ -49,7 +49,7 @@ class AC(object):
         self.load_check_elements_from_acl_directory(acl_path)
         self.load_check_elements_from_conf(conf, community)
 
-        logger.debug("check list: {}".format(self._ac_check_elements))
+        logger.debug("check list: %s", self._ac_check_elements)
 
     @staticmethod
     def is_repo_support_check(repo, check_element):
@@ -74,7 +74,7 @@ class AC(object):
         """
         for element in self._ac_check_elements:
             check_element = self._ac_check_elements[element]
-            logger.debug("check {}".format(element))
+            logger.debug("check %s", element)
 
             # show in gitee, must starts with "check_"
             hint = check_element.get("hint", "check_{}".format(element))
@@ -82,25 +82,25 @@ class AC(object):
                 hint = "check_{}".format(hint)
 
             if not self.__class__.is_repo_support_check(repo, check_element):
-                logger.debug("{} not support check".format(repo))
+                logger.debug("%s not support check", repo)
                 continue
 
             # import module
             module_path = check_element.get("module", "{}.check_{}".format(element, element))   # eg: spec.check_spec
             try:
                 module = importlib.import_module("." + module_path, self._acl_package)
-                logger.debug("load module {} succeed".format(module_path))
+                logger.debug("load module %s succeed", module_path)
             except ImportError as exc:
-                logger.exception("import module {} exception, {}".format(module_path, exc))
+                logger.exception("import module %s exception, %s", module_path, exc)
                 continue
 
             # import entry
             entry_name = check_element.get("entry", "Check{}".format(element.capitalize()))
             try:
                 entry = getattr(module, entry_name)
-                logger.debug("load entry \"{}\" succeed".format(entry_name))
+                logger.debug("load entry \"%s\" succeed", entry_name)
             except AttributeError as exc:
-                logger.warning("entry \"{}\" not exist in module {}, {}".format(entry_name, module_path, exc))
+                logger.warning("entry \"%s\" not exist in module %s, %s", entry_name, module_path, exc)
                 continue
 
             # new a instance
@@ -109,26 +109,26 @@ class AC(object):
                     entry = entry(workspace, repo, check_element)       # new a instance
                 except Exception as exc:
                     self._ac_check_result.append({"name": hint, "result": FAILED.val})
-                    logger.exception("new a instance of class {} exception, {}".format(entry_name, exc))
+                    logger.exception("new a instance of class %s exception, %s", entry_name, exc)
                     continue
 
             if not callable(entry):      # check callable
-                logger.warning("entry {} not callable".format(entry_name))
+                logger.warning("entry %s not callable", entry_name)
                 continue
 
             # do ac check
             try:
                 result = entry(**kwargs)
-                logger.debug("check result {} {}".format(element, result))
+                logger.debug("check result %s %s", element, result)
             except Exception as exc:
-                logger.exception("check exception, {} {}".format(element, exc))
+                logger.exception("check exception, %s %s", element, exc)
                 continue
 
             self._ac_check_result.append({"name": hint, "result": result.val})
             dataset.set_attr("access_control.build.acl.{}".format(element), result.hint)
 
         dataset.set_attr("access_control.build.content", self._ac_check_result)
-        logger.debug("ac result: {}".format(self._ac_check_result))
+        logger.debug("ac result: %s", self._ac_check_result)
 
     def load_check_elements_from_acl_directory(self, acl_dir):
         """
@@ -150,18 +150,18 @@ class AC(object):
             with open(conf_file, "r") as f:
                 content = yaml.safe_load(f)
         except IOError:
-            logger.exception("ac conf file {} not exist".format(conf_file))
+            logger.exception("ac conf file %s not exist", conf_file)
             return
         except YAMLError:
             logger.exception("illegal conf file format")
             return
 
         elements = content.get(community, {})
-        logger.debug("community \"{}\" conf: {}".format(community, elements))
+        logger.debug("community \"%s\" conf: %s", community, elements)
         for name in elements:
             if name in self._ac_check_elements:
                 if elements[name].get("exclude"):
-                    logger.debug("exclude: {}".format(name))
+                    logger.debug("exclude: %s", name)
                     self._ac_check_elements.pop(name)
                 else:
                     self._ac_check_elements[name] = elements[name]
@@ -172,7 +172,7 @@ class AC(object):
         :param ac_file:
         :return:
         """
-        logger.debug("save ac result to file {}".format(ac_file))
+        logger.debug("save ac result to file %s", ac_file)
         with open(ac_file, "w") as f:
             f.write("ACL={}".format(json.dumps(self._ac_check_result)))
 
@@ -222,10 +222,10 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("ac")
 
-    logger.info("using credential {}".format(args.account.split(":")[0]))
-    logger.info("cloning repository https://gitee.com/{}/{}.git ".format(args.community, args.repo))
+    logger.info("using credential %s", args.account.split(":")[0])
+    logger.info("cloning repository https://gitee.com/%s/%s.git ", args.community, args.repo)
     logger.info("clone depth 4")
-    logger.info("checking out pull request {}".format(args.pr))
+    logger.info("checking out pull request %s", args.pr)
 
     # notify gitee
     from src.proxy.gitee_proxy import GiteeProxy

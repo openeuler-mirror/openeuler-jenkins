@@ -46,7 +46,7 @@ class JobBuildHistory(object):
         try:
             root = ET.fromstring(history)
         except ParseError:
-            logger.exception("package: {}, build history: {}".format(package, history))
+            logger.exception("package: %s, build history: %s", package, history)
             return {"package": package, "max": 0, "min": 0, "average": 0, "times": -1}
 
         duration = [int(ele.get("duration")) for ele in root.findall("entry")]
@@ -74,11 +74,11 @@ class JobBuildHistory(object):
         for index in range(batch):
             works = [gevent.spawn(JobBuildHistory.get_package_job_duration, project, package, repo, arch)
                      for package in packages[index * concurrency: (index + 1) * concurrency]]
-            logger.info("{} works, {}/{} ".format(len(works), index + 1, batch))
+            logger.info("%s works, %s/%s ", len(works), index + 1, batch)
             gevent.joinall(works)
             for work in works:
-                logger.debug("{}: {}".format(work.value["package"], work.value))
-                logger.info("{}       ...done".format(work.value["package"]))
+                logger.debug("%s: %s", work.value["package"], work.value)
+                logger.info("{%s}       ...done", work.value["package"])
                 rs.append(work.value)
 
             time.sleep(1)

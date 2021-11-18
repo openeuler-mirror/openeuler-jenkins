@@ -49,13 +49,13 @@ class CheckSCA(BaseCheck):
             with open(self._scanoss_result_output, 'r') as f:
                 result_dirt = json.load(f)
         except IOError:
-            logger.error("{} not found, make sure this file exists".format(self._scanoss_result_output))
+            logger.error("%s not found, make sure this file exists", self._scanoss_result_output)
             return FAILED
         
         result = result_dirt.get('result')
         
         # 保存详细结果到web server
-        logger.warning("click {} view scanoss detail".format(result_dirt.get('reportUrl')))
+        logger.warning("click %s view scanoss detail", result_dirt.get('reportUrl'))
 
         return SUCCESS if result else FAILED
 
@@ -66,9 +66,9 @@ class CheckSCA(BaseCheck):
         :param kwargs:
         :return:
         """
-        logger.info("check {} sca ...".format(self._repo))
+        logger.info("check %s sca ...", self._repo)
 
-        logger.debug("args: {}, kwargs: {}".format(args, kwargs))
+        logger.debug("args: %s, kwargs: %s", args, kwargs)
         scanoss_conf = kwargs.get("scanoss", {})
         self._scanoss_result_output = scanoss_conf.get("output", "scanoss_result")
         
