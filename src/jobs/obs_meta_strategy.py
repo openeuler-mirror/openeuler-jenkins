@@ -79,20 +79,20 @@ class ObsMetaStrategy(object):
                 if filename == "_service":
                     _service = os.path.join(dirpath, filename)
                     try:
-                        logger.debug("analysis {}".format(_service))
+                        logger.debug("analysis %s", _service)
                         tree = ET.parse(_service)
                         elements = tree.findall(".//param[@name=\"url\"]")  # <param name=url>next/openEuler/zip</parm>
                     except:
-                        logger.exception("invalid xml format, {}".format(_service))
+                        logger.exception("invalid xml format, %s", _service)
                         continue
 
                     _repos = [element.text.strip("/").split("/")[-1] for element in elements]  # eg: next/openEuler/zip
-                    logger.debug("get repos: {}".format(_repos))
+                    logger.debug("get repos: %s", _repos)
                     if any([repo in repos for repo in _repos]):
                         package = dirpath.strip("/").split("/")[-1]  # eg: master/openEuler:Mainline/zip/_services
                         index += 1
-                        logger.info("{} {}...ok".format(index, _service))
-                        logger.info("package: {}, repos: {}".format(package, _repos))
+                        logger.info("%s %s...ok", index, _service)
+                        logger.info("package: %s, repos: %s", package, _repos)
                         for repo in _repos:
                             self._package_repo[package].add(repo)
                             self._repo_package[repo].add(package)

@@ -8,12 +8,18 @@ no_fmt_logger = logging.getLogger("no_fmt")
 
 
 def shell_cmd(cmd, inmsg=None):
-    logger.debug("exec cmd -- [{}]".format(cmd))
+    """
+    创建子进程执行命令，返回执行结果
+    :param cmd: 命令
+    :param inmsg: 输入
+    :return:
+    """
+    logger.debug("exec cmd -- [%s]", cmd)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if inmsg:
         p.stdin.write(inmsg)
     out, err = p.communicate()
-    logger.debug("iret: {}, rs: {}, err: {}".format(p.returncode, out, err))
+    logger.debug("iret: %s, rs: %s, err: %s", p.returncode, out, err)
 
     return p.returncode, out, err
 
@@ -29,7 +35,7 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
     :return:
     """
     if cmd_verbose:
-        logger.debug("exec cmd -- {}".format(cmd))
+        logger.debug("exec cmd -- %s", cmd)
 
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if cap_in:
@@ -51,13 +57,13 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
                 break
 
     if cap_out:
-        logger.debug("total {} lines output".format(len(out)))
+        logger.debug("total %s lines output", len(out))
 
     ret = p.poll()
 
     err = None
     if ret:
-        logger.debug("return code {}".format(ret))
+        logger.debug("return code %s", ret)
         while True:
             line= p.stderr.readline()
             if not line:

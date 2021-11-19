@@ -59,7 +59,7 @@ class JenkinsJobs(object):
         :param interval: 每次batch请求后sleep时间（秒），
         :return:
         """
-        logger.info("{} jobs {}".format(action, jobs))
+        logger.info("%s jobs %s", action, jobs)
         real_jobs = self.get_real_target_jobs(jobs, exclude_jobs if exclude_jobs else [])
 
         def run_once(target_jobs):
@@ -71,14 +71,14 @@ class JenkinsJobs(object):
             for index in range(batch):
                 works = [gevent.spawn(self.dispatch, action, job, jenkins_proxy) 
                         for job in target_jobs[index * concurrency: (index + 1) * concurrency]]
-                logger.info("{} works, {}/{} ".format(len(works), index + 1, batch))
+                logger.info("%s works, %s/%s ", len(works), index + 1, batch)
                 gevent.joinall(works)
                 for work in works:
                     if work.value["result"]:
-                        logger.info("{} job {} ... ok".format(action, work.value["job"]))
+                        logger.info("%s job %s ... ok", action, work.value["job"])
                     else:
                         _failed_jobs.append(work.value["job"])
-                        logger.error("{} job {} ... failed".format(action, work.value["job"]))
+                        logger.error("%s job %s ... failed", action, work.value["job"])
 
                 time.sleep(interval)
 
@@ -89,12 +89,12 @@ class JenkinsJobs(object):
         for index in range(retry):
             if not failed_jobs:
                 break
-            logger.info("{} jobs failed, retrying {}/{}".format(len(failed_jobs), index + 1, retry))
+            logger.info("%s jobs failed, retrying %s/%s", len(failed_jobs), index + 1, retry)
             failed_jobs = run_once(failed_jobs)
 
         if failed_jobs:
-            logger.warning("{} failed jobs".format(len(failed_jobs)))
-            logger.warning("{}{}".format(",".join(failed_jobs[:100]), "..." if len(failed_jobs) > 100 else ""))
+            logger.warning("%s failed jobs", len(failed_jobs))
+            logger.warning("%s%s", ",".join(failed_jobs[:100]), "..." if len(failed_jobs) > 100 else "")
 
     def dispatch(self, action, job, jenkins_proxy):
         """
@@ -148,7 +148,7 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                 with open(os.path.join(exclusive_arch_path, filename), "r") as f:
                     arches = f.readline()
                     self._exclusive_arch[filename] = [arch.strip() for arch in arches.split(",")]
-        logger.debug("exclusive arch: {}".format(self._exclusive_arch))
+        logger.debug("exclusive arch: %s", self._exclusive_arch)
 
     def get_real_target_jobs(self, jobs, exclude_jobs):
         """
@@ -274,7 +274,7 @@ class OpenEulerJenkinsJobs(SrcOpenEulerJenkinsJobs):
 
         # build
         script = self.guess_build_script(buddy["repo"])
-        logger.debug("guess build script: {}".format("script"))
+        logger.debug("guess build script: %s", "script")
         ele = root.findall("buiders/hudson.task.Shell/command")
         if ele:
             # replace first command

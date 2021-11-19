@@ -51,9 +51,9 @@ class TestGetReleaseTags(unittest.TestCase):
             with open(filepath, 'r') as yaml_data:    # load yaml data
                 result = yaml.safe_load(yaml_data)
         except IOError as e:
-            logging.warning("package yaml not exist. {}".format(str(e)))
+            logging.warning("package yaml not exist. %s", str(e))
         except yaml.YAMLError as exc:
-            logging.warning("Error parsering YAML: {}".format(str(exc)))
+            logging.warning("Error parsering YAML: %s", str(exc))
         finally:
             return result
 

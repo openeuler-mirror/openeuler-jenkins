@@ -97,17 +97,17 @@ class ObsPackageBuildReport(object):
 #        try:
 #            branch = self.__class__.PROJECT_BRANCH_MAPPING[self._project]
 #        except KeyError:
-#            logger.exception("project {} not support".format(self._project))
+#            logger.exception("project %s not support", self._project)
 #            return
         branch = "master"
 
         # get packages in project of state
         packages = OBSProxy.list_packages_of_state(self._project, self._state)
-        logger.info("project {} state {}, find {} packages".format(self._project, self._state, len(packages)))
+        logger.info("project %s state %s, find %s packages", self._project, self._state, len(packages))
 
         # get last pr committer
         for index, package in enumerate(packages):
-            logger.info("{}: {}".format(index, package))
+            logger.info("%s: %s", index, package)
             gp = GiteeProxy(self.GITEE_OWNER, package, gitee_api_token)
             committer = gp.get_last_pr_committer(branch)
             real_name = self._real_name_mapping.get(committer, "N/A")

@@ -38,9 +38,9 @@ class RepoMapping(object):
         self._exclude_repos = kwargs.get("exclude_jobs") if kwargs.get("exclude_jobs") else []
         self._repo_mapping = {}   # 保存结果
         self._ignored_repos = self._load_ignore_repo(ignored_repos_path, ignored_repos_key)
-        logger.debug("ignored repos: {}".format(self._ignored_repos))
+        logger.debug("ignored repos: %s", self._ignored_repos)
         self._community_repos = self._load_community_repo(community_path)    # 社区repos
-        logger.debug("community repos: {}".format(self._community_repos))
+        logger.debug("community repos: %s", self._community_repos)
 
     @staticmethod
     def _load_ignore_repo(conf_file, ignored_repos_key):
@@ -55,7 +55,7 @@ class RepoMapping(object):
                 handler = yaml.safe_load(f)
                 return handler.get(ignored_repos_key, [])
         except IOError as e:
-            logger.warning("{} not exist".format(conf_file))
+            logger.warning("%s not exist", conf_file)
             return []
 
     @staticmethod
@@ -69,10 +69,10 @@ class RepoMapping(object):
             with open(community_path, "r") as f:
                 handler = yaml.safe_load(f)
                 repos = {item["name"]: item["type"] for item in handler["repositories"]}
-                logger.info("repos from community: {}".format(len(repos)))
+                logger.info("repos from community: %s", len(repos))
                 return repos
         except IOError as e:
-            logger.warning("{} not exist".format(community_path))
+            logger.warning("%s not exist", community_path)
             return []
 
     def _is_valid_repo(self, repo):

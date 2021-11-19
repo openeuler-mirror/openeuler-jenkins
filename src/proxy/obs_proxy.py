@@ -45,7 +45,7 @@ class OBSProxy(object):
         cmd = "osc ll {} {}".format(project, package)
         ret, rs, _ = shell_cmd_live(cmd, cap_out=True)
         if ret:
-            logger.error("list project package error, {}".format(ret))
+            logger.error("list project package error, %s", ret)
             return None
 
         return rs
@@ -62,7 +62,7 @@ class OBSProxy(object):
                 "--show-exclude" if show_exclude else "", project, package, arch)
         ret, out, _ = shell_cmd_live(cmd, cap_out=True)
         if ret:
-            logger.debug("list obs repos of arch error, {}".format(ret))
+            logger.debug("list obs repos of arch error, %s", ret)
             return []
 
         rs = []
@@ -88,7 +88,7 @@ class OBSProxy(object):
         cmd = "osc results {} --csv |grep {} | awk -F';' '{{print $1}}'".format(project, state)
         ret, out, _ = shell_cmd_live(cmd, cap_out=True)
         if ret:
-            logger.debug("list package of state error, {}".format(ret))
+            logger.debug("list package of state error, %s", ret)
             return []
 
         return out
@@ -105,11 +105,11 @@ class OBSProxy(object):
         _ = os.path.isdir(project) and shutil.rmtree(project)
 
         cmd = "osc co {} {}".format(project, package)
-        logger.info("osc co {} {}".format(project, package))
+        logger.info("osc co %s %s", project, package)
         ret, _, _ = shell_cmd_live(cmd, verbose=True)
 
         if ret:
-            logger.error("checkout package error, {}".format(ret))
+            logger.error("checkout package error, %s", ret)
             return False
 
         return True
@@ -134,12 +134,12 @@ class OBSProxy(object):
         cmd = "cd {}; osc build {} {} {} {} {} {} --no-verify --clean --noservice -M {}".format(
             package_path, repo, arch, spec, root_opt, debuginfo_opt, disable_cpio_bulk, mpac)
 
-        logger.info("osc build {} {} {} {} {} {} --no-verify --clean --noservice -M {}".format(
-            repo, arch, spec, root_opt, debuginfo_opt, disable_cpio_bulk, mpac))
+        logger.info("osc build %s %s %s %s %s %s --no-verify --clean --noservice -M %s",
+            repo, arch, spec, root_opt, debuginfo_opt, disable_cpio_bulk, mpac)
         ret, _, _ = shell_cmd_live(cmd, verbose=True)
 
         if ret:
-            logger.error("build package error, {}".format(ret))
+            logger.error("build package error, %s", ret)
             return False
 
         return True
@@ -157,7 +157,7 @@ class OBSProxy(object):
         cmd = "osc api /build/{}/{}/{}/{}/_history".format(project, repo, arch, package)
         ret, out, _ = shell_cmd_live(cmd, cap_out=True)
         if ret:
-            logger.debug("list build history of package error, {}".format(ret))
+            logger.debug("list build history of package error, %s", ret)
             return ""
 
         return "\n".join(out)

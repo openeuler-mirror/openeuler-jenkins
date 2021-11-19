@@ -53,16 +53,16 @@ class GiteeRepo(object):
             for filename in filenames:
                 rel_file_path = os.path.join(dirpath, filename).replace(self._work_dir, "").lstrip("/")
                 if self.is_compress_file(filename):
-                    logger.debug("find compress file: {}".format(rel_file_path))
+                    logger.debug("find compress file: %s", rel_file_path)
                     self._compress_files.append(rel_file_path)
                 elif self.is_patch_file(filename):
-                    logger.debug("find patch file: {}".format(rel_file_path))
+                    logger.debug("find patch file: %s", rel_file_path)
                     self._patch_files.append(rel_file_path)
                 elif self.is_spec_file(filename):
-                    logger.debug("find spec file: {}".format(rel_file_path))
+                    logger.debug("find spec file: %s", rel_file_path)
                     spec_files.append(filename)
                 elif self.is_package_yaml_file(filename):
-                    logger.debug("find yaml file: {}".format(rel_file_path))
+                    logger.debug("find yaml file: %s", rel_file_path)
                     self.yaml_file = rel_file_path
 
         def guess_real_spec_file():
@@ -109,7 +109,7 @@ class GiteeRepo(object):
             decompress_cmd = "cd {}; timeout 120s tar -C {} -xavf {}".format(
                     self._work_dir, self._decompress_dir, file_path)
         else:
-            logger.warning("unsupport compress file: {}".format(file_path))
+            logger.warning("unsupport compress file: %s", file_path)
             return False
 
         ret, _, _ = shell_cmd_live(decompress_cmd)
@@ -136,20 +136,20 @@ class GiteeRepo(object):
         :param patch: 补丁
         :param max_leading: leading path
         """
-        logger.debug("apply patch {}".format(patch))
+        logger.debug("apply patch %s", patch)
         for patch_dir in [filename for filename in os.listdir(self._decompress_dir) 
                 if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
             if patch_dir.startswith(".git"):
                 continue
             for leading in range(max_leading + 1):
-                logger.debug("try dir {} -p{}".format(patch_dir, leading))
+                logger.debug("try dir %s -p%s", patch_dir, leading)
                 if GitProxy.apply_patch_at_dir(os.path.join(self._decompress_dir, patch_dir), 
                         os.path.join(self._work_dir, patch), leading):
                     logger.debug("patch success")
                     self.patch_dir_mapping[patch] = os.path.join(self._decompress_dir, patch_dir)
                     return True
 
-        logger.info("apply patch {} failed".format(patch))
+        logger.info("apply patch %s failed", patch)
         return False
 
     def apply_all_patches(self, *patches):
@@ -166,7 +166,7 @@ class GiteeRepo(object):
             if patch in set(self._patch_files):
                 rs.append(self.apply_patch(patch))
             else:
-                logger.error("patch {} not exist".format(patch))
+                logger.error("patch %s not exist", patch)
                 rs.append(False)
 
         return 0 if all(rs) else (1 if any(rs) else -1)

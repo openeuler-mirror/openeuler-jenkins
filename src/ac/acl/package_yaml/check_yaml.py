@@ -73,7 +73,7 @@ class CheckPackageYaml(BaseCheck):
 
         for change_file in diff_files:
             if change_file == package_yaml:
-                logger.debug("diff files: {}".format(diff_files))
+                logger.debug("diff files: %s", diff_files)
                 return True
         return False
 
@@ -93,16 +93,16 @@ class CheckPackageYaml(BaseCheck):
             with open(os.path.join(self._work_dir, yaml_path), 'r') as yaml_data:    # load yaml data
                 self._yaml_content = yaml.safe_load(yaml_data)
         except IOError as e:
-            logging.warning("package yaml not exist. {}".format(str(e)))
+            logging.warning("package yaml not exist. %s", str(e))
             return WARNING
         except yaml.YAMLError as exc:
-            logging.warning("Error parsering YAML: {}".format(str(exc)))
+            logging.warning("Error parsering YAML: %s", str(exc))
             return WARNING
         
         result = SUCCESS
         for keyword in self.PACKAGE_YAML_NEEDED_KEY:
             if keyword not in self._yaml_content:
-                logger.error("yaml field {} missing".format(keyword))
+                logger.error("yaml field %s missing", keyword)
                 self._is_standard = True
                 result = WARNING 
         return result
@@ -129,7 +129,7 @@ class CheckPackageYaml(BaseCheck):
         tags = release_tags.get_tags(sr)
         
         if not tags:
-            logger.warning("failed to get version by yaml, version_control: {t1}, src_repo: {t2}".format(t1=vc, t2=sr))
+            logger.warning("failed to get version by yaml, version_control: %s, src_repo: %s", vc, sr)
             return WARNING
         return SUCCESS
 
@@ -154,9 +154,9 @@ class CheckPackageYaml(BaseCheck):
         if not src_url:
             src_url = self._spec.get_source("Source")
         vc = self.VERSION_CTRL_TRANS.get(vc, vc) # 对特殊的版本控制对应的域名进行转换
-        logger.debug("version control: {vctrl} source url: {url}".format(vctrl=vc, url=src_url))
+        logger.debug("version control: %s source url: %s", vc, src_url)
         if vc not in src_url: # 通过判断版本控制字段是否在主页url中 判断一致性
-            logger.warning("{vc} is not in url: {url}".format(vc=vc, url=src_url))
+            logger.warning("%s is not in url: %s", vc, src_url)
             return WARNING
         return SUCCESS
 
@@ -196,14 +196,14 @@ class CheckPackageYaml(BaseCheck):
         src_url = self._spec.get_source("Source0")
         if not src_url:
             src_url = self._spec.get_source("Source")
-        logger.debug("software name: {name} source url: {url}".format(name=software_name, url=src_url))
+        logger.debug("software name: %s source url: %s", software_name, src_url)
         if software_name not in src_url:
-            logger.warning("{name} is not in source0: {url}".format(name=software_name, url=src_url))
+            logger.warning("%s is not in source0: %s", software_name, src_url)
             return WARNING
         return SUCCESS
 
     def __call__(self, *args, **kwargs):
-        logger.info("check {} yaml ...".format(self._repo))
+        logger.info("check %s yaml ...", self._repo)
         self._yaml_changed = self.is_change_package_yaml() # yaml文件变更 进行检查
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_repo暂时关闭
         return self.start_check_with_order("fields", "repo_domain", "repo_name")

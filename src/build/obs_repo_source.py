@@ -69,35 +69,35 @@ class OBSRepoSource(object):
                 # openstack common
                 url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part_common, arch)
                 if do_requests("GET", url) == 0:
-                    logger.debug("add openstack common repo: {}".format(url))
+                    logger.debug("add openstack common repo: %s", url)
                     repo_config += self.repo_format("openstack_common", repo_name_prefix + "_openstack_common", url)
 
             # openstack base
             url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part_base, arch)
             if do_requests("GET", url) == 0:
-                logger.debug("add openstack base repo: {}".format(url))
+                logger.debug("add openstack base repo: %s", url)
                 repo_config += self.repo_format("openstack_base", repo_name_prefix + "_openstack_base", url)
         else:
             obs_path_part = branch.replace("-", ":/")
 
-        logger.debug("branch={}, obs_path_part={}".format(branch, obs_path_part))
+        logger.debug("branch=%s, obs_path_part=%s", branch, obs_path_part)
 
         # main
         url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part, arch)
         if do_requests("GET", url) == 0:
-            logger.debug("add main repo: {}".format(url))
+            logger.debug("add main repo: %s", url)
             repo_config += self.repo_format(repo_name_prefix + "_main", repo_name_prefix + "_main", url)
 
         # epol
         url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part + ":/Epol", arch)
         if do_requests("GET", url) == 0:
-            logger.debug("add epol repo: {}".format(url))
+            logger.debug("add epol repo: %s", url)
             repo_config += self.repo_format(repo_name_prefix + "_epol", repo_name_prefix + "_epol", url)
 
         # extras
         url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part + ":/Extras", arch)
         if do_requests("GET", url) == 0:
-            logger.debug("add extras repo: {}".format(url))
+            logger.debug("add extras repo: %s", url)
             repo_config += self.repo_format(repo_name_prefix + "_extras", repo_name_prefix + "_extras", url)\
 
         return repo_config

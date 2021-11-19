@@ -72,7 +72,7 @@ class DefaultReleaseTags(AbsReleaseTags):
         通过url获取上游社区的release tags
         return: list
         """
-        logging.info("unsupported version control: {}".format(self.version_control))
+        logging.info("unsupported version control: %s", self.version_control)
         return []
 
 
@@ -118,7 +118,7 @@ class HttpReleaseTagsMixin(object):
             response = requests.get(url, headers=headers, timeout=timeout)
             need_redirect, new_url, cookies = self.get_redirect_resp(url, response)
             if tldextract.extract(url).domain != tldextract.extract(new_url).domain: # 判断域名是否一致 预防csrf攻击
-                logging.warning("domain of redirection link is different: {}".format(new_url))
+                logging.warning("domain of redirection link is different: %s", new_url)
                 return ""
             if need_redirect:
                 cookie_dict = {}
@@ -128,13 +128,13 @@ class HttpReleaseTagsMixin(object):
                 url = new_url
                 response = requests.get(url, headers=headers, cookies=cookie_dict, timeout=timeout)
         except requests.exceptions.SSLError as e:
-            logging.warning("requests {} ssl exception, {}".format(url, e))
+            logging.warning("requests %s ssl exception, %s", url, e)
             return ""
         except requests.exceptions.Timeout as e:
             logging.warning("requests timeout")
             return ""
         except requests.exceptions.RequestException as e:
-            logging.warning("requests exception, {}".format(e))
+            logging.warning("requests exception, %s", e)
             return ""
         return response
 
@@ -156,7 +156,7 @@ class HgReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -170,7 +170,7 @@ class HgReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
             temp_tags.sort(reverse=True, key=lambda x: x["date"][0])
             release_tags = [tag["tag"] for tag in temp_tags]
         except Exception as e:
-            logging.error("exception, {}".format(e))
+            logging.error("exception, %s", e)
             return []
         return release_tags
 
@@ -192,7 +192,7 @@ class HgRawReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -220,7 +220,7 @@ class MetacpanReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -258,7 +258,7 @@ class PypiReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -267,7 +267,7 @@ class PypiReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
             tags_json = response.json()
             release_tags = [tag for tag in tags_json.get("releases")]
         except Exception as e:
-            logging.error("exception, {}".format(e))
+            logging.error("exception, %s", e)
             return []
         return release_tags
 
@@ -289,7 +289,7 @@ class RubygemReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -301,7 +301,7 @@ class RubygemReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
                 if element.get("number"):
                     release_tags.append(element.get("number"))
         except Exception as e:
-            logging.error("exception, {}".format(e))
+            logging.error("exception, %s", e)
             return []
         return release_tags
 
@@ -323,7 +323,7 @@ class GnuftpReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -356,7 +356,7 @@ class FtpReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -382,7 +382,7 @@ class CmdReleaseTagsMixin(object):
         sub_proc = subprocess.Popen(cmd_list, stdout=subprocess.PIPE)
         response = sub_proc.stdout.read().decode("utf-8")
         if sub_proc.wait():
-            logging.warning("{cmd} > encount errors".format(cmd=" ".join(cmd_list)))
+            logging.warning("%s > encount errors", " ".join(cmd_list))
         return response
 
 
@@ -411,7 +411,7 @@ class SvnReleaseTags(AbsReleaseTags, CmdReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get svn tags".format(repo=url))
+        logging.debug("%s : get svn tags", url)
         if not url:
             logging.warning("illegal url: \"\"")
             return []
@@ -465,7 +465,7 @@ class GitReleaseTags(AbsReleaseTags, CmdReleaseTagsMixin):
         return: list
         """
         url = self.url(repo)
-        logging.debug("{repo} : get {vc} tags".format(repo=url, vc=self.version_control))
+        logging.debug("%s : get %s tags", url, self.version_control)
         if not url:
             logging.warning("illegal url: \"\"")
             return []

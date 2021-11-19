@@ -49,7 +49,7 @@ class ExtraWork(object):
             try:
                 with open(pkgship_meta_path, "r") as f:
                     pkgship_meta = yaml.safe_load(f)
-                    logger.debug("pkgship meta: {}".format(pkgship_meta))
+                    logger.debug("pkgship meta: %s", pkgship_meta)
                     if pkgship_meta.get("compare_version") == 1:     # version upgrade
                         logger.debug("pkgship: notify")
                         return True
@@ -93,8 +93,8 @@ class ExtraWork(object):
         #get rpms
         curr_rpm = self._rpm_package.main_package_local()
         last_rpm = self._rpm_package.last_main_package(package_arch, package_url)
-        logger.debug("curr_rpm: {}".format(curr_rpm))
-        logger.debug("last_rpm: {}".format(last_rpm))
+        logger.debug("curr_rpm: %s", curr_rpm)
+        logger.debug("last_rpm: %s", last_rpm)
         if not curr_rpm or not last_rpm:
             logger.info("no rpms")
             return
@@ -108,8 +108,8 @@ class ExtraWork(object):
         debuginfos = None
         curr_rpm_debug = self._rpm_package.debuginfo_package_local()
         last_rpm_debug = self._rpm_package.last_debuginfo_package(package_arch, package_url)
-        logger.debug("curr_rpm_debug: {}".format(curr_rpm_debug))
-        logger.debug("last_rpm_debug: {}".format(last_rpm_debug))
+        logger.debug("curr_rpm_debug: %s", curr_rpm_debug)
+        logger.debug("last_rpm_debug: %s", last_rpm_debug)
         if curr_rpm_debug and last_rpm_debug:
             debuginfos = [last_rpm_debug, curr_rpm_debug]
 
@@ -123,9 +123,9 @@ class ExtraWork(object):
         check_abi = CheckAbi(result_output_file=output, input_rpms_path=related_rpms_url)
         ret = check_abi.process_with_rpm(rpms, debuginfos)
         if ret == 1:
-            logger.error("check abi error: {}".format(ret))
+            logger.error("check abi error: %s", ret)
         else:
-            logger.debug("check abi ok: {}".format(ret))
+            logger.debug("check abi ok: %s", ret)
         
         if os.path.exists(output):
             # change of abi
@@ -135,7 +135,7 @@ class ExtraWork(object):
         else:
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
 
-        logger.debug("check abi comment: {}".format(comment))
+        logger.debug("check abi comment: %s", comment)
         try:
             with open(comment_file, "r") as f:     # one repo with multi build package
                 comments = yaml.safe_load(f)
@@ -151,7 +151,7 @@ class ExtraWork(object):
                 logger.exception("yaml load check abi comment file exception")
 
         comments.append(comment)
-        logger.debug("check abi comments: {}".format(comments))
+        logger.debug("check abi comments: %s", comments)
         try:
             with open(comment_file, "w") as f:
                 yaml.safe_dump(comments, f)     # list 
@@ -170,14 +170,14 @@ class ExtraWork(object):
 
         # 1. prepare install root directory
         _ = not os.path.exists(install_root) and os.mkdir(install_root)
-        logger.info("create install root directory: {}".format(install_root))
+        logger.info("create install root directory: %s", install_root)
 
         repo_name_prefix = "check_install"
 
         # 2. prepare repo
         repo_source = OBSRepoSource("http://119.3.219.20:82")   # obs 实时构建repo地址
         repo_config = repo_source.generate_repo_info(branch_name, arch, "check_install")
-        logger.info("repo source config:\n{}".format(repo_config))
+        logger.info("repo source config:\n%s", repo_config)
 
         # write to /etc/yum.repos.d
         with open("obs_realtime.repo", "w+") as f:
@@ -189,18 +189,18 @@ class ExtraWork(object):
         for name, package in self._rpm_package.iter_all_rpm():
             # ignore debuginfo rpm
             if "debuginfo" in name or "debugsource" in name:
-                logger.debug("ignore debug rpm: {}".format(name))
+                logger.debug("ignore debug rpm: %s", name)
                 continue
             names.append(name)
             packages.append(package)
 
-        logger.info("install rpms: {}".format(names))
+        logger.info("install rpms: %s", names)
         if packages:
             check_install_cmd = "sudo dnf install -y --installroot={} --setopt=reposdir=. {}".format(
                     install_root, " ".join(packages))
             ret, _, err = shell_cmd_live(check_install_cmd, verbose=True)
             if ret:
-                logger.error("install rpms error, {}, {}".format(ret, err))
+                logger.error("install rpms error, %s, %s", ret, err)
             else:
                 logger.info("install rpm success")
 

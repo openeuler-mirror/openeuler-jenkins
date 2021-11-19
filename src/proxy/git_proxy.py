@@ -50,7 +50,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(init_cmd)
 
         if ret:
-            logger.warning("init repository failed, {}".format(ret))
+            logger.warning("init repository failed, %s", ret)
             return None
 
         return cls(repo_dir)
@@ -70,8 +70,8 @@ class GitProxy(object):
             self._repo_dir, "--progress" if progress else "", depth, url, pull_request, pull_request)
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
-            logger.error("git fetch failed, {}".format(ret))
-            logger.error("{}".format(out))
+            logger.error("git fetch failed, %s", ret)
+            logger.error("%s", out)
             return False
 
         return True
@@ -86,7 +86,7 @@ class GitProxy(object):
         get_content_cmd = "cd {}; git show {}:{}".format(self._repo_dir, commit, file_path)
         ret, out, _ = shell_cmd_live(get_content_cmd, cap_out=True)
         if ret:
-            logger.warning("get file content of commit failed, {}".format(ret))
+            logger.warning("get file content of commit failed, %s", ret)
             return None
 
         f = StringIO()
@@ -106,7 +106,7 @@ class GitProxy(object):
         ret, out, _ = shell_cmd_live(diff_files_cmd, cap_out=True)
 
         if ret:
-            logger.error("get diff files of commits failed, {}".format(ret))
+            logger.error("get diff files of commits failed, %s", ret)
             return []
 
         return out
@@ -121,7 +121,7 @@ class GitProxy(object):
         ret, out, _ = shell_cmd_live(extract_file_cmd, cap_out=True)
 
         if ret:
-            logger.error("extract diff files of patch failed, {}".format(ret))
+            logger.error("extract diff files of patch failed, %s", ret)
             return []
 
         return [line.split()[-1] for line in out]
@@ -137,7 +137,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(apply_patch_cmd)
 
         if ret:
-            #logger.error("apply patch failed, {}".format(ret))
+            #logger.error("apply patch failed, %s", ret)
             return False
 
         return True
@@ -156,7 +156,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(apply_patch_cmd)
 
         if ret:
-            #logger.error("apply patch failed, {}".format(ret))
+            #logger.error("apply patch failed, %s", ret)
             return False
 
         return True
@@ -171,7 +171,7 @@ class GitProxy(object):
         ret, out, _ = shell_cmd_live(get_commit_cmd, cap_out=True)
 
         if ret:
-            logger.error("get commit id of index failed, {}".format(ret))
+            logger.error("get commit id of index failed, %s", ret)
             return None
 
         return out[0]
@@ -186,7 +186,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(checkout_cmd)
 
         if ret:
-            logger.warning("checkout failed, {}".format(ret))
+            logger.warning("checkout failed, %s", ret)
             return False
 
         return True
@@ -201,7 +201,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(checkout_cmd)
 
         if ret:
-            logger.warning("checkout failed, {}".format(ret))
+            logger.warning("checkout failed, %s", ret)
             return False
 
         return True
@@ -224,7 +224,7 @@ class GitProxy(object):
         ret, out, _ = shell_cmd_live(tree_hashes_cmd, cap_out=True)
 
         if ret:
-            logger.error("get tree hashes failed, {}".format(ret))
+            logger.error("get tree hashes failed, %s", ret)
             return None
 
         return out
@@ -243,7 +243,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(fetch_cmd)
 
         if ret:
-            logger.error("fetch failed, {}".format(ret))
+            logger.error("fetch failed, %s", ret)
             return False
 
         return True

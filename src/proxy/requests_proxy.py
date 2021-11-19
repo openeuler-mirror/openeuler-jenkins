@@ -38,9 +38,9 @@ def do_requests(method, url, querystring=None, body=None, auth=None, timeout=30,
     :return:
     """
     try:
-        logger.debug("http requests, {} {} {}".format(method, url, timeout))
-        logger.debug("querystring: {}".format(querystring))
-        logger.debug("body: {}".format(body))
+        logger.debug("http requests, %s %s %s", method, url, timeout)
+        logger.debug("querystring: %s", querystring)
+        logger.debug("body: %s", body)
 
         if method.lower() not in ["get", "post", "put", "delete"]:
             return -1
@@ -60,7 +60,7 @@ def do_requests(method, url, querystring=None, body=None, auth=None, timeout=30,
             else:
                 rs = func(url, timeout=timeout)
 
-        logger.debug("status_code {}".format(rs.status_code))
+        logger.debug("status_code %s", rs.status_code)
 
         if rs.status_code not in [requests.codes.ok, requests.codes.created, requests.codes.no_content]:
             return 1
@@ -78,11 +78,11 @@ def do_requests(method, url, querystring=None, body=None, auth=None, timeout=30,
 
         return 0
     except requests.exceptions.SSLError as e:
-        logger.warning("requests {} ssl exception, {}".format(url, e))
+        logger.warning("requests %s ssl exception, %s", url, e)
         return -2
     except requests.exceptions.Timeout as e:
         logger.warning("requests timeout")
         return 2
     except requests.exceptions.RequestException as e:
-        logger.warning("requests exception, {}".format(e))
+        logger.warning("requests exception, %s", e)
         return 3
