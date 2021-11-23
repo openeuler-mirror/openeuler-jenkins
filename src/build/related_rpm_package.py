@@ -44,7 +44,10 @@ class RelatedRpms(object):
         "oepkg_openstack-queens_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:queens"],
         "oepkg_openstack-common_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:common"],
         "oepkg_openstack-rocky_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:rocky"],
-        "oepkg_openstack-queens_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:queens"]
+        "oepkg_openstack-queens_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:queens"],
+        "oepkg_openstack-common_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:common"],
+        "oepkg_openstack-rocky_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:rocky"],
+        "oepkg_openstack-queens_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:queens"]
     }
 
     def __init__(self, obs_addr, obs_repo_url, branch_name, package_arch):
