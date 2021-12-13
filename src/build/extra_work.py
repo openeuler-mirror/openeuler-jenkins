@@ -205,36 +205,81 @@ class ExtraWork(object):
                 logger.info("install rpm success")
 
 
+def notify(config, extrawork):
+    """
+    notify, run after copy rpm to rpm repo
+    :param config: args
+    :param extrawork:
+    :return:
+    """
+    if extrawork.is_pkgship_need_notify(config.pkgship_meta):
+        extrawork.pkgship_notify(config.notify_url, config.token, config.rpm_repo_url,
+                                 config.arch, config.notify_user, config.notify_password)
+
+
+def checkabi(config, extrawork):
+    """
+    check abi, run before copy rpm to rpm repo
+    :param config: args
+    :param extrawork:
+    :return:
+    """
+    extrawork.check_rpm_abi(config.rpm_repo_url, config.arch, config.output, config.committer, config.comment_file,
+                            config.obs_addr, config.branch_name, config.obs_repo_url)
+
+def checkinstall(config, extrawork):
+    """
+    check install
+    :param config: args
+    :param extrawork:
+    :return:
+    """
+    extrawork.check_install_rpm(config.branch_name, config.arch, config.install_root)
+
+
 if "__main__" == __name__:
-    args = argparse.ArgumentParser()
-
-    args.add_argument("-f", type=str, dest="func", choices=("notify", "checkabi", "checkinstall"), help="function")
-
-    args.add_argument("-p", type=str, dest="package", help="obs package")
-    args.add_argument("-a", type=str, dest="arch", help="build arch")
-    args.add_argument("-c", type=str, dest="committer", help="committer")
-
-    args.add_argument("-d", type=str, dest="rpmbuild_dir", 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--package", type=str, default="src-openeuler", help="obs package")
+    parser.add_argument("-d", "--rpmbuild_dir", type=str, 
             default="/home/jenkins/agent/buildroot/home/abuild/rpmbuild", help="rpmbuild dir")
+    subparsers = parser.add_subparsers(help='sub-command help')
+    
+    # 添加子命令 notify
+    parser_notify = subparsers.add_parser('notify', help='add help')
+    parser_notify.add_argument("-n", type=str, dest="notify_url", help="target branch that merged to ")
+    parser_notify.add_argument("-t", type=str, dest="token", default=os.getcwd(), help="obs workspace dir path")
+    parser_notify.add_argument("-l", type=str, dest="rpm_repo_url", help="rpm repo where rpm saved")
+    parser_notify.add_argument("-a", type=str, dest="arch", help="build arch")
+    parser_notify.add_argument("-u", type=str, dest="notify_user", default="trigger", help="notify trigger user")
+    parser_notify.add_argument("-w", type=str, dest="notify_password", help="notify trigger password")
+    parser_notify.set_defaults(func=notify)
 
-    args.add_argument("-n", type=str, dest="notify_url", help="target branch that merged to ")
-    args.add_argument("-t", type=str, dest="token", default=os.getcwd(), help="obs workspace dir path")
-    args.add_argument("-u", type=str, dest="notify_user", default="trigger", help="notify trigger user")
-    args.add_argument("-w", type=str, dest="notify_password", help="notify trigger password")
-    args.add_argument("-l", type=str, dest="rpm_repo_url", help="rpm repo where rpm saved")
-    args.add_argument("-m", type=str, dest="pkgship_meta", help="meta from pkgship spec")
+    # 添加子命令 checkabi
+    parser_checkabi = subparsers.add_parser('checkabi', help='add help')
+    parser_checkabi.add_argument("-l", type=str, dest="rpm_repo_url", help="rpm repo where rpm saved")
+    parser_checkabi.add_argument("-a", type=str, dest="arch", help="build arch")
+    parser_checkabi.add_argument("-o", type=str, dest="output", help="checkabi result")
+    parser_checkabi.add_argument("-c", type=str, dest="committer", help="committer")
+    parser_checkabi.add_argument("-s", type=str, dest="obs_addr", help="obs address")
+    parser_checkabi.add_argument("-r", type=str, dest="branch_name", help="obs project name")
+    parser_checkabi.add_argument("-b", type=str, dest="obs_repo_url", help="obs repo where rpm saved")
+    parser_checkabi.add_argument("-p", "--package", type=str, help="obs package")
+    parser_checkabi.add_argument("-e", type=str, dest="comment_file", help="compare package result comment")
+    parser_checkabi.set_defaults(func=checkabi)
 
-    args.add_argument("-o", type=str, dest="output", help="checkabi result")
-    args.add_argument("-e", type=str, dest="comment_file", help="checkabi result comment")
-    args.add_argument("-b", type=str, dest="obs_repo_url", help="obs repo where rpm saved")
-    args.add_argument("-s", type=str, dest="obs_addr", help="obs address")
-    args.add_argument("-r", type=str, dest="branch_name", help="obs project name")
+    # 添加子命令 checkinstall
+    parser_checkinstall = subparsers.add_parser('checkinstall', help='add help')
+    parser_checkinstall.add_argument("-r", type=str, dest="branch_name", help="obs project name")
+    parser_checkinstall.add_argument("-a", type=str, dest="arch", help="build arch")
+    parser_checkinstall.add_argument("--install-root", type=str, dest="install_root",
+                                     help="check install root dir")
+    parser_checkinstall.set_defaults(func=checkinstall)
 
-    args.add_argument("--install-root", type=str, dest="install_root", help="check install root dir")
-    args = args.parse_args()
+    args = parser.parse_args()
     
     _ = not os.path.exists("log") and os.mkdir("log")
-    logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
+    logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__),
+                                                     "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
     from src.utils.shell_cmd import shell_cmd_live
@@ -245,14 +290,4 @@ if "__main__" == __name__:
     from src.utils.check_conf import CheckConfig
 
     ew = ExtraWork(args.package, args.rpmbuild_dir)
-    if args.func == "notify":
-        # run after copy rpm to rpm repo
-        if ew.is_pkgship_need_notify(args.pkgship_meta):
-            ew.pkgship_notify(
-                    args.notify_url, args.token, args.rpm_repo_url, args.arch, args.notify_user, args.notify_password)
-    elif args.func == "checkabi":
-        # run before copy rpm to rpm repo
-        ew.check_rpm_abi(args.rpm_repo_url, args.arch, args.output, args.committer, args.comment_file, 
-                        args.obs_addr, args.branch_name, args.obs_repo_url)
-    elif args.func == "checkinstall":
-        ew.check_install_rpm(args.branch_name, args.arch, args.install_root)
+    args.func(args, ew)
