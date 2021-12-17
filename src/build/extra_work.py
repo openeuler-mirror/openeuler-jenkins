@@ -236,7 +236,8 @@ def comparepackage(config, extrawork):
     """
     logger.info("compare package start")
     compare_package = ComparePackage(logger=logger)
-    result = compare_package.output_result_to_console(config.json_path, config.ignore, config.package)
+    result = compare_package.output_result_to_console(config.json_path, config.pr_link, config.ignore, config.package,
+                                                      config.check_result_file, config.pr_commit_json_file)
     logger.info("compare package result:%s", result)
     logger.info("compare package finish")
 
