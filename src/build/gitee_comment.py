@@ -55,6 +55,19 @@ class Comment(object):
 
         return "\n".join(comments)
 
+    def comment_compare_package_details(self, gitee_proxy, check_result_file):
+        """
+        compare package结果上报
+
+        :param gitee_proxy:
+        :param check_result_file:
+        :return:
+        """
+        comments = self._comment_of_compare_package_details(check_result_file)
+        gitee_proxy.comment_pr(self._pr, "\n".join(comments))
+
+        return "\n".join(comments)
+
     def comment_at(self, committer, gitee_proxy):
         """
         通知committer
@@ -159,6 +172,67 @@ class Comment(object):
                 name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno))
 
         logger.info("build comment: %s", comments)
+        return comments
+
+    def _comment_of_compare_package_details(self, check_result_file):
+        """
+        compare package details
+        :param:
+        :return:
+        """
+        comments = []
+        comments_title = ["<table> <tr><th>Arch Name</th> <th>Ckeck Items</th> <th>Rpm Name</th> <th>Ckeck Result</th> "
+                    "<th>Build Details</th></tr>"]
+
+        def match(name, comment_file):
+            if "aarch64" in name and "aarch64" in comment_file:
+                return True, "aarch64"
+            if "x86-64" in name and "x86_64" in comment_file:
+                return True, "x86_64"
+            return False, ""
+
+        for result_file in check_result_file.split(","):
+            logger.info("check_result_file: %s", result_file)
+            if not os.path.exists(result_file):
+                logger.info("%s not exists", result_file)
+                continue
+            for build in self._up_builds:
+                name = build.job._data["fullName"]
+                logger.info("check build %s", name)
+                arch_result, arch_name = match(name, result_file)
+                if not arch_result:  # 找到匹配的jenkins build
+                    continue
+                logger.info("build \"%s\" match", name)
+
+                status = build.get_status()
+                logger.info("build state: %s", status)
+                content = {}
+                if ACResult.get_instance(status) == SUCCESS:  # 保证build状态成功
+                    with open(result_file, "r") as f:
+                        try:
+                            content = yaml.safe_load(f)
+                        except YAMLError:  # yaml base exception
+                            logger.exception("illegal yaml format of compare package comment file ")
+                logger.info("comment: %s", content)
+                for index, item in enumerate(content):
+                    rpm_name = content.get(item)
+                    check_item = item.replace(" ", "_")
+                    result = "FAILED" if rpm_name else "SUCCESS"
+                    compare_result = ACResult.get_instance(result)
+                    if index == 0:
+                        comments.append("<tr><td rowspan={}>compare_package({})</td> <td>{}</td> <td>{}</td> "
+                                        "<td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>"
+                                        .format(len(content), arch_name, check_item, "<br>".join(rpm_name),
+                                                compare_result.emoji, compare_result.hint, len(content),
+                                                "{}{}".format(build.get_build_url(), "console"), "#", build.buildno))
+                    else:
+                        comments.append("<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
+                            check_item, "<br>".join(rpm_name), compare_result.emoji, compare_result.hint))
+
+        if comments:
+            comments = comments_title + comments
+            comments.append("</table>")
+        logger.info("compare package comment: %s", comments)
 
         return comments
 
@@ -247,7 +321,7 @@ def init_args():
     parser.add_argument("-b", type=str, dest="jenkins_base_url", help="jenkins base url")
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
-
+    parser.add_argument("-f", type=str, dest="check_result_file", help="compare package check item result")
     parser.add_argument("-a", type=str, dest="check_abi_comment_files", nargs="*", help="check abi comment files")
 
     parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
@@ -298,6 +372,7 @@ if "__main__" == __name__:
         gp.create_tags_of_pr(args.pr, "ci_successful")
         dd.set_attr("comment.build.tags", ["ci_successful"])
         dd.set_attr("comment.build.result", "successful")
+        comment.comment_compare_package_details(gp, args.check_result_file)
     else:
         gp.create_tags_of_pr(args.pr, "ci_failed")
         dd.set_attr("comment.build.tags", ["ci_failed"])
