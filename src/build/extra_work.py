@@ -227,6 +227,20 @@ def checkabi(config, extrawork):
     extrawork.check_rpm_abi(config.rpm_repo_url, config.arch, config.output, config.committer, config.comment_file,
                             config.obs_addr, config.branch_name, config.obs_repo_url)
 
+
+def comparepackage(config, extrawork):
+    """
+    对比两个版本rpm包之间的差异，根据差异找到受影响的rpm包
+    :param config: args
+    :return:
+    """
+    logger.info("compare package start")
+    compare_package = ComparePackage(logger=logger)
+    result = compare_package.output_result_to_console(config.json_path, config.ignore, config.package)
+    logger.info("compare package result:%s", result)
+    logger.info("compare package finish")
+
+
 def checkinstall(config, extrawork):
     """
     check install
@@ -267,6 +281,18 @@ if "__main__" == __name__:
     parser_checkabi.add_argument("-e", type=str, dest="comment_file", help="compare package result comment")
     parser_checkabi.set_defaults(func=checkabi)
 
+    # 添加子命令 compare_package
+    parser_comparepackage = subparsers.add_parser('comparepackage', help='add help')
+    parser_comparepackage.add_argument("-f", type=str, dest="check_result_file",
+                                       help="compare package check item result")
+    parser_comparepackage.add_argument("-j", type=str, dest="json_path", help="compare package json path")
+    parser_comparepackage.add_argument("-i", "--ignore", action="store_true", default=False, help="ignore or not")
+    parser_comparepackage.add_argument("-pr", type=str, dest="pr_link", help="PR link")
+    parser_comparepackage.add_argument("-pr_commit", type=str, dest="pr_commit_json_file",
+                                       help="PR commit file difference")
+    parser_comparepackage.add_argument("-p", "--package", type=str, help="obs package")
+    parser_comparepackage.set_defaults(func=comparepackage)
+
     # 添加子命令 checkinstall
     parser_checkinstall = subparsers.add_parser('checkinstall', help='add help')
     parser_checkinstall.add_argument("-r", type=str, dest="branch_name", help="obs project name")
@@ -287,6 +313,7 @@ if "__main__" == __name__:
     from src.build.build_rpm_package import BuildRPMPackage
     from src.build.related_rpm_package import RelatedRpms
     from src.utils.check_abi import CheckAbi
+    from src.utils.compare_package import ComparePackage
     from src.utils.check_conf import CheckConfig
 
     ew = ExtraWork(args.package, args.rpmbuild_dir)
