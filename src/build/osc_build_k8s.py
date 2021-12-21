@@ -22,38 +22,13 @@ import argparse
 import warnings
 from xml.etree import ElementTree
 
+from src.constant import Constant
+
 
 class SinglePackageBuild(object):
     """
     build single package using obs
     """
-
-    GITEE_BRANCH_PROJECT_MAPPING = {
-        "master": ["bringInRely", "openEuler:Extras", "openEuler:Factory", "openEuler:Mainline", "openEuler:Epol"],
-        "openEuler-20.03-LTS": ["openEuler:20.03:LTS"],
-        "openEuler-20.03-LTS-Next": ["openEuler:20.03:LTS:Next", "openEuler:20.03:LTS:Next:Epol"],
-        "openEuler-EPOL-LTS": ["bringInRely"],
-        "openEuler-20.09": ["openEuler:20.09", "openEuler:20.09:Epol", "openEuler:20.09:Extras"],
-        "mkopeneuler-20.03": ["openEuler:Extras"],
-        "openEuler-20.03-LTS-SP1": ["openEuler:20.03:LTS:SP1", "openEuler:20.03:LTS:SP1:Epol", 
-            "openEuler:20.03:LTS:SP1:Extras"],
-        "openEuler-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2", "openEuler:20.03:LTS:SP2:Epol", 
-            "openEuler:20.03:LTS:SP2:Extras"],
-        "openEuler-21.03": ["openEuler:21.03", "openEuler:21.03:Epol", "openEuler:21.03:Extras"],
-        "openEuler-21.09": ["openEuler:21.09", "openEuler:21.09:Epol", "openEuler:21.09:Extras"],
-        "oepkg_openstack-common_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:common"],
-        "oepkg_openstack-queens_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:queens"],
-        "oepkg_openstack-rocky_oe-20.03-LTS-SP2": ["openEuler:20.03:LTS:SP2:oepkg:openstack:rocky"],
-        "oepkg_openstack-common_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:common"],
-        "oepkg_openstack-queens_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:queens"],
-        "oepkg_openstack-rocky_oe-20.03-LTS-Next": ["openEuler:20.03:LTS:Next:oepkg:openstack:rocky"],
-        "oepkg_openstack-common_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:common"],
-        "oepkg_openstack-queens_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:queens"],
-        "oepkg_openstack-rocky_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:rocky"],
-        "openEuler-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3", "openEuler:20.03:LTS:SP3:Epol"],
-        "openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"]
-    }
-
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
     PACKAGES_USE_ROOT = ["iproute", "libaio", "A-Ops", "multipath-tools"]
 
@@ -210,12 +185,12 @@ class SinglePackageBuild(object):
             logger.error("branch \"%s\" ignored", self._branch)
             return 0
 
-        if self._branch not in self.GITEE_BRANCH_PROJECT_MAPPING:
+        if self._branch not in Constant.GITEE_BRANCH_PROJECT_MAPPING:
             logger.error("branch \"%s\" not support yet", self._branch)
             return 1
 
         has_any_repo_build = False
-        for project in self.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
+        for project in Constant.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
             logger.debug("start build project %s", project)
 
             obs_repos = self.get_need_build_obs_repos(project)

@@ -28,41 +28,6 @@ class ObsPackageBuildReport(object):
     """
     obs包构建状态上报
     """
-
-    PROJECT_BRANCH_MAPPING = {
-            "openEuler:Factory": "master",
-            "openEuler:Mainline": "master",
-            "openEuler:Epol": "master",
-            "openEuler:20.03:LTS": "openEuler-20.03-LTS",
-            "openEuler:20.09": "openEuler-20.09",
-            "openEuler:20.09:Epol": "openEuler-20.09",
-            "openEuler:20.03:LTS:Next": "openEuler-20.03-LTS-Next",
-            "openEuler:20.03:LTS:Next:Epol": "openEuler-20.03-LTS-Next",
-            "openEuler:20.03:LTS:SP1": "openEuler-20.03-LTS-SP1",
-            "openEuler:20.03:LTS:SP1:Epol": "openEuler-20.03-LTS-SP1",
-            "openEuler:20.03:LTS:SP2": "openEuler-20.03-LTS-SP2",
-            "openEuler:20.03:LTS:SP2:Epol": "openEuler-20.03-LTS-SP2",
-            "openEuler:20.03:LTS:SP3": "openEuler-20.03-LTS-SP3",
-            "openEuler:20.03:LTS:SP3:Epol": "openEuler-20.03-LTS-SP3",
-            "openEuler:22.03:LTS:Next": "openEuler-22.03-LTS-Next",
-            "openEuler:22.03:LTS:Next:Epol": "openEuler-22.03-LTS-Next",
-            "openEuler:21.03": "openEuler-21.03",
-            "openEuler:21.03:Epol": "openEuler-21.03",
-            "openEuler:21.03:Extras": "openEuler-21.03",
-            "openEuler:21.09": "openEuler-21.09",
-            "openEuler:21.09:Epol": "openEuler-21.09",
-            "openEuler:21.09:Extras": "openEuler-21.09",
-            "openEuler:20.03:LTS:SP2:oepkg:openstack:common": "oepkg_openstack-common_oe-20.03-LTS-SP2",
-            "openEuler:20.03:LTS:SP2:oepkg:openstack:queens": "oepkg_openstack-queens_oe-20.03-LTS-SP2",
-            "openEuler:20.03:LTS:SP2:oepkg:openstack:rocky": "oepkg_openstack-rocky_oe-20.03-LTS-SP2",
-            "openEuler:20.03:LTS:Next:oepkg:openstack:common": "oepkg_openstack-common_oe-20.03-LTS-Next",
-            "openEuler:20.03:LTS:Next:oepkg:openstack:queens": "oepkg_openstack-queens_oe-20.03-LTS-Next",
-            "openEuler:20.03:LTS:Next:oepkg:openstack:rocky": "oepkg_openstack-rocky_oe-20.03-LTS-Next",
-            "openEuler:20.03:LTS:SP3:oepkg:openstack:common": "oepkg_openstack-common_oe-20.03-LTS-SP3",
-            "openEuler:20.03:LTS:SP3:oepkg:openstack:queens": "oepkg_openstack-queens_oe-20.03-LTS-SP3",
-            "openEuler:20.03:LTS:SP3:oepkg:openstack:rocky": "oepkg_openstack-rocky_oe-20.03-LTS-SP3"
-        }
-
     GITEE_OWNER = "src-openeuler"
 
     def __init__(self,  project, state, real_name_mapping_file):
@@ -101,11 +66,6 @@ class ObsPackageBuildReport(object):
         :param gitee_api_token: 码云api token
         :return:
         """
-#        try:
-#            branch = self.__class__.PROJECT_BRANCH_MAPPING[self._project]
-#        except KeyError:
-#            logger.exception("project %s not support", self._project)
-#            return
         branch = "master"
 
         # get packages in project of state

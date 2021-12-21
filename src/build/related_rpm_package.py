@@ -24,7 +24,9 @@ import requests
 import tempfile
 import shutil
 from src.proxy.obs_proxy import OBSProxy
+from src.constant import Constant
 logging.basicConfig(format='%(message)s', level=logging.INFO)
+
 
 class RelatedRpms(object):
     """ 
@@ -183,7 +185,7 @@ class RelatedRpms(object):
             subprocess.run("wget -t 5 -c -P {} {}".format(temp_path, rpm_url), shell=True)
             rpm_path = os.path.join(temp_path, os.path.basename(rpm_url))
         
-        for project in self.GITEEBRANCHPROJECTMAPPING.get(self._branch_name):
+        for project in Constant.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch_name):
             logging.debug("find project %s, rpm_name: %s, aarch: %s", project, 
                             os.path.basename(rpm_path), self._package_arch)
             if OBSProxy.list_repos_of_arch(project, os.path.basename(rpm_path), self._package_arch):
