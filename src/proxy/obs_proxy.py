@@ -161,3 +161,20 @@ class OBSProxy(object):
             return ""
 
         return "\n".join(out)
+
+    @staticmethod
+    def get_binaries(project, package, arch):
+        """
+        获取包的二进制编译结果
+        :param project:
+        :param package:
+        :param arch:
+        :return:
+        """
+        cmd = "osc getbinaries {} {} standard_{} {}".format(project, package, arch, arch)
+        ret, out, _ = shell_cmd_live(cmd, cap_out=True)
+        if ret:
+            logger.debug("package get binaries error, %s", ret)
+            return []
+
+        return out

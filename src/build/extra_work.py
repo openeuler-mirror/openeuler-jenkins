@@ -23,6 +23,8 @@ import logging
 import yaml
 
 from src.build.obs_repo_source import OBSRepoSource
+from src.proxy.obs_proxy import OBSProxy
+from src.constant import Constant
 
 
 class ExtraWork(object):
@@ -252,6 +254,21 @@ def checkinstall(config, extrawork):
     extrawork.check_install_rpm(config.branch_name, config.arch, config.install_root)
 
 
+def getrelatedrpm(config, extrawork):
+    """
+    get related rpm package
+    :param config:
+    :param extrawork:
+    :return:
+    """
+    for project in Constant.GITEE_BRANCH_PROJECT_MAPPING.get(config.branch_name):
+        logging.debug("find project %s, package: %s, aarch: %s", project, config.package, config.arch)
+        result = OBSProxy.get_binaries(project, config.package, config.arch)
+        if result:
+            logging.info("get binaries: %s", result)
+            break
+
+
 if "__main__" == __name__:
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--package", type=str, default="src-openeuler", help="obs package")
@@ -301,6 +318,13 @@ if "__main__" == __name__:
     parser_checkinstall.add_argument("--install-root", type=str, dest="install_root",
                                      help="check install root dir")
     parser_checkinstall.set_defaults(func=checkinstall)
+
+    # 添加子命令 getrelatedrpm
+    parser_getrelatedrpm = subparsers.add_parser('getrelatedrpm', help='add help')
+    parser_getrelatedrpm.add_argument("-r", type=str, dest="branch_name", help="obs project name")
+    parser_getrelatedrpm.add_argument("-a", type=str, dest="arch", help="build arch")
+    parser_getrelatedrpm.add_argument("-p", "--package", type=str, help="obs package")
+    parser_getrelatedrpm.set_defaults(func=getrelatedrpm)
 
     args = parser.parse_args()
     
