@@ -36,9 +36,9 @@ openeuler:
     hint: check_sca
     module: sca.check_sca
     entry: CheckSCA
-    allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform", "kunpengsecl", "release-tools"]
+    allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform", "kunpengsecl", "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools", "yocto-poky"]
   openlibing:
     hint: code
     module: openlibing.check_code
     entry: CheckCode
-    allow_list: ["pkgship", "kunpengsecl", "release-tools"]
+    allow_list: ["pkgship", "kunpengsecl", "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools", "yocto-poky"]
