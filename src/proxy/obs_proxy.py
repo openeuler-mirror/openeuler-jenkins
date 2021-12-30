@@ -171,7 +171,7 @@ class OBSProxy(object):
         :param arch:
         :return:
         """
-        cmd = "osc getbinaries {} {} standard_{} {}".format(project, package, arch, arch)
+        cmd = "osc getbinaries --debug {} {} standard_{} {}".format(project, package, arch, arch)
         ret, out, _ = shell_cmd_live(cmd, cap_out=True)
         if ret:
             logger.debug("package get binaries error, %s", ret)
