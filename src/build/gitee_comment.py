@@ -369,11 +369,13 @@ if "__main__" == __name__:
     dd.set_attr("comment.build.content.html", comment_content)
 
     if comment.check_build_result() == SUCCESS:
+        gp.delete_tag_of_pr(args.pr, "ci_failed")
         gp.create_tags_of_pr(args.pr, "ci_successful")
         dd.set_attr("comment.build.tags", ["ci_successful"])
         dd.set_attr("comment.build.result", "successful")
         comment.comment_compare_package_details(gp, args.check_result_file)
     else:
+        gp.delete_tag_of_pr(args.pr, "ci_successful")
         gp.create_tags_of_pr(args.pr, "ci_failed")
         dd.set_attr("comment.build.tags", ["ci_failed"])
         dd.set_attr("comment.build.result", "failed")
