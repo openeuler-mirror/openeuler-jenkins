@@ -27,6 +27,10 @@ class ComparePackage(object):
 
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
+    MAX_SHOW_DATA_NUM = 5
+    MIN_COLUMN_WIDTH = 16
+    MAX_TABLE_WIDTH = 150
+
     all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config",
                   "rpm kconfig", "rpm provides", "rpm requires", "rpm files"]
 
@@ -67,7 +71,7 @@ class ComparePackage(object):
         :param compare_details:差异详情
         :return:
         """
-        tb = pt.PrettyTable(hrules=True)
+        tb = pt.PrettyTable(hrules=True, min_width=self.MIN_COLUMN_WIDTH, max_table_width=self.MAX_TABLE_WIDTH)
         title = "Table of Changed Rpms"
         tb.field_names = ["added rpms", "deleted rpms", "changed rpms"]
         diff_rpm = []
@@ -124,19 +128,25 @@ class ComparePackage(object):
                 continue
             item_name = item.replace("rpm ", "")
             title = "Table of Check %s Result" % (item_name.capitalize())
-            tb = pt.PrettyTable(hrules=True)
+            tb = pt.PrettyTable(hrules=True, min_width=self.MIN_COLUMN_WIDTH, max_table_width=self.MAX_TABLE_WIDTH)
             tb.field_names = ["rpm name", "added %s" % item_name, "deleted %s " % item_name, "changed %s" % item_name]
             for rpm in item_result:
                 rpm_details = item_result.get(rpm)
                 more_value = less_value = diff_values = ""
 
                 for key, value in rpm_details.items():
+                    if isinstance(value, list) and len(value) > self.MAX_SHOW_DATA_NUM:
+                        value = value[:self.MAX_SHOW_DATA_NUM]
+                        value.append("...")
                     if key == "more":
                         more_value = "\n".join(value)
                     elif key == "less":
                         less_value = "\n".join(value)
                     elif key == "diff":
                         diff_value = value.get("old")
+                        if len(diff_value) > self.MAX_SHOW_DATA_NUM:
+                            diff_value = diff_value[:self.MAX_SHOW_DATA_NUM]
+                            diff_value.append("...")
                         diff_values = "\n".join(diff_value)
                 tb.add_row([rpm, more_value, less_value, diff_values])
 
