@@ -22,9 +22,16 @@ import logging.config
 import logging
 import yaml
 
-from src.build.obs_repo_source import OBSRepoSource
 from src.proxy.obs_proxy import OBSProxy
+from src.proxy.requests_proxy import do_requests
 from src.constant import Constant
+from src.build.obs_repo_source import OBSRepoSource
+from src.build.build_rpm_package import BuildRPMPackage
+from src.build.related_rpm_package import RelatedRpms
+from src.utils.shell_cmd import shell_cmd_live
+from src.utils.check_abi import CheckAbi
+from src.utils.compare_package import ComparePackage
+from src.utils.check_conf import CheckConfig
 
 
 class ExtraWork(object):
@@ -160,7 +167,7 @@ class ExtraWork(object):
         except IOError:
             logger.exception("save check abi comment exception")
 
-    def check_install_rpm(self, branch_name, arch, install_root):
+    def check_install_rpm(self, branch_name, arch, install_root, comment_file):
         """
         检查生成的rpm是否可以安装
         :param branch_name: 分支名
@@ -203,8 +210,22 @@ class ExtraWork(object):
             ret, _, err = shell_cmd_live(check_install_cmd, verbose=True)
             if ret:
                 logger.error("install rpms error, %s, %s", ret, err)
+                comment = {"name": "check_install/{}/{}".format(arch, self._repo), "result": "FAILED"}
             else:
                 logger.info("install rpm success")
+                comment = {"name": "check_install/{}/{}".format(arch, self._repo), "result": "SUCCESS"}
+
+            logger.debug("check install rpm comment: %s", comment)
+            comments = []
+            try:
+                if os.path.exists(comment_file):
+                    with open(comment_file, "r") as f:  # one repo with multi build package
+                        comments = yaml.safe_load(f)
+                comments.append(comment)
+                with open(comment_file, "w") as f:
+                    yaml.safe_dump(comments, f)  # list
+            except IOError:
+                logger.exception("save check install comment file exception")
 
 
 def notify(config, extrawork):
@@ -251,7 +272,7 @@ def checkinstall(config, extrawork):
     :param extrawork:
     :return:
     """
-    extrawork.check_install_rpm(config.branch_name, config.arch, config.install_root)
+    extrawork.check_install_rpm(config.branch_name, config.arch, config.install_root, config.comment_file)
 
 
 def getrelatedrpm(config, extrawork):
@@ -296,7 +317,7 @@ if "__main__" == __name__:
     parser_checkabi.add_argument("-r", type=str, dest="branch_name", help="obs project name")
     parser_checkabi.add_argument("-b", type=str, dest="obs_repo_url", help="obs repo where rpm saved")
     parser_checkabi.add_argument("-p", "--package", type=str, help="obs package")
-    parser_checkabi.add_argument("-e", type=str, dest="comment_file", help="compare package result comment")
+    parser_checkabi.add_argument("-e", type=str, dest="comment_file", help="check abi result comment")
     parser_checkabi.set_defaults(func=checkabi)
 
     # 添加子命令 compare_package
@@ -315,6 +336,7 @@ if "__main__" == __name__:
     parser_checkinstall = subparsers.add_parser('checkinstall', help='add help')
     parser_checkinstall.add_argument("-r", type=str, dest="branch_name", help="obs project name")
     parser_checkinstall.add_argument("-a", type=str, dest="arch", help="build arch")
+    parser_checkinstall.add_argument("-e", type=str, dest="comment_file", help="check install result comment")
     parser_checkinstall.add_argument("--install-root", type=str, dest="install_root",
                                      help="check install root dir")
     parser_checkinstall.set_defaults(func=checkinstall)
@@ -333,13 +355,6 @@ if "__main__" == __name__:
                                                      "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
-    from src.utils.shell_cmd import shell_cmd_live
-    from src.proxy.requests_proxy import do_requests
-    from src.build.build_rpm_package import BuildRPMPackage
-    from src.build.related_rpm_package import RelatedRpms
-    from src.utils.check_abi import CheckAbi
-    from src.utils.compare_package import ComparePackage
-    from src.utils.check_conf import CheckConfig
 
     ew = ExtraWork(args.package, args.rpmbuild_dir)
     args.func(args, ew)

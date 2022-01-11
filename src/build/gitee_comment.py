@@ -26,19 +26,24 @@ import argparse
 import warnings
 
 from yaml.error import YAMLError
+from src.ac.framework.ac_result import ACResult, SUCCESS
+from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.kafka_proxy import KafkaProducerProxy
+from src.proxy.jenkins_proxy import JenkinsProxy
+from src.utils.dist_dataset import DistDataset
 
 
 class Comment(object):
     """
     comments process
     """
-    def __init__(self, pr, jenkins_proxy, *check_abi_comment_files):
+    def __init__(self, pr, jenkins_proxy, *check_item_comment_files):
         """
 
         :param pr: pull request number
         """
         self._pr = pr
-        self._check_abi_comment_files = check_abi_comment_files
+        self._check_item_comment_files = check_item_comment_files
         self._up_builds = []
         self._up_up_builds = []
         self._get_upstream_builds(jenkins_proxy)
@@ -116,7 +121,7 @@ class Comment(object):
             comments.extend(self._comment_of_ac(self._up_up_builds[0]))
         if self._up_builds:
             comments.extend(self._comment_of_build(self._up_builds))
-            comments.extend(self._comment_of_check_abi(self._up_builds))
+            comments.extend(self._comment_of_check_item(self._up_builds))
 
         comments.append("</table>")
         return comments
@@ -236,9 +241,9 @@ class Comment(object):
 
         return comments
 
-    def _comment_of_check_abi(self, builds):
+    def _comment_of_check_item(self, builds):
         """
-        check abi comment
+        check item comment
         :param builds:
         :return:
         """
@@ -251,25 +256,25 @@ class Comment(object):
                 return True
             return False
 
-        for check_abi_comment_file in self._check_abi_comment_files:
-            logger.debug("check abi comment file: %s", check_abi_comment_file)
-            if not os.path.exists(check_abi_comment_file):      # check abi评论文件存在
+        for check_item_comment_file in self._check_item_comment_files:
+            logger.debug("check item comment file: %s", check_item_comment_file)
+            if not os.path.exists(check_item_comment_file):      # check item评论文件存在
                 continue
             for build in builds:
                 name = build.job._data["fullName"]
                 logger.debug("check build %s", name)
-                if not match(name, check_abi_comment_file):     # 找到匹配的jenkins build
+                if not match(name, check_item_comment_file):     # 找到匹配的jenkins build
                     continue
                 logger.debug("build \"%s\" match", name)
 
                 status = build.get_status()
                 logger.debug("build state: %s", status)
                 if ACResult.get_instance(status) == SUCCESS:    # 保证build状态成功
-                    with open(check_abi_comment_file, "r") as f:
+                    with open(check_item_comment_file, "r") as f:
                         try:
                             content = yaml.safe_load(f)
                         except YAMLError: # yaml base exception
-                            logger.exception("illegal yaml format of check abi comment file ")
+                            logger.exception("illegal yaml format of check item comment file ")
                         logger.debug("comment: %s", content)
                         for item in content:
                             ac_result = ACResult.get_instance(item.get("result"))
@@ -278,7 +283,7 @@ class Comment(object):
                                 "markdown" if "link" in item else "", hashtag=False))
                 break
 
-        logger.info("check abi comment: %s", comments)
+        logger.info("check item comment: %s", comments)
 
         return comments
 
@@ -322,7 +327,7 @@ def init_args():
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
     parser.add_argument("-f", type=str, dest="check_result_file", help="compare package check item result")
-    parser.add_argument("-a", type=str, dest="check_abi_comment_files", nargs="*", help="check abi comment files")
+    parser.add_argument("-a", type=str, dest="check_item_comment_files", nargs="*", help="check item comment files")
 
     parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
 
@@ -339,13 +344,6 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
 
-    from src.ac.framework.ac_result import ACResult, SUCCESS
-    from src.proxy.gitee_proxy import GiteeProxy
-    from src.proxy.es_proxy import ESProxy
-    from src.proxy.kafka_proxy import KafkaProducerProxy
-    from src.proxy.jenkins_proxy import JenkinsProxy
-    from src.utils.dist_dataset import DistDataset
-
     dd = DistDataset()
     dd.set_attr_stime("comment.job.stime")
 
@@ -361,8 +359,8 @@ if "__main__" == __name__:
 
     dd.set_attr_stime("comment.build.stime")
     
-    comment = Comment(args.pr, jp, *args.check_abi_comment_files) \
-        if args.check_abi_comment_files else Comment(args.pr, jp)
+    comment = Comment(args.pr, jp, *args.check_item_comment_files) \
+        if args.check_item_comment_files else Comment(args.pr, jp)
     logger.info("comment: build result......")
     comment_content = comment.comment_build(gp)
     dd.set_attr_etime("comment.build.etime")
