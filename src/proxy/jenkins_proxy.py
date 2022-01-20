@@ -18,11 +18,11 @@
 
 import logging
 import re
+import os
 
 # not friendly when job in folders
-import jenkinsapi.jenkins as jenkins
-import src.proxy.jenkins_patch
-from src.utils.dt_transform import convert_utc_to_naive
+import jenkins
+from src.utils.dt_transform import convert_timestamp_to_naive
 
 logger = logging.getLogger("common")
 
@@ -44,102 +44,162 @@ class JenkinsProxy(object):
         self._timeout = timeout
         self._jenkins = jenkins.Jenkins(base_url, username=username, password=token, timeout=timeout)
 
-    def create_job(self, job, config):
+    def create_job(self, job_path, config):
         """
         创建任务
-        :param job: 任务名
+        :param job_path: 任务路径
         :param config: 任务描述，xml
         :return: True / False
         """
         try:
-            self._jenkins.create_job(job, config)
+            self._jenkins.create_job(job_path, config)
             return True
-        except Exception as e:
+        except jenkins.JenkinsException as e:
             logger.exception("create job exception, %s", e)
             return False
 
-    def update_job(self, job, config):
+    def update_job(self, job_path, config):
         """
         更新任务
-        :param job: 任务名
+        :param job_path: 任务路径
         :param config: 任务描述，xml
         :return: True / False
         """
         try:
-            jks_job = self._jenkins[job]
-            jks_job.update_config(config)
+            self._jenkins.reconfig_job(job_path, config)
             return True
-        except Exception as e:
+        except jenkins.JenkinsException as e:
             logger.exception("update job exception, %s", e)
             return False
 
-    def get_config(self, job):
+    def get_config(self, job_path):
         """
         获取任务描述，xml
-        :param job: 任务名
-        :return: None if job not exist
+        :param job_path: 任务路径
+        :return: None if job_path not exist
         """
         try:
-            return self._jenkins[job].get_config()
-        except Exception as e:
+            return self._jenkins.get_job_config(job_path)
+        except jenkins.JenkinsException as e:
             logger.exception("get config exception, %s", e)
             return None
 
-    def get_build(self, job, build_no):
+    def get_jobs_list(self, job_path):
         """
-        获取任务build
-        :param job: 任务名
-        :param build_no: build编号
-        :return: None if job not exist
+        获取任务列表
+        :return: list
         """
         try:
-            return self._jenkins[job].get_build(build_no)
-        except Exception as e:
+            jobs = self._jenkins.get_job_info(job_path)["jobs"]
+            return [job["name"] for job in jobs]
+        except jenkins.JenkinsException as e:
+            logger.exception("update job exception, %s", e)
+            return []
+
+    def get_job_build_info(self, job_path, build_no):
+        """
+        get job and build info
+        :param job_path:
+        :param build_no:
+        :return:
+        """
+        job_info = self.get_job_info(job_path)
+        build_info = self.get_build_info(job_path, build_no)
+        if not all([job_info, build_info]):
+            return None, None, None
+
+        build_dt = convert_timestamp_to_naive(build_info["timestamp"])
+        cause_description, _, _ = self.get_build_trigger_reason(build_info)
+        trigger_reason = cause_description if cause_description else "no upstream build"
+
+        return job_info["url"], build_dt, trigger_reason
+
+    def get_job_info(self, job_path):
+        """
+        获取任务信息
+        :param job_path: job路径
+        :return: None if job_path not exist
+        """
+        try:
+            return self._jenkins.get_job_info(job_path)
+        except jenkins.JenkinsException as e:
+            logger.exception("get job exception, %s", e)
+            return None
+
+    def get_build_info(self, job_path, build_no):
+        """
+        获取任务构建信息
+        :param job_path: job路径
+        :param build_no: build编号
+        :return: None if job_path or build_no not exist
+        """
+        try:
+            return self._jenkins.get_build_info(job_path, build_no)
+        except jenkins.JenkinsException as e:
             logger.exception("get job build exception, %s", e)
             return None
 
+    @staticmethod
+    def get_build_trigger_reason(build_info):
+        """
+        获取触发当前任务的上级job及build
+        :param build_info: 当前任务构建信息
+        :return: None if cause build not exist
+        """
+        causes = []
+        for action in build_info["actions"]:
+            if action["_class"] == "hudson.model.CauseAction":
+                causes = action["causes"]
+                break
+        for cause in causes:
+            if cause["_class"] == "hudson.model.Cause$UpstreamCause":
+                cause_description = cause["shortDescription"]
+                cause_job_path = cause["upstreamProject"]
+                cause_build_no = int(cause["upstreamBuild"])
+                return cause_description, cause_job_path, cause_build_no
+        return None, None, None
+
     @classmethod
-    def get_grandpa_build(cls, build):
+    def get_job_path_from_job_url(cls, job_url):
         """
-        获取上游的上游job build
-        :param build:
+        从url中解析job路径
+        :param job_url: 当前任务url
         :return:
         """
-        try:
-            parent_build = build.get_upstream_build()
-            return parent_build.get_upstream_build() if parent_build else None
-        except Exception as e:
-            logger.exception("get grandpa build exception, %s", e)
-            return None
+        job_path = "".join(job_url.split("job/")[1:])
+        sp = job_path.split("/")
+        sp = [item for item in sp if item != ""]
+        job_path = "/".join(sp)
+        return job_path
 
-    def _get_upstream_jobs(self, job):
+    @staticmethod
+    def get_job_path_build_no_from_build_url(build_url):
         """
-        获取upstream jobs
-        jenkinsapi提供的接口不支持跨目录操作
-        :param job: Jenkins Job object
+        从url中解析job路径
+        :param build_url: 当前任务url
         :return:
         """
-        logger.debug("get upstream jobs of %s", job._data["fullName"])
-        jobs = []
-        for project in job._data["upstreamProjects"]:   # but is the only way of get upstream projects info
-            url = project.get("url")
-            name = project.get("name")
-            logger.debug("upstream project: %s %s", url, name)
+        job_plus_build_no = "".join(build_url.split("job/")[1:])
+        sp = job_plus_build_no.split("/")
+        sp = [item for item in sp if item != ""]
+        job_path = "/".join(sp[:len(sp) - 1])
+        build_no = sp[-1]
+        return job_path, build_no
 
-            m = re.match("(.*)/job/.*", url)    # remove last part of job url, greedy match
-            base_url = m.group(1)
-            logger.debug("base url %s", base_url)
+    @staticmethod
+    def _get_upstream_jobs_path(job_info):
+        """
+        从job详情中解析上级job路径
+        :param job_info: 当前任务详情
+        :return:
+        """
+        upstream_job_path_list = []
+        for project in job_info.get("upstreamProjects", []):
+            job_url = JenkinsProxy.get_job_path_from_job_url(project["url"])
+            upstream_job_path_list.append(job_url)
+        return upstream_job_path_list
 
-            try:
-                j = jenkins.Jenkins(base_url, self._username, self._token, timeout=self._timeout)
-                jobs.append(j[name])
-            except Exception as e:
-                logger.exception("get job of %s exception", url)
-                continue
-
-        return jobs
-
-    def get_upstream_builds(self, build):
+    def get_upstream_builds(self, build_info):
         """
         菱形任务工作流时，Jenkins提供的接口不支持多个upstream build
               A
@@ -147,87 +207,35 @@ class JenkinsProxy(object):
           B       C
             \   /
               D
-        :param build:
+        :param build_info:
         :return:
         """
-        upstream_jobs = self._get_upstream_jobs(build.job)
+        cause_description, cause_job_path, cause_build_no = self.get_build_trigger_reason(build_info)
+        cause_build_info = self.get_build_info(cause_job_path, cause_build_no)
+        cause_cause_description, cause_cause_job_path, cause_cause_build_no = self.get_build_trigger_reason(cause_build_info)
+        logger.debug("cause_build_no: %s, cause_job_path: %s, cause_cause_build_no: %s, cause_cause_job_path: %s",
+                     cause_build_no, cause_job_path, cause_cause_build_no, cause_cause_job_path)
+        upstream_builds = [cause_build_info]
+        if not all((cause_cause_description, cause_cause_job_path, cause_cause_build_no)):
+            return upstream_builds
 
-        cause_build_id = build.get_upstream_build_number()
-        cause_job_name = build.get_upstream_job_name()
-        
-        cause_job = None        
-        for upstream_job in upstream_jobs:
-            if upstream_job._data["fullName"] == cause_job_name:
-                cause_job = upstream_job
-                break
-        if cause_job is None:
-            logger.error("get cause job failed")
-            return []
-            
-        cause_build = cause_job.get_build(cause_build_id)
-        cause_cause_build_id = cause_build.get_upstream_build_number()
-        
-        logger.debug("cause_build_id: %s, cause_job_name: %s, cause_cause_build_id: %s",
-                     cause_build_id, cause_job_name, cause_cause_build_id)
-
-        upstream_builds = []
-        for upstream_job in upstream_jobs:
-            logger.debug("%s", upstream_job._data["fullName"])
-            for build_id in upstream_job.get_build_ids():
-                logger.debug("try build id %s", build_id)
-                a_build = upstream_job.get_build(build_id)
-                if a_build.get_upstream_build_number() == cause_cause_build_id:
-                    logger.debug("build id %s match", build_id)
-                    upstream_builds.append(a_build)
+        cur_job_path, cur_build_no = JenkinsProxy.get_job_path_build_no_from_build_url(build_info["url"])
+        cur_job_info = self.get_job_info(cur_job_path)
+        upstream_jobs_path = JenkinsProxy._get_upstream_jobs_path(cur_job_info)
+        for upstream_job_path in upstream_jobs_path:
+            logger.debug("%s", upstream_job_path)
+            upstream_jobs_path = self.get_job_info(upstream_job_path)
+            upstream_builds_no = [item["number"] for item in upstream_jobs_path.get("builds", [])]
+            for upstream_build_no in upstream_builds_no:
+                logger.debug("try build id %s", upstream_build_no)
+                if upstream_job_path == cause_job_path:
+                    continue
+                a_build_info = self.get_build_info(upstream_job_path, upstream_build_no)
+                a_cause_description, a_cause_job_path, a_cause_build_no = JenkinsProxy.get_build_trigger_reason(a_build_info)
+                if all((a_cause_description, a_cause_job_path, a_cause_build_no)) \
+                    and a_cause_job_path == cause_cause_job_path and a_cause_build_no == cause_cause_build_no:
+                    logger.debug("build id %s match", a_cause_build_no)
+                    upstream_builds.append(a_build_info)
                     break
 
         return upstream_builds
-
-    def get_job_url(self, job):
-        """
-        获取任务url
-        :param job:
-        :return:
-        """
-        j = self._jenkins[job]
-
-        return self._jenkins[job].url
-
-    def get_build_datetime(self, job, build):
-        """
-        get job build tims
-        :param job:
-        :param build:
-        :return:
-        """
-        return convert_utc_to_naive(self._jenkins[job].get_build(build).get_timestamp())
-
-    def get_build_trigger_reason(self, job, build):
-        """
-        get job build tims
-        :param job:
-        :param build:
-        :return:
-        """
-        causes = self._jenkins[job].get_build(build).get_causes()
-        if not causes:
-            return "N/A"
-
-        return causes[0]["shortDescription"]
-
-    def get_job_build_info(self, job, build):
-        """
-        get job and build info
-        :param job:
-        :param build:
-        :return:
-        """
-        job = self._jenkins[job]
-        build = job.get_build(build)
-
-        build_dt = convert_utc_to_naive(build.get_timestamp())
-
-        causes = build.get_causes()
-        trigger_reason = causes[0]["shortDescription"] if causes else "N/A"
-
-        return job.url, build_dt, trigger_reason

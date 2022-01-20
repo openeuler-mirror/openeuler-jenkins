@@ -32,11 +32,11 @@ from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.dist_dataset import DistDataset
 
-
 class Comment(object):
     """
     comments process
     """
+
     def __init__(self, pr, jenkins_proxy, *check_item_comment_files):
         """
 
@@ -88,7 +88,7 @@ class Comment(object):
         build result check
         :return:
         """
-        build_result = sum([ACResult.get_instance(build.get_status()) for build in self._up_builds], SUCCESS)
+        build_result = sum([ACResult.get_instance(build["result"]) for build in self._up_builds], SUCCESS)
         return build_result
 
     def _get_upstream_builds(self, jenkins_proxy):
@@ -101,7 +101,7 @@ class Comment(object):
         base_build_id = os.environ.get("BUILD_ID")
         base_build_id = int(base_build_id)
         logger.debug("base_job_name: %s, base_build_id: %s", base_job_name, base_build_id)
-        base_build = jenkins_proxy.get_build(base_job_name, base_build_id)
+        base_build = jenkins_proxy.get_build_info(base_job_name, base_build_id)
         logger.debug("get base build")
         self._up_builds = jenkins_proxy.get_upstream_builds(base_build)
         if self._up_builds:
@@ -148,10 +148,10 @@ class Comment(object):
         for index, item in enumerate(acl):
             ac_result = ACResult.get_instance(item["result"])
             if index == 0:
-                build_url = build.get_build_url()
+                build_url = build["url"]
                 comments.append(self.__class__.comment_html_table_tr(
-                    item["name"], ac_result.emoji, ac_result.hint, 
-                    "{}{}".format(build_url, "console"), build.buildno, rowspan=len(acl)))
+                    item["name"], ac_result.emoji, ac_result.hint,
+                    "{}{}".format(build_url, "console"), build["number"], rowspan=len(acl)))
             else:
                 comments.append(self.__class__.comment_html_table_tr_rowspan(
                     item["name"], ac_result.emoji, ac_result.hint))
@@ -168,13 +168,13 @@ class Comment(object):
         comments = []
 
         for build in builds:
-            name = build.job._data["fullName"]
-            status = build.get_status()
+            name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
+            status = build["result"]
             ac_result = ACResult.get_instance(status)
-            build_url = build.get_build_url()
+            build_url = build["url"]
 
             comments.append(self.__class__.comment_html_table_tr(
-                name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build.buildno))
+                name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build["number"]))
 
         logger.info("build comment: %s", comments)
         return comments
@@ -187,7 +187,7 @@ class Comment(object):
         """
         comments = []
         comments_title = ["<table> <tr><th>Arch Name</th> <th>Ckeck Items</th> <th>Rpm Name</th> <th>Ckeck Result</th> "
-                    "<th>Build Details</th></tr>"]
+                          "<th>Build Details</th></tr>"]
 
         def match(name, comment_file):
             if "aarch64" in name and "aarch64" in comment_file:
@@ -202,14 +202,14 @@ class Comment(object):
                 logger.info("%s not exists", result_file)
                 continue
             for build in self._up_builds:
-                name = build.job._data["fullName"]
+                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 logger.info("check build %s", name)
                 arch_result, arch_name = match(name, result_file)
                 if not arch_result:  # 找到匹配的jenkins build
                     continue
                 logger.info("build \"%s\" match", name)
 
-                status = build.get_status()
+                status = build["result"]
                 logger.info("build state: %s", status)
                 content = {}
                 if ACResult.get_instance(status) == SUCCESS:  # 保证build状态成功
@@ -229,7 +229,7 @@ class Comment(object):
                                         "<td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>"
                                         .format(len(content), arch_name, check_item, "<br>".join(rpm_name),
                                                 compare_result.emoji, compare_result.hint, len(content),
-                                                "{}{}".format(build.get_build_url(), "console"), "#", build.buildno))
+                                                "{}{}".format(build["url"], "console"), "#", build["number"]))
                     else:
                         comments.append("<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
                             check_item, "<br>".join(rpm_name), compare_result.emoji, compare_result.hint))
@@ -261,19 +261,19 @@ class Comment(object):
             if not os.path.exists(check_item_comment_file):      # check item评论文件存在
                 continue
             for build in builds:
-                name = build.job._data["fullName"]
+                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 logger.debug("check build %s", name)
                 if not match(name, check_item_comment_file):     # 找到匹配的jenkins build
                     continue
                 logger.debug("build \"%s\" match", name)
 
-                status = build.get_status()
+                status = build["result"]
                 logger.debug("build state: %s", status)
                 if ACResult.get_instance(status) == SUCCESS:    # 保证build状态成功
                     with open(check_item_comment_file, "r") as f:
                         try:
                             content = yaml.safe_load(f)
-                        except YAMLError: # yaml base exception
+                        except YAMLError:  # yaml base exception
                             logger.exception("illegal yaml format of check item comment file ")
                         logger.debug("comment: %s", content)
                         for item in content:
@@ -313,7 +313,7 @@ class Comment(object):
 def init_args():
     """
     init args
-    :return: 
+    :return:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", type=int, dest="pr", help="pull request number")
@@ -323,7 +323,8 @@ def init_args():
     parser.add_argument("-r", type=str, dest="repo", help="repo name")
     parser.add_argument("-t", type=str, dest="gitee_token", help="gitee api token")
 
-    parser.add_argument("-b", type=str, dest="jenkins_base_url", help="jenkins base url")
+    parser.add_argument("-b", type=str, dest="jenkins_base_url", default="https://openeulerjenkins.osinfra.cn/",
+                        help="jenkins base url")
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
     parser.add_argument("-f", type=str, dest="check_result_file", help="compare package check item result")
@@ -358,7 +359,7 @@ if "__main__" == __name__:
     dd.set_attr("comment.trigger.reason", reason)
 
     dd.set_attr_stime("comment.build.stime")
-    
+
     comment = Comment(args.pr, jp, *args.check_item_comment_files) \
         if args.check_item_comment_files else Comment(args.pr, jp)
     logger.info("comment: build result......")
