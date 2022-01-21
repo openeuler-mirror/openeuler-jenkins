@@ -15,6 +15,7 @@
 # Description: duplicate jenkins jobs configuration
 # **********************************************************************************
 """
+import sys
 
 import gevent
 from gevent import monkey
@@ -56,13 +57,15 @@ class JenkinsJobs(object):
         :param action: 行为
         :param target_jobs_dir: 待更新/创建任务所在jenkins工程目录
         :param jobs: 任务列表
+        :param exclude_jobs: 排除的任务列表
         :param concurrency: 并发量
         :param retry: 尝试次数
         :param interval: 每次batch请求后sleep时间（秒），
         :return:
         """
         logger.info("%s jobs %s", action, jobs)
-        real_jobs = self.get_real_target_jobs(target_jobs_dir, jobs, exclude_jobs if exclude_jobs else [], action)
+        exclude_jobs_list = exclude_jobs if exclude_jobs else []
+        real_jobs = self.get_real_target_jobs(target_jobs_dir, jobs, exclude_jobs_list, action)
         real_jobs = [os.path.join(target_jobs_dir, item) for item in real_jobs]
         logger.info("now %s %s jobs", action, len(real_jobs))
 
@@ -110,13 +113,66 @@ class JenkinsJobs(object):
         :param jenkins_proxy: 目标任务jenkins代理
         :return: dict
         """
-        job_config = self.update_config(job)
+        job_config = self.update_config(job.split("/")[-1])
         result = jenkins_proxy.create_job(job, job_config) if action == "create" \
             else jenkins_proxy.update_job(job, job_config)
 
         return {"job": job, "result": result}
 
-    def get_all_repos(self, organization, gitee_token):
+    @abc.abstractmethod
+    def get_real_target_jobs(self, target_jobs_dir, jobs, exclude_jobs, action):
+        """
+        真实有效的任务列表
+        :param target_jobs_dir: 用户输入的目标任务目录
+        :param jobs: 用户输入的任务列表
+        :param exclude_jobs: 用户输入的exclude任务列表
+        :param action: 用户输入的操作create/update
+        :return: list<string>
+        """
+        exists_jobs_list = self._jenkins_proxy.get_jobs_list(target_jobs_dir)
+        logger.info("%s exist %s jobs", target_jobs_dir, len(exists_jobs_list))
+        if action == "update":
+            return list(set(jobs).difference(set(exclude_jobs)).intersection(set(exists_jobs_list)))
+        elif action == "create":
+            return list(set(jobs).difference(set(exclude_jobs)).difference(set(exists_jobs_list)))
+        else:
+            logger.debug("illegal action: %s", action)
+            return []
+
+    @abc.abstractmethod
+    def update_config(self, job):
+        """
+        implement in subclass
+        :param job:
+        :return:
+        """
+        raise NotImplementedError
+
+
+class SrcOpenEulerJenkinsJobs(JenkinsJobs):
+    """
+    src-openEuler 仓库
+    """
+
+    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, gitee_token,
+                 exclusive_arch_path=None):
+        super(SrcOpenEulerJenkinsJobs, self).__init__(template_jobs_dir, template_job, jenkins_proxy)
+
+        self._all_community_jobs = self.get_all_repos(organization, gitee_token)
+        logger.info("%s exist %s jobs", organization, len(self._all_community_jobs))
+        self._config_table = self.load_soe_config()
+
+        # spec中包含ExclusiveArch的项目
+        self._exclusive_arch = {}
+        if exclusive_arch_path:
+            for filename in os.listdir(exclusive_arch_path):
+                with open(os.path.join(exclusive_arch_path, filename), "r") as f:
+                    arches = f.readline()
+                    self._exclusive_arch[filename] = [arch.strip() for arch in arches.split(",")]
+        logger.debug("exclusive arch: %s", self._exclusive_arch)
+
+    @staticmethod
+    def get_all_repos(organization, gitee_token):
         """
         Get all repositories belong openeuler or src-openeuler through file directories
         :param organization: openeuler/src-openeuler
@@ -139,46 +195,6 @@ class JenkinsJobs(object):
                     for repo in repos:
                         repositories.append(os.path.splitext(os.path.basename(repo))[0])
         return repositories
-
-    @abc.abstractmethod
-    def get_real_target_jobs(self, jobs, exclude_jobs):
-        """
-        实际要操作的任务
-        :param jobs: 用户输入的任务列表
-        :param exclude_jobs: 用户输入的exclude任务列表
-        :return:
-        """
-        return [job for job in jobs if job not in exclude_jobs]
-
-    @abc.abstractmethod
-    def update_config(self, job):
-        """
-        implement in subclass
-        :param job:
-        :return:
-        """
-        raise NotImplementedError
-
-
-class SrcOpenEulerJenkinsJobs(JenkinsJobs):
-    """
-    src-openEuler 仓库
-    """
-
-    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, gitee_token, exclusive_arch_path=None):
-        super(SrcOpenEulerJenkinsJobs, self).__init__(template_jobs_dir, template_job, jenkins_proxy)
-
-        self._all_community_jobs = self.get_all_repos(organization, gitee_token)
-        logger.info("%s exist %s jobs", organization, len(self._all_community_jobs))
-
-        # spec中包含ExclusiveArch的项目
-        self._exclusive_arch = {}
-        if exclusive_arch_path:
-            for filename in os.listdir(exclusive_arch_path):
-                with open(os.path.join(exclusive_arch_path, filename), "r") as f:
-                    arches = f.readline()
-                    self._exclusive_arch[filename] = [arch.strip() for arch in arches.split(",")]
-        logger.debug("exclusive arch: %s", self._exclusive_arch)
 
     def get_real_target_jobs(self, target_jobs_dir, jobs, exclude_jobs, action):
         """
@@ -203,28 +219,47 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             logger.debug("illegal action: %s", action)
             return []
 
+    @staticmethod
+    def load_soe_config():
+        """
+        获取src-openeuler下所有已存在仓库的工程配置
+        :return:
+        """
+        cur_path = os.path.abspath(os.path.dirname(__file__))
+        try:
+            with open(os.path.join(cur_path, "soe_config.yaml"), "r") as f:
+                config_table = yaml.safe_load(f)
+        except FileNotFoundError:
+            logger.exception("soe_config.yaml not exist")
+            sys.exit(1)
+        except yaml.MarkedYAMLError:
+            logger.exception("soe_config.yaml is not an illegal yaml format file")
+            sys.exit(1)
+        if not config_table:
+            return {}
+        # check yaml format and exception if not
+        if not isinstance(config_table, dict):
+            logger.exception("soe_config.yaml is not an illegal yaml format file")
+            sys.exit(1)
+        for _, value in config_table.items():
+            repo_value = value.get("repo")
+            buddy_value = value.get("buddy")
+            package_value = value.get("packages")
+            if not all([repo_value, buddy_value, package_value, isinstance(repo_value, str),
+                        isinstance(buddy_value, str), isinstance(package_value, str)]):
+                logger.exception("soe_config.yaml is not an illegal yaml format file")
+                sys.exit(1)
+        return config_table
+
     def update_config(self, job):
         """
         根据模板生成目标任务配置信息
         :param job: 目标任务
         :return: xml string
         """
-        CONFIG_TABLE = {
-            "kata-containers": {
-                "repo": "kata-containers",
-                "buddy": "kata-containers, kata_integration, kernel",
-                "packages": "kata-containers"
-            }
-        }
-
+        buddy = self._config_table.get(job, {"repo": job, "buddy": job, "packages": job})
         root = ET.fromstring(self._template_job_config)
 
-        if job in CONFIG_TABLE.keys():
-            buddy = CONFIG_TABLE[job]
-        else:
-            buddy = {"repo": job, "buddy": job, "packages": job}
-
-        # triggers
         ele = root.find("triggers//regexpFilterExpression")
         if ele is not None:
             ele.text = ele.text.replace(self._template_job, buddy["repo"])
@@ -271,7 +306,8 @@ class OpenEulerJenkinsJobs(SrcOpenEulerJenkinsJobs):
     openEuler 仓库
     """
 
-    def guess_build_script(self, job):
+    @staticmethod
+    def guess_build_script(job):
         """
         返回仓库对应的jenkins build脚本
         :param job:
@@ -283,7 +319,7 @@ class OpenEulerJenkinsJobs(SrcOpenEulerJenkinsJobs):
         for filename in os.listdir(jenkinsfile_dir):
             if filename == script:
                 break
-            if re.match("{}\..*".format(job), filename):  # repo.{sufix}
+            if re.match(r"{}\..*".format(job), filename):  # repo.{sufix}
                 script = filename
                 break
 
