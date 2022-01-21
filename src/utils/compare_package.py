@@ -22,6 +22,9 @@ import re
 import prettytable as pt
 import yaml
 
+from src.constant import Constant
+
+
 class ComparePackage(object):
     """compare package functions"""
 
@@ -142,7 +145,7 @@ class ComparePackage(object):
                         more_value = "\n".join(value)
                     elif key == "less":
                         less_value = "\n".join(value)
-                    elif key == "diff":
+                    elif key in ["diff", "changed"]:
                         diff_value = value.get("old")
                         if len(diff_value) > self.MAX_SHOW_DATA_NUM:
                             diff_value = diff_value[:self.MAX_SHOW_DATA_NUM]
@@ -175,8 +178,8 @@ class ComparePackage(object):
 
         compare_result = all_data.get("compare_result")
         compare_details = all_data.get("compare_details")
-        if not [compare_result, isinstance(compare_result, str), \
-            compare_details, isinstance(compare_details, dict)]:
+        if not all([compare_result, isinstance(compare_result, str),
+                compare_details, isinstance(compare_details, dict)]):
             self.logger.error("compare result format error")
             return self.FAILED
 
@@ -231,6 +234,46 @@ class ComparePackage(object):
 
         return status, all_data
 
+    def _get_rule_data(self, data):
+        """
+        根据正则表达式过滤数据
+        :param data:
+        :return: data
+        """
+        remove_data = []
+        for one_data in data:
+            for rule in Constant.COMPARE_PACKAGE_BLACKLIST:
+                pattern = re.compile(rule)
+                match_result = pattern.match(one_data)
+                if match_result:
+                    remove_data.append(one_data)
+                    break
+        for one_data in remove_data:
+            data.remove(one_data)
+        return data
+
+    def _get_new_json_data(self, all_data):
+        """
+        删除字典中的正则匹配到的数据
+        :param all_data:
+        :return: all_data
+        """
+        diff_details = self._get_dict(["compare_details", "diff", "diff_details"], all_data)
+        if not diff_details:
+            return all_data
+        for rpm_key, rpm_details in diff_details.items():
+            rpm_files = rpm_details.get("rpm files")
+            if not rpm_files:
+                continue
+            rpm_files_dict = {}
+            for item, data in rpm_files.items():
+                new_data = self._get_rule_data(data)
+                if new_data:
+                    rpm_files_dict[item] = new_data
+            diff_details[rpm_key]["rpm files"] = rpm_files_dict
+        all_data["compare_details"]["diff"]["diff_details"] = diff_details
+        return all_data
+
     def _write_compare_package_file(self, json_file, all_data, pr_link, pr_commit_json_file):
         """
         写接口变更检查结果文件，新增pr链接和接口变更检查原因
@@ -239,6 +282,8 @@ class ComparePackage(object):
         :param pr_commit_json_file:
         :return:
         """
+        self._get_new_json_data(all_data)
+
         with open(json_file, "w") as data:
             all_data["pr_link"] = pr_link
             all_data["pr_changelog"] = self._get_pr_changelog(pr_commit_json_file)
@@ -299,10 +344,10 @@ class ComparePackage(object):
         :return:
         """
         result_dict = {"add_rpms": [], "delete_rpms": []}
-        for compare_item in ["more", "less", "diff"]:
+        for compare_item in ["more", "less", "diff", "changed"]:
             key_list = [compare_item, "%s_details" % compare_item]
             details = self._get_dict(key_list, compare_details)
-            if details and isinstance(details, dict) and compare_item == "diff":
+            if details and isinstance(details, dict) and compare_item in ["diff", "changed"]:
                 rpm_dict = self._get_check_item_result(details)
                 result_dict.update(rpm_dict)
             elif details and isinstance(details, list):

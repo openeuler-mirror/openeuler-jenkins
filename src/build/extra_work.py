@@ -145,27 +145,19 @@ class ExtraWork(object):
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
 
         logger.debug("check abi comment: %s", comment)
-        try:
-            with open(comment_file, "r") as f:     # one repo with multi build package
-                comments = yaml.safe_load(f)
-        except IOError as e:
-            logger.debug("no history check abi comment")
-
         comments = []
-        if os.path.exists(comment_file):
-            try:
-                with open(comment_file, "r") as f:     # one repo with multi build package
-                    comments = yaml.safe_load(f)
-            except IOError:
-                logger.exception("yaml load check abi comment file exception")
-
-        comments.append(comment)
-        logger.debug("check abi comments: %s", comments)
         try:
+            if os.path.exists(comment_file):
+                with open(comment_file, "r") as f:  # one repo with multi build package
+                    comments = yaml.safe_load(f)
+                    logger.debug("check abi comments: %s", comments)
+            comments.append(comment)
             with open(comment_file, "w") as f:
-                yaml.safe_dump(comments, f)     # list 
+                yaml.safe_dump(comments, f)  # list
         except IOError:
-            logger.exception("save check abi comment exception")
+            logger.exception("save check abi comment file exception")
+        except yaml.MarkedYAMLError:
+            logger.exception("save check abi comment file exception, yaml format error")
 
     def check_install_rpm(self, branch_name, arch, install_root, comment_file):
         """
