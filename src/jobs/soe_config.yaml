@@ -1,4 +1,0 @@
-kata-containers:
-  repo: kata-containers
-  buddy: kata-containers, kata_integration, kernel
-  packages: kata-containers
