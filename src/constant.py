@@ -44,7 +44,9 @@ class Constant(object):
         "oepkg_openstack-queens_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:queens"],
         "oepkg_openstack-rocky_oe-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3:oepkg:openstack:rocky"],
         "openEuler-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3", "openEuler:20.03:LTS:SP3:Epol"],
-        "openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"]
+        "openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"],
+        "Multi-Version_OpenStack-Train_openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next:Epol:Multi-Version:OpenStack:Train"],
+        "Multi-Version_OpenStack-Wallaby_openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next:Epol:Multi-Version:OpenStack:Wallaby"]
     }
 
     COMPARE_PACKAGE_BLACKLIST = [
