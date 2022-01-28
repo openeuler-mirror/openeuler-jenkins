@@ -145,8 +145,6 @@ function download_buddy_repo() {
   log_info "***** Start to download buddy rpm *****"
   # download buddy repo
   for item in $(echo ${buddy} | sed 's/,/ /g'); do
-    # TODO
-    echo "############## repo is ${repo} item is ${item}"
     #对kernel特殊处理
     if [[ "x$item" == "xkernel" ]]; then
       download_kernel_repo
@@ -292,7 +290,7 @@ EOF
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_reset_cmd"
 
   log_info "save result"
-  if [[ -e $result_dir/report-$old_dir-$new_dir/osv.json ]]; then
+  if [[ -e $result_dir/report-$old_dir-$new_dir/osv.json && "$(ls -A $old_dir | grep '.rpm')" ]]; then
     old_any_rpm=$(ls $old_dir | head -n 1)
     old_version=$(rpm -q $old_dir/$old_any_rpm --queryformat '%{version}\n')
     old_release=$(rpm -q $old_dir/$old_any_rpm --queryformat '%{release}\n')
