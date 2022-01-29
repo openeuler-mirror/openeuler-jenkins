@@ -1,0 +1,33 @@
+skipped_repo: ["obs-meta"]
+repo_config:
+  kata-containers:
+    repo: kata-containers
+    buddy: kata-containers, kata_integration, kernel
+    packages: kata-containers
+arch_config:
+  nvml: ["x86_64"]
+  intel-cmt-cat: ["x86_64"]
+  linux-sgx: ["x86_64"]
+  linux-sgx-driver: ["x86_64"]
+  itrustee_sdk: ["aarch64"]
+  intel-sgx-ssl: ["x86_64"]
+  prefetch_tuning: ["aarch64"]
+  pigpio: ["aarch64"]
+  raspberrypi-firmware: ["aarch64"]
+  raspberrypi-eeprom: ["aarch64"]
+  raspberrypi-bluetooth: ["aarch64"]
+  raspberrypi-userland: ["aarch64"]
+  raspberrypi-kernel: ["aarch64"]
+  raspberrypi-build: ["aarch64"]
+  raspi-config: ["aarch64"]
+  syslinux: ["x86_64"]
+  libxsmm: ["x86_64"]
+  biosdevname: ["x86_64"]
+  rear: ["x86_64"]
+  uadk_engine: ["aarch64"]
+  kae_driver: ["aarch64"]
+  sgabios: ["x86_64"]
+  mcelog: ["x86_64"]
+  arm-trusted-firmware: ["aarch64"]
+  memkind: ["x86_64"]
+  libumem: ["x86_64"]

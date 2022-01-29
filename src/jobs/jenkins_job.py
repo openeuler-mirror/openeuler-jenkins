@@ -154,22 +154,12 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
     src-openEuler 仓库
     """
 
-    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, gitee_token,
-                 exclusive_arch_path=None):
+    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, gitee_token):
         super(SrcOpenEulerJenkinsJobs, self).__init__(template_jobs_dir, template_job, jenkins_proxy)
 
         self._all_community_jobs = self.get_all_repos(organization, gitee_token)
         logger.info("%s exist %s jobs", organization, len(self._all_community_jobs))
-        self._config_table = self.load_soe_config()
-
-        # spec中包含ExclusiveArch的项目
-        self._exclusive_arch = {}
-        if exclusive_arch_path:
-            for filename in os.listdir(exclusive_arch_path):
-                with open(os.path.join(exclusive_arch_path, filename), "r") as f:
-                    arches = f.readline()
-                    self._exclusive_arch[filename] = [arch.strip() for arch in arches.split(",")]
-        logger.debug("exclusive arch: %s", self._exclusive_arch)
+        self._config_table = self.load_exclusive_soe_config()
 
     @staticmethod
     def get_all_repos(organization, gitee_token):
@@ -207,10 +197,11 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         """
         exists_jobs_list = self._jenkins_proxy.get_jobs_list(target_jobs_dir)
         logger.info("%s exist %s jobs", target_jobs_dir, len(exists_jobs_list))
+        exclude_jobs_with_skipped = set(exclude_jobs).union(set(self._config_table.get("skipped_repo")))
         if "all" in jobs:
-            jobs_in_community = list(set(self._all_community_jobs).difference(set(exclude_jobs)))
+            jobs_in_community = list(set(self._all_community_jobs).difference(exclude_jobs_with_skipped))
         else:
-            jobs_in_community = list(set(jobs).intersection(set(self._all_community_jobs)).difference(set(exclude_jobs)))
+            jobs_in_community = list(set(jobs).intersection(set(self._all_community_jobs)).difference(exclude_jobs_with_skipped))
         if action == "update":
             return list(set(jobs_in_community).intersection(set(exists_jobs_list)))
         elif action == "create":
@@ -220,36 +211,60 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             return []
 
     @staticmethod
-    def load_soe_config():
+    def load_exclusive_soe_config():
         """
         获取src-openeuler下所有已存在仓库的工程配置
         :return:
         """
         cur_path = os.path.abspath(os.path.dirname(__file__))
         try:
-            with open(os.path.join(cur_path, "soe_config.yaml"), "r") as f:
+            with open(os.path.join(cur_path, "soe_exclusive_config.yaml"), "r") as f:
                 config_table = yaml.safe_load(f)
-        except FileNotFoundError:
-            logger.exception("soe_config.yaml not exist")
+        except OSError:
+            logger.exception("soe_exclusive_config.yaml not exist")
             sys.exit(1)
         except yaml.MarkedYAMLError:
-            logger.exception("soe_config.yaml is not an illegal yaml format file")
+            logger.exception("soe_exclusive_config.yaml is not an illegal yaml format file")
             sys.exit(1)
         if not config_table:
             return {}
         # check yaml format and exception if not
-        if not isinstance(config_table, dict):
-            logger.exception("soe_config.yaml is not an illegal yaml format file")
+        if not SrcOpenEulerJenkinsJobs.check_soe_exclusive_config_format(config_table):
+            logger.exception("soe_exclusive_config.yaml is not an illegal yaml format file")
             sys.exit(1)
-        for _, value in config_table.items():
+        return config_table
+
+    @staticmethod
+    def check_soe_exclusive_config_format(config_table):
+        """
+        检测配置文件格式
+        :param config_table: 配置内容
+        :return: True if config_table is an illegal format, or False
+        """
+        # expect config_table is a dict
+        if not isinstance(config_table, dict):
+            return False
+        # expect config_table has repo/arch keys and the value is str
+        skipped_repo = config_table.get("skipped_repo")
+        exclusive_repo_config = config_table.get("repo_config")
+        exclusive_arch_config = config_table.get("arch_config")
+        if not all([skipped_repo, isinstance(skipped_repo, list),
+                    exclusive_repo_config, isinstance(exclusive_repo_config, dict),
+                    exclusive_arch_config, isinstance(exclusive_arch_config, dict)]):
+            return False
+        # expect exclusive_repo_config has repo/buddy/buddy keys and the value is str
+        for _, value in exclusive_repo_config.items():
             repo_value = value.get("repo")
             buddy_value = value.get("buddy")
             package_value = value.get("packages")
             if not all([repo_value, buddy_value, package_value, isinstance(repo_value, str),
                         isinstance(buddy_value, str), isinstance(package_value, str)]):
-                logger.exception("soe_config.yaml is not an illegal yaml format file")
-                sys.exit(1)
-        return config_table
+                return False
+        # expect exclusive_arch_config each value is str
+        for _, value in exclusive_arch_config.items():
+            if not all([value, isinstance(value, list)]):
+                return False
+        return True
 
     def update_config(self, job):
         """
@@ -257,7 +272,7 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         :param job: 目标任务
         :return: xml string
         """
-        buddy = self._config_table.get(job, {"repo": job, "buddy": job, "packages": job})
+        buddy = self._config_table.get("repo_config").get(job, {"repo": job, "buddy": job, "packages": job})
         root = ET.fromstring(self._template_job_config)
 
         ele = root.find("triggers//regexpFilterExpression")
@@ -267,16 +282,16 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         # parameterized trigger
         ele = root.find("publishers/hudson.plugins.parameterizedtrigger.BuildTrigger//projects")
         if ele is not None:
-            arches = self._exclusive_arch.get(buddy["repo"])
-            if arches:  # eg: [x86_64]
-                projects = []
-                for project in ele.text.split(","):
-                    for arch in arches:
-                        if arch in project:
-                            projects.append(project)
-                ele.text = ",".join(projects).replace(self._template_job, buddy["repo"])
-            else:
-                ele.text = ele.text.replace(self._template_job, buddy["repo"])
+            arches = self._config_table.get("arch_config").get(job, ["x86_64", "aarch64"])
+            project_template = ele.text.strip().split(",")[0].replace(self._template_job, buddy["repo"])
+            projects = []
+            for arch in arches:
+                if arch == "x86_64":
+                    arch = "x86-64"
+                project = project_template.split("/")
+                project[-2] = arch
+                projects.append("/".join(project))
+            ele.text = ",".join(projects)
 
         # join trigger
         ele = root.find("publishers/join.JoinTrigger//projects")
@@ -399,9 +414,6 @@ if "__main__" == __name__:
     args.add_argument("-u", type=str, dest="jenkins_user", help="jenkins user name")
     args.add_argument("-t", type=str, dest="jenkins_api_token", help="jenkins api token")
 
-    args.add_argument("-x", type=str, dest="mapping_info_file", help="mapping info file")
-    args.add_argument("-e", type=str, dest="exclusive_arch_file", help="exclusive arch file")
-
     args.add_argument("--gitee_token", type=str, dest="gitee_token", help="gitee token")
     args.add_argument("--jenkins_url", type=str, dest="jenkins_url", help="jenkins url")
     args.add_argument("-m", type=str, dest="template_job", help="template job name")
@@ -424,10 +436,9 @@ if "__main__" == __name__:
 
     if args.organization == "src-openeuler":
         jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir,
-            args.template_job, jp, args.organization, args.gitee_token, args.exclusive_arch_file)
+            args.template_job, jp, args.organization, args.gitee_token)
     else:
-        jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization, args.gitee_token,
-                                            args.exclusive_arch_file)
+        jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization, args.gitee_token)
 
     jenkins_jobs.run(args.action, args.target_jobs_dir, args.target_jobs, exclude_jobs=args.exclude_jobs,
                      concurrency=args.concurrency, retry=args.retry, interval=args.interval)
