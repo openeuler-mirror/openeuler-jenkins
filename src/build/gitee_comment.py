@@ -327,7 +327,7 @@ def init_args():
                         help="jenkins base url")
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
-    parser.add_argument("-f", type=str, dest="check_result_file", help="compare package check item result")
+    parser.add_argument("-f", type=str, dest="check_result_file", default="", help="compare package check item result")
     parser.add_argument("-a", type=str, dest="check_item_comment_files", nargs="*", help="check item comment files")
 
     parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
@@ -372,7 +372,8 @@ if "__main__" == __name__:
         gp.create_tags_of_pr(args.pr, "ci_successful")
         dd.set_attr("comment.build.tags", ["ci_successful"])
         dd.set_attr("comment.build.result", "successful")
-        comment.comment_compare_package_details(gp, args.check_result_file)
+        if args.check_result_file:
+            comment.comment_compare_package_details(gp, args.check_result_file)
     else:
         gp.delete_tag_of_pr(args.pr, "ci_successful")
         gp.create_tags_of_pr(args.pr, "ci_failed")
