@@ -1,7 +1,7 @@
 #!/bin/bash
-. /home/jenkins/ci_check/src/lib/lib.sh
+. ${shell_path}/src/lib/lib.sh
 JENKINS_HOME=/home/jenkins
-SCRIPT_PATCH=${JENKINS_HOME}/ci_check/src/build
+SCRIPT_PATCH=${shell_path}/src/build
 BUILD_ROOT=${JENKINS_HOME}/agent/buildroot
 RPM_PATH=${BUILD_ROOT}/home/abuild/rpmbuild/RPMS
 comment_file=""
@@ -185,7 +185,7 @@ function drop_pod_cache() {
 function build_packages() {
   log_info "***** Start to build package *****"
   comment_file="${repo}_${arch}_comment"
-  export PYTHONPATH=${JENKINS_HOME}/ci_check
+  export PYTHONPATH=${shell_path}
   for item in $(echo ${package} | sed 's/,/ /g'); do
     log_info "start build package $item"
     log_debug "params are [$repo, $branch, $prid, $committer, $arch, $package, $buddy, $WORKSPACE]"

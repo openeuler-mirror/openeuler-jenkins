@@ -1,5 +1,5 @@
 #!/bin/bash
-. /home/jenkins/ci_check/src/lib/lib.sh
+. ${shell_path}/src/lib/lib.sh
 
 owner="src-openeuler"
 jenkins_api_host="http://jenkins.jenkins"
@@ -19,6 +19,7 @@ SaveBuildRPM2Repo=$8
 repo_server=$9
 compare_result=${10}
 commentid=${11}
+jenkins_api_host=${12}
 
 # 清理环境
 function clearn_env() {
@@ -61,8 +62,8 @@ function scp_comment_file() {
 # 执行评论功能
 function exec_comment() {
   log_info "***** Start to exec comment *****"
-  export PYTHONPATH=/home/jenkins/ci_check
-  python3 /home/jenkins/ci_check/src/build/gitee_comment.py -o $owner -r $repo -p $prid -c $committer -t ${giteetoken} -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86} -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid}
+  export PYTHONPATH=${shell_path}
+  python3 ${shell_path}/src/build/gitee_comment.py -o $owner -r $repo -p $prid -c $committer -t ${giteetoken} -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86} -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid}
   log_info "***** End to exec comment *****"
 }
 

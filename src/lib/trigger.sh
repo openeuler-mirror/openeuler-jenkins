@@ -1,5 +1,5 @@
 #!/bin/bash
-. /home/jenkins/ci_check/src/lib/lib.sh
+. ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
 repo=$1
 SaveBuildRPM2Repo=$2
@@ -17,6 +17,9 @@ commentID=${13}
 comment=${14}
 jobTriggerTime=${15}
 triggerLink=${16}
+jenkins_user=${17}
+jenkins_api_token=${18}
+jenkins_api_host=${19}
 
 # 开始下载kernel代码
 function download_kernel_repo() {
@@ -32,8 +35,13 @@ function download_kernel_repo() {
 # 开始执行静态检查（license，spec等）
 function exec_check() {
   log_info "***** Start to exec static check *****"
-  export PYTHONPATH=/home/jenkins/ci_check
-  python3 /home/jenkins/ci_check/src/ac/framework/ac.py -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${GiteeToken} -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${GiteeUserPassword} -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" -i ${commentID} -e ${giteeCommitter}
+  export PYTHONPATH=${shell_path}
+  python3 ${shell_path}/src/ac/framework/ac.py \
+    -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${GiteeToken} \
+    -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${GiteeUserPassword} \
+    -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" \
+    -i ${commentID} -e ${giteeCommitter} --jenkins-base-url ${jenkins_api_host} \
+    --jenkins-user ${jenkins_user} --jenkins-api-token ${jenkins_api_token}
   log_info "***** End to exec static check *****"
 }
 

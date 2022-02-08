@@ -25,10 +25,14 @@ import importlib
 import datetime
 import warnings
 
+from src.proxy.jenkins_proxy import JenkinsProxy
+from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.git_proxy import GitProxy
+from src.proxy.es_proxy import ESProxy
+from src.proxy.kafka_proxy import KafkaProducerProxy
+from src.utils.dist_dataset import DistDataset
 from yaml.error import YAMLError
-
 from src.ac.framework.ac_result import FAILED
-
 
 class AC(object):
     """
@@ -50,6 +54,45 @@ class AC(object):
         self.load_check_elements_from_conf(conf, community)
 
         logger.debug("check list: %s", self._ac_check_elements)
+
+    @staticmethod
+    def comment_jenkins_url(gp, jp, pr):
+        """
+        在pr评论中显示构建任务链接
+        :param gp: gitee接口
+        :param jp: jenkins接口
+        :param pr: pr编号
+        :return:
+        """
+        comments = ["门禁正在运行， 您可以通过以下链接查看实时门禁检查结果."]
+
+        trigger_job_name = os.environ.get("JOB_NAME")
+        trigger_build_id = os.environ.get("BUILD_ID")
+        trigger_job_info = jp.get_job_info(trigger_job_name)
+        trigger_job_url = trigger_job_info.get("url")
+        comments.append("门禁入口及编码规范检查: <a href={}>{}</a>, 当前构建号为 {}".format(
+            trigger_job_url, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
+
+        down_projects = trigger_job_info.get("downstreamProjects", [])
+        build_job_name_list = []
+        build_job_link_list = []
+        for project in down_projects:
+            build_job_url = project.get("url", "")
+            if build_job_url:
+                build_job_name = jp.get_job_path_from_job_url(build_job_url)
+                build_job_name_list.append(build_job_name)
+                build_job_link_list.append("<a href={}>{}</a>".format(build_job_url, build_job_name))
+        comments.append("构建及构建后检查: {}".format(", ".join(build_job_link_list)))
+
+        if build_job_name_list:
+            build_job_info = jp.get_job_info(build_job_name_list[0])
+            down_down_projects = build_job_info.get("downstreamProjects", [])
+            for project in down_down_projects:
+                comment_job_url = project.get("url")
+                comments.append("门禁结果回显: <a href={}>{}</a>".format(
+                    comment_job_url, jp.get_job_path_from_job_url(comment_job_url)))
+
+        gp.comment_pr(pr, "\n".join(comments))
 
     @staticmethod
     def is_repo_support_check(repo, check_element):
@@ -209,6 +252,11 @@ def init_args():
     parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
                         default="https://majun.osinfra.cn:8384/api/openlibing/codecheck", help="codecheck api url")
 
+    parser.add_argument("--jenkins-base-url", type=str, dest="jenkins_base_url", default="https://openeulerjenkins.osinfra.cn/",
+                        help="jenkins base url")
+    parser.add_argument("--jenkins-user", type=str, dest="jenkins_user", help="repo name")
+    parser.add_argument("--jenkins-api-token", type=str, dest="jenkins_api_token", help="jenkins api token")
+
     return parser.parse_args()
 
 
@@ -226,13 +274,6 @@ if "__main__" == __name__:
     logger.info("cloning repository https://gitee.com/%s/%s.git ", args.community, args.repo)
     logger.info("clone depth 4")
     logger.info("checking out pull request %s", args.pr)
-
-    # notify gitee
-    from src.proxy.gitee_proxy import GiteeProxy
-    from src.proxy.git_proxy import GitProxy
-    from src.proxy.es_proxy import ESProxy
-    from src.proxy.kafka_proxy import KafkaProducerProxy
-    from src.utils.dist_dataset import DistDataset
 
     dd = DistDataset()
     dd.set_attr_stime("access_control.job.stime")
@@ -258,9 +299,9 @@ if "__main__" == __name__:
 
     # download repo
     dd.set_attr_stime("access_control.scm.stime")
-    gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
+    git_proxy = GitProxy.init_repository(args.repo, work_dir=args.workspace)
     repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.community, args.repo)
-    if not gp.fetch_pull_request(repo_url, args.pr, depth=4):
+    if not git_proxy.fetch_pull_request(repo_url, args.pr, depth=4):
         dd.set_attr("access_control.scm.result", "failed")
         dd.set_attr_etime("access_control.scm.etime")
 
@@ -269,7 +310,7 @@ if "__main__" == __name__:
         logger.info("fetch finished -")
         sys.exit(-1)
     else:
-        gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
+        git_proxy.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
         logger.info("fetch finished +")
         dd.set_attr("access_control.scm.result", "successful")
         dd.set_attr_etime("access_control.scm.etime") 
@@ -279,11 +320,16 @@ if "__main__" == __name__:
     # build start
     dd.set_attr_stime("access_control.build.stime")
 
+    # gitee comment jenkins url
+    gitee_proxy_inst = GiteeProxy(args.community, args.repo, args.token)
+    if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
+        jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
+        AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
+
     # gitee pr tag
-    gp = GiteeProxy(args.community, args.repo, args.token)
-    gp.delete_tag_of_pr(args.pr, "ci_successful")
-    gp.delete_tag_of_pr(args.pr, "ci_failed")
-    gp.create_tags_of_pr(args.pr, "ci_processing")
+    gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_successful")
+    gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_failed")
+    gitee_proxy_inst.create_tags_of_pr(args.pr, "ci_processing")
 
     # scanoss conf
     scanoss = {"output": args.scanoss_output}
