@@ -173,8 +173,6 @@ class ExtraWork(object):
         _ = not os.path.exists(install_root) and os.mkdir(install_root)
         logger.info("create install root directory: %s", install_root)
 
-        repo_name_prefix = "check_install"
-
         # 2. prepare repo
         repo_source = OBSRepoSource("http://119.3.219.20:82")   # obs 实时构建repo地址
         repo_config = repo_source.generate_repo_info(branch_name, arch, "check_install")
@@ -207,7 +205,7 @@ class ExtraWork(object):
                 logger.info("install rpm success")
                 comment = {"name": "check_install/{}/{}".format(arch, self._repo), "result": "SUCCESS"}
 
-            logger.debug("check install rpm comment: %s", comment)
+            logger.info("check install rpm comment: %s", comment)
             comments = []
             try:
                 if os.path.exists(comment_file):

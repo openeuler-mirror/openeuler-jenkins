@@ -25,7 +25,7 @@ class BuildRPMPackage(object):
     build result rpm package info
     """
 
-    LINKMAGIC = "0X080480000XC0000000"      # 不要和gitee中用户名相同
+    LINKMAGIC = "0X080480000XC0000000"  # 不要和gitee中用户名相同
 
     def __init__(self, repo, rpmbuild_dir):
         """
@@ -128,8 +128,8 @@ class BuildRPMPackage(object):
 
         if arch == "noarch":
             return os.path.join(remote_url, committer, name, arch, package["fullname"])
-        else:
-            return os.path.join(remote_url, committer, name, arch, "noarch", package["fullname"])
+
+        return os.path.join(remote_url, committer, name, arch, "noarch", package["fullname"])
 
     def get_package_fullname(self, name):
         """
@@ -154,11 +154,8 @@ class BuildRPMPackage(object):
         :param rpm_fullname:
         :return:
         """
-        try:
-            m = re.match("(.*)-[0-9.]+-.*rpm", rpm_fullname)
-            return m.group(1)
-        except:
-            return rpm_fullname
+        match_name = re.match(r"(.*)-[0-9.]+-.*rpm", rpm_fullname)
+        return match_name.group(1) if match_name else rpm_fullname
 
     def _package_structure(self, rpmbuild_dir):
         """
@@ -170,7 +167,7 @@ class BuildRPMPackage(object):
         for dirname, _, filenames in os.walk(rpms_dir):
             arch = dirname.split("/")[-1]
             if arch == "i386":
-                aarch = "x86-64"
+                arch = "x86-64"
             for filename in filenames:
                 name = self.extract_rpm_name(filename)
                 self._rpm_packages["rpm"][name] = {"name": name, "fullname": filename, "arch": arch}
@@ -187,8 +184,7 @@ class BuildRPMPackage(object):
         :return:
         """
         packages = self._rpm_packages.get("rpm", {})
-        for name in packages:
-            package = packages[name]
+        for name, package in packages.items():
             yield name, os.path.join(self._rpmbuild_dir, "RPMS", package["arch"], package["fullname"])
 
     def iter_all_srpm(self):

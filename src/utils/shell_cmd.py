@@ -50,7 +50,7 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
             if line:
                 line = line.decode("utf-8", errors="ignore")
                 line = line.strip()
-                no_fmt_logger.info(line) if verbose else no_fmt_logger.debug(line)
+                _ = no_fmt_logger.info(line) if verbose else no_fmt_logger.debug(line)
                 if cap_out and line and line != "\n":
                     out.append(line)
             else:
@@ -65,10 +65,10 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
     if ret:
         logger.debug("return code %s", ret)
         while True:
-            line= p.stderr.readline()
+            line = p.stderr.readline()
             if not line:
                 break
             err = line.decode("utf-8", errors="ignore").strip()
-            no_fmt_logger.error(err) if verbose else no_fmt_logger.debug(err)
+            _ = no_fmt_logger.error(err) if verbose else no_fmt_logger.debug(err)
 
     return ret, out, err if cap_err else None
