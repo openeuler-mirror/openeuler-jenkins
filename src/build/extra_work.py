@@ -170,7 +170,7 @@ class ExtraWork(object):
         logger.info("*** start check install start ***")
 
         # 1. prepare install root directory
-        _ = not os.path.exists(install_root) and os.mkdir(install_root)
+        _ = not os.path.exists(install_root) and os.makedirs(install_root)
         logger.info("create install root directory: %s", install_root)
 
         # 2. prepare repo
