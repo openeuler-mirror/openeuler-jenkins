@@ -197,7 +197,7 @@ function build_packages() {
     fi
 
     log_debug "check install"
-    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${JENKINS_HOME}/install_root -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
+    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${JENKINS_HOME}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
 
     log_debug "pkgship notify"
     if [[ "x$item" == "xpkgship" ]]; then
