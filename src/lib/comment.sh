@@ -25,11 +25,11 @@ jenkins_api_host=${12}
 function clearn_env() {
   log_info "***** Start to clearn env *****"
   # download compare package comment files
-  check_item_comment_aarch64="${repo}_aarch64_comment"
-  check_item_comment_x86="${repo}_x86_64_comment"
+  check_item_comment_aarch64="${repo}_${prid}_aarch64_comment"
+  check_item_comment_x86="${repo}_${prid}_x86_64_comment"
   #cat $compare_package_comment_x86
-  compare_package_result_aarch64="${repo}_aarch64_compare_result"
-  compare_package_result_x86="${repo}_x86_64_compare_result"
+  compare_package_result_aarch64="${repo}_${prid}_aarch64_compare_result"
+  compare_package_result_x86="${repo}_${prid}_x86_64_compare_result"
 
   if [[ -e check_item_comment_aarch64 ]]; then
     rm $check_item_comment_aarch64
