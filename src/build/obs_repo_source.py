@@ -33,71 +33,36 @@ class OBSRepoSource(object):
         self._current_repo_host = repo_host
 
     @staticmethod
-    def repo_format(repo_id, repo_name, repo_baseurl):
+    def repo_format(repo_id, repo_name, repo_baseurl, priority=None):
         """
         repo内容格式
         :param repo_id:
         :param repo_name:
         :param repo_baseurl:
+        :param priority:
         :return:
         """
-        return "[{}]\nname={}\nbaseurl={}\nenabled=1\ngpgcheck=0\n".format(repo_id, repo_name, repo_baseurl)
+        if priority:
+            return "[{}]\nname={}\nbaseurl={}\nenabled=1\ngpgcheck=0\npriority={}\n".format(repo_id, repo_name, repo_baseurl, priority)
+        else:
+            return "[{}]\nname={}\nbaseurl={}\nenabled=1\ngpgcheck=0\n".format(repo_id, repo_name,repo_baseurl)
 
-    def generate_repo_info(self, branch, arch, repo_name_prefix):
+    def generate_repo_info(self, obs_branch_list, arch, repo_name_prefix):
         """
         不同的分支生成不同的repo
-        :param branch:
+        :param obs_branch_list:
         :param arch:
         :param repo_name_prefix:
         :return:
         """
         repo_config = ""
-
-        if branch == "master":
-            obs_path_part = "openEuler:/Mainline"
-        elif "openstack" in branch:
-            branch = branch.replace("_oe-", "_openEuler-")  # openEuler abbr.
-            vendor, openstack, os = branch.split("_")
-            obs_path_part = (":/").join(
-                [os.replace("-", ":/"), vendor.replace("-", ":/"), openstack.replace("-", ":/")])
-            obs_path_part_common = (":/").join(
-                [os.replace("-", ":/"),  vendor.replace("-", ":/"), "openstack:/common"])
-            obs_path_part_base = (":/").join([os.replace("-", ":/")])
-
-            # openstack need common and base
-            if "openstack-common" != openstack:
-                # openstack common
-                url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part_common, arch)
-                if do_requests("GET", url) == 0:
-                    logger.debug("add openstack common repo: %s", url)
-                    repo_config += self.repo_format("openstack_common", repo_name_prefix + "_openstack_common", url)
-
-            # openstack base
-            url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part_base, arch)
+        priority = 1
+        for obs_branch in obs_branch_list:
+            branch = obs_branch.replace(":", ":/")
+            url = "{}/{}/standard_{}".format(self._current_repo_host, branch, arch)
             if do_requests("GET", url) == 0:
                 logger.debug("add openstack base repo: %s", url)
-                repo_config += self.repo_format("openstack_base", repo_name_prefix + "_openstack_base", url)
-        else:
-            obs_path_part = branch.replace("-", ":/")
-
-        logger.debug("branch=%s, obs_path_part=%s", branch, obs_path_part)
-
-        # main
-        url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part, arch)
-        if do_requests("GET", url) == 0:
-            logger.debug("add main repo: %s", url)
-            repo_config += self.repo_format(repo_name_prefix + "_main", repo_name_prefix + "_main", url)
-
-        # epol
-        url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part + ":/Epol", arch)
-        if do_requests("GET", url) == 0:
-            logger.debug("add epol repo: %s", url)
-            repo_config += self.repo_format(repo_name_prefix + "_epol", repo_name_prefix + "_epol", url)
-
-        # extras
-        url = "{}/{}/standard_{}".format(self._current_repo_host, obs_path_part + ":/Extras", arch)
-        if do_requests("GET", url) == 0:
-            logger.debug("add extras repo: %s", url)
-            repo_config += self.repo_format(repo_name_prefix + "_extras", repo_name_prefix + "_extras", url)\
+                repo_config += self.repo_format(obs_branch, repo_name_prefix + "_" + branch, url, priority)
+                priority += 1
 
         return repo_config
