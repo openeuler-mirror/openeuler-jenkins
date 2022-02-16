@@ -57,7 +57,7 @@ class CheckSCA(BaseCheck):
         # 保存详细结果到web server
         logger.warning("click %s view scanoss detail", result_dirt.get('reportUrl'))
 
-        return SUCCESS if result else FAILED
+        return SUCCESS if result == "success" else FAILED
 
     def __call__(self, *args, **kwargs):
         """
