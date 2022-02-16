@@ -183,16 +183,16 @@ class ComparePackage(object):
             self.logger.error("compare result format error")
             return self.FAILED
 
-        self.logger.info("compare <%s> package %s\n" % (repo, compare_result))
-
         # 生成各检查项的结果，输出到check_result_file文件中，后面comment时会用到
         result_dict = self._result_to_table(compare_details)
         try:
             with open(check_result_file, "w") as f:
                 yaml.safe_dump(result_dict, f)     # list
+                self.logger.info("output check result to comment file")
         except IOError:
             self.logger.exception("save compare package comment exception")
 
+        self.logger.info("compare <%s> package %s" % (repo, compare_result))
         # 显示rpm包的变更
         self._show_rpm_diff(compare_details)
         # 显示有变更的rpm包的具体差异详情

@@ -172,11 +172,11 @@ function drop_pod_cache() {
   fi
 
   # check abi comment
-  if [[ -e $WORKSPACE/${repo}_${arch}_comment ]]; then
-    rm $WORKSPACE/${repo}_${arch}_comment
+  if [[ -e $WORKSPACE/${repo}_${prid}_${arch}_comment ]]; then
+    rm $WORKSPACE/${repo}_${prid}_${arch}_comment
   fi
-  if [[ -e $WORKSPACE/${repo}_${arch}_compare_result ]]; then
-    rm $WORKSPACE/${repo}_${arch}_compare_result
+  if [[ -e $WORKSPACE/${repo}_${prid}_${arch}_compare_result ]]; then
+    rm $WORKSPACE/${repo}_${prid}_${arch}_compare_result
   fi
   log_info "***** End to clean pod env *****"
 }
@@ -184,7 +184,7 @@ function drop_pod_cache() {
 # 编译软件包和执行install
 function build_packages() {
   log_info "***** Start to build package *****"
-  comment_file="${repo}_${arch}_comment"
+  comment_file="${repo}_${prid}_${arch}_comment"
   export PYTHONPATH=${shell_path}
   for item in $(echo ${package} | sed 's/,/ /g'); do
     log_info "start build package $item"
@@ -252,7 +252,7 @@ function compare_package() {
   pr_link='https://gitee.com/src-openeuler/'${repo}'/pulls/'${prid}
   pr_commit_json_file="${JENKINS_HOME}/pr_commit_json_file"
   curl https://gitee.com/api/v5/repos/src-openeuler/${repo}/pulls/${prid}/files?access_token=$GiteeToken >$pr_commit_json_file
-  compare_result="${repo}_${arch}_compare_result"
+  compare_result="${repo}_${prid}_${arch}_compare_result"
 
   if [[ ! "$(ls -A $old_dir | grep '.rpm')" ]]; then
     echo "this is first commit PR"
