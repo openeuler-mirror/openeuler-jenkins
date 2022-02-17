@@ -46,7 +46,8 @@ class Constant(object):
         "openEuler-20.03-LTS-SP3": ["openEuler:20.03:LTS:SP3", "openEuler:20.03:LTS:SP3:Epol"],
         "openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"],
         "openEuler-22.03-LTS": ["openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
-        "Multi-Version_OpenStack-Train_openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next:Epol:Multi-Version:OpenStack:Train"],
+        "Multi-Version_OpenStack-Train_openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next:Epol:Multi-Version:OpenStack:Train",
+                                                                   "openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"],
         "Multi-Version_OpenStack-Wallaby_openEuler-22.03-LTS-Next": ["openEuler:22.03:LTS:Next:Epol:Multi-Version:OpenStack:Wallaby"]
     }
 

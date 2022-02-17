@@ -175,7 +175,8 @@ class ExtraWork(object):
 
         # 2. prepare repo
         repo_source = OBSRepoSource("http://119.3.219.20:82")   # obs 实时构建repo地址
-        repo_config = repo_source.generate_repo_info(branch_name, arch, "check_install")
+        obs_branch_list = Constant.GITEE_BRANCH_PROJECT_MAPPING.get(branch_name, [])
+        repo_config = repo_source.generate_repo_info(obs_branch_list, arch, "check_install")
         logger.info("repo source config:\n%s", repo_config)
 
         # write to /etc/yum.repos.d
