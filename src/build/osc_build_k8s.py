@@ -207,6 +207,7 @@ class SinglePackageBuild(object):
                 return 1     # finish if any error
             else:
                 logger.info("build %s %s %s ... %s", project, self._package, self._arch, "ok")
+            break
 
         # if no repo build, regard as fail
         if not has_any_repo_build:
