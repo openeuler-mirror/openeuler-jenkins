@@ -110,6 +110,13 @@ function download_kernel_repo_soe() {
   log_info "***** End to download kernel of src-openeuler *****"
 }
 
+# 根据tag下载kernel代码
+function download_kernel_repo_of_tag() {
+    kernel_tag=$(cat kernel/SOURCE)
+    log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
+    git clone -b $kernel_tag --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/openeuler/kernel code/kernel
+}
+
 download_kernel_times=0 # 避免下载多次kernel
 # 下载kernel代码
 function download_kernel_repo() {
@@ -127,9 +134,11 @@ function download_kernel_repo() {
 
   if [ "x$repo" == "xkernel" ]; then
     download_kernel_repo_soe
-    kernel_tag=$(cat kernel/SOURCE)
-    log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
-    git clone -b $kernel_tag --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/openeuler/kernel code/kernel
+    download_kernel_repo_of_tag
+  elif [ "x$1" == "xkernel" ]; then
+    log_info "***** Start to download the branch ${tbranch} of kernel in src-openeuler *****"
+    git clone -b $tbranch --depth 1 https://gitee.com/src-openeuler/kernel
+    download_kernel_repo_of_tag
   else
     log_info "now clone kernel source of branch ${tbranch}"
     git clone -b $tbranch --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/openeuler/kernel code/kernel
@@ -147,7 +156,7 @@ function download_buddy_repo() {
   for item in $(echo ${buddy} | sed 's/,/ /g'); do
     #对kernel特殊处理
     if [[ "x$item" == "xkernel" ]]; then
-      download_kernel_repo
+      download_kernel_repo $item
     elif [[ "x$item" != "x$repo" ]]; then
       log_info "clone ${item} of branch $tbranch"
       git clone -b $tbranch --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/src-openeuler/${item}
