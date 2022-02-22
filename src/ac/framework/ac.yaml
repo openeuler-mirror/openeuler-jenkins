@@ -8,7 +8,7 @@ src-openeuler:
     hint: check_code_style
     module: code.check_code_style
     entry: CheckCodeStyle
-    #exclude: True
+    exclude: True
     ignored: ["patch"]
   package_yaml:
     hint: check_package_yaml_file
