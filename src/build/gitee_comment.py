@@ -120,7 +120,6 @@ class Comment(object):
             logger.debug("get up_up_builds")
             comments.extend(self._comment_of_ac(self._up_up_builds[0]))
         if self._up_builds:
-            comments.extend(self._comment_of_build(self._up_builds))
             comments.extend(self._comment_of_check_item(self._up_builds))
 
         comments.append("</table>")
@@ -158,25 +157,6 @@ class Comment(object):
 
         logger.info("ac comment: %s", comments)
 
-        return comments
-
-    def _comment_of_build(self, builds):
-        """
-        组装编译任务的评论
-        :return:
-        """
-        comments = []
-
-        for build in builds:
-            name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
-            status = build["result"]
-            ac_result = ACResult.get_instance(status)
-            build_url = build["url"]
-
-            comments.append(self.__class__.comment_html_table_tr(
-                name, ac_result.emoji, ac_result.hint, "{}{}".format(build_url, "console"), build["number"]))
-
-        logger.info("build comment: %s", comments)
         return comments
 
     def _comment_of_compare_package_details(self, check_result_file):
@@ -256,32 +236,39 @@ class Comment(object):
                 return True
             return False
 
-        for check_item_comment_file in self._check_item_comment_files:
-            logger.debug("check item comment file: %s", check_item_comment_file)
-            if not os.path.exists(check_item_comment_file):      # check item评论文件存在
+        for build in builds:
+            name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
+            status = build["result"]
+            ac_result = ACResult.get_instance(status)
+            build_url = build["url"]
+            if "x86-64" in name:
+                arch = "x86_64"
+            elif "aarch64" in name:
+                arch = "aarch64"
+            else:
                 continue
-            for build in builds:
-                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
-                logger.debug("check build %s", name)
-                if not match(name, check_item_comment_file):     # 找到匹配的jenkins build
-                    continue
-                logger.debug("build \"%s\" match", name)
 
-                status = build["result"]
-                logger.debug("build state: %s", status)
-                if ACResult.get_instance(status) == SUCCESS:    # 保证build状态成功
+            check_item_result = {}
+            for check_item_comment_file in self._check_item_comment_files:
+                if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
                     with open(check_item_comment_file, "r") as f:
                         try:
                             content = yaml.safe_load(f)
                         except YAMLError:  # yaml base exception
                             logger.exception("illegal yaml format of check item comment file ")
                         logger.debug("comment: %s", content)
-                        for item in content:
-                            ac_result = ACResult.get_instance(item.get("result"))
-                            comments.append(self.__class__.comment_html_table_tr(
-                                item.get("name"), ac_result.emoji, ac_result.hint, item.get("link", ""),
-                                "markdown" if "link" in item else "", hashtag=False))
-                break
+                    for item in content:
+                        ac_result = ACResult.get_instance(item.get("result"))
+                        check_item_result[item.get("name")] = ac_result
+                    break
+            comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
+                            "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
+                1 + len(check_item_result), arch, "check_build", ac_result.emoji, ac_result.hint,
+                1 + len(check_item_result), "{}{}".format(build_url, "console"), build["number"]))
+
+            for check_item, check_result in check_item_result.items():
+                comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+                check_item, check_result.emoji, check_result.hint))
 
         logger.info("check item comment: %s", comments)
 
@@ -292,14 +279,15 @@ class Comment(object):
         """
         table header
         """
-        return "<tr><th>Check Name</th> <th>Build Result</th> <th>Build Details</th></tr>"
+        return "<tr><th colspan=2>Check Name</th> <th>Build Result</th> <th>Build Details</th></tr>"
 
     @classmethod
     def comment_html_table_tr(cls, name, icon, status, href, build_no, hashtag=True, rowspan=1):
         """
         one row or span row
         """
-        return "<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>".format(
+        return "<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td> " \
+               "<td rowspan={}><a href={}>{}{}</a></td></tr>".format(
             name, icon, status, rowspan, href, "#" if hashtag else "", build_no)
 
     @classmethod
@@ -307,7 +295,7 @@ class Comment(object):
         """
         span row
         """
-        return "<tr><td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(name, icon, status)
+        return "<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td></tr>".format(name, icon, status)
 
 
 def init_args():

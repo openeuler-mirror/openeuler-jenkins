@@ -201,10 +201,10 @@ class ExtraWork(object):
             ret, _, err = shell_cmd_live(check_install_cmd, verbose=True)
             if ret:
                 logger.error("install rpms error, %s, %s", ret, err)
-                comment = {"name": "check_install/{}/{}".format(arch, self._repo), "result": "FAILED"}
+                comment = {"name": "check_install", "result": "FAILED"}
             else:
                 logger.info("install rpm success")
-                comment = {"name": "check_install/{}/{}".format(arch, self._repo), "result": "SUCCESS"}
+                comment = {"name": "check_install", "result": "SUCCESS"}
 
             logger.info("check install rpm comment: %s", comment)
             comments = []
