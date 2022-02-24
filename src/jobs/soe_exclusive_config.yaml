@@ -32,3 +32,4 @@ arch_config:
   memkind: ["x86_64"]
   libumem: ["x86_64"]
   tboot: ["x86_64"]
+  libwd: ["aarch64"]
