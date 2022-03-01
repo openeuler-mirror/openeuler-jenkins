@@ -258,8 +258,7 @@ class Comment(object):
                             logger.exception("illegal yaml format of check item comment file ")
                         logger.debug("comment: %s", content)
                     for item in content:
-                        ac_result = ACResult.get_instance(item.get("result"))
-                        check_item_result[item.get("name")] = ac_result
+                        check_item_result[item.get("name")] = ACResult.get_instance(item.get("result"))
                     break
             comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
                             "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
