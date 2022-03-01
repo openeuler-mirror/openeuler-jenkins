@@ -306,12 +306,24 @@
             "name": "kunpengsecl"
         },
         {
-            "ipublisher": "openeuler-mirror",
+            "publisher": "openeuler-mirror",
             "name": "kunpengsecl"
         },
         {
             "publisher": "src-openeuler",
             "name": "kunpengsecl"
+        },
+        {
+            "publisher": "openeuler",
+            "name": "A-Ops"
+        },
+        {
+            "publisher": "openeuler-mirror",
+            "name": "A-Ops"
+        },
+        {
+            "publisher": "src-openeuler",
+            "name": "A-Ops"
         }	
     ]
 }
