@@ -166,7 +166,7 @@ class Comment(object):
         :return:
         """
         comments = []
-        comments_title = ["<table> <tr><th>Arch Name</th> <th>Ckeck Items</th> <th>Rpm Name</th> <th>Ckeck Result</th> "
+        comments_title = ["<table> <tr><th>Arch Name</th> <th>Check Items</th> <th>Rpm Name</th> <th>Check Result</th> "
                           "<th>Build Details</th></tr>"]
 
         def match(name, comment_file):
