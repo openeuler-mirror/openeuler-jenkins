@@ -31,6 +31,7 @@ class JenkinsProxy(object):
     """
     Jenkins 代理，实现常见的jenkins操作
     """
+
     def __init__(self, base_url, username, token, timeout=10):
         """
 
@@ -163,11 +164,15 @@ class JenkinsProxy(object):
     def get_job_path_from_job_url(cls, job_url):
         """
         从url中解析job路径
-        :param job_url: 当前任务url
-        :return:
+        :param job_url: 当前工程url, for example https://domain/job/A/job/B/job/C
+        :return: for example, A/B/C
         """
-        job_path = "".join(job_url.split("job/")[1:])
-        sp = job_path.split("/")
+        jenkins_first_level_dir_index = 2
+        jenkins_dir_interval_with_level = 2
+        job_path = re.sub(r"/$", "", job_url)
+        job_path = re.sub(r"http[s]?://", "", job_path)
+        sp = job_path.split("/")[jenkins_first_level_dir_index::
+                                 jenkins_dir_interval_with_level]
         sp = [item for item in sp if item != ""]
         job_path = "/".join(sp)
         return job_path
@@ -176,14 +181,13 @@ class JenkinsProxy(object):
     def get_job_path_build_no_from_build_url(build_url):
         """
         从url中解析job路径
-        :param build_url: 当前任务url
-        :return:
+        :param build_url: 当前构建url, for example https://domain/job/A/job/B/job/C/number/
+        :return: for example A/B/C/number
         """
-        job_plus_build_no = "".join(build_url.split("job/")[1:])
-        sp = job_plus_build_no.split("/")
-        sp = [item for item in sp if item != ""]
-        job_path = "/".join(sp[:len(sp) - 1])
-        build_no = sp[-1]
+        job_plus_build_no = re.sub(r"/$", "", build_url)
+        job_url = os.path.dirname(job_plus_build_no)
+        build_no = os.path.basename(job_plus_build_no)
+        job_path = JenkinsProxy.get_job_path_from_job_url(job_url)
         return job_path, build_no
 
     @staticmethod
@@ -212,7 +216,8 @@ class JenkinsProxy(object):
         """
         cause_description, cause_job_path, cause_build_no = self.get_build_trigger_reason(build_info)
         cause_build_info = self.get_build_info(cause_job_path, cause_build_no)
-        cause_cause_description, cause_cause_job_path, cause_cause_build_no = self.get_build_trigger_reason(cause_build_info)
+        cause_cause_description, cause_cause_job_path, cause_cause_build_no = self.get_build_trigger_reason(
+            cause_build_info)
         logger.debug("cause_build_no: %s, cause_job_path: %s, cause_cause_build_no: %s, cause_cause_job_path: %s",
                      cause_build_no, cause_job_path, cause_cause_build_no, cause_cause_job_path)
         upstream_builds = [cause_build_info]
@@ -231,9 +236,10 @@ class JenkinsProxy(object):
                 if upstream_job_path == cause_job_path:
                     continue
                 a_build_info = self.get_build_info(upstream_job_path, upstream_build_no)
-                a_cause_description, a_cause_job_path, a_cause_build_no = JenkinsProxy.get_build_trigger_reason(a_build_info)
+                a_cause_description, a_cause_job_path, a_cause_build_no = JenkinsProxy.get_build_trigger_reason(
+                    a_build_info)
                 if all((a_cause_description, a_cause_job_path, a_cause_build_no)) \
-                    and a_cause_job_path == cause_cause_job_path and a_cause_build_no == cause_cause_build_no:
+                        and a_cause_job_path == cause_cause_job_path and a_cause_build_no == cause_cause_build_no:
                     logger.debug("build id %s match", a_cause_build_no)
                     upstream_builds.append(a_build_info)
                     break
