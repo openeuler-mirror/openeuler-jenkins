@@ -186,14 +186,41 @@ _tags = [
     _MacroDef("define", re.compile(r"^%define\s+(\S+)\s+(\S+)")),
     _MacroDef("global", re.compile(r"^%global\s+(\S+)\s+(\S+)")),
 ]
+_key_value_list = ["Name", "name",
+                   "Version", "version",
+                   "Epoch", "epoch",
+                   "Release", "release",
+                   "Summary", "summary",
+                   "License", "license",
+                   "Group", "group",
+                   "URL", "url",
+                   "BuildRoot", "buildroot",
+                   "ExclusiveArch", "buildarch",
+                   "Source", "sources",
+                   "Patch", "patches",
+                   "BuildRequires", "build_requires",
+                   "Requires", "requires",
+                   "Conflicts", "conflicts",
+                   "Obsoletes", "obsoletes",
+                   "Provides", "provides",
+                   "package", "packages"
+                   ]
 
 _macro_pattern = re.compile(r"%{(\S+?)\}")
 
+def _is_key_value(line):
+    if line.startswith("%define") or line.startswith("%global"):
+        line_without_def_glo = re.sub(r"^%define|^%global\s+", "", line).strip()
+        line_without_def_glo = re.sub(r"[\s\t]+", " ", line_without_def_glo)
+        _key_value = line_without_def_glo.split(" ")[0]
+        if _key_value in _key_value_list:
+            return True
+    return False
 
 def _parse(spec_obj, context, line):
     for tag in _tags:
         match = tag.test(line)
-        if match:
+        if match and not _is_key_value(line):
             return tag.update(spec_obj, context, match, line)
     return spec_obj, context
 
@@ -392,9 +419,12 @@ def replace_macros(string, spec=None):
     # Recursively expand macros
     # Note: If macros are not defined in the spec file, this won't try to
     # expand them.
+    recycle_time = 0
+    max_recycle_time = 50
     while True:
         ret = re.sub(_macro_pattern, _macro_repl, string)
-        if ret != string:
+        recycle_time += 1
+        if ret != string and recycle_time <= max_recycle_time:
             string = ret
             continue
         return ret
