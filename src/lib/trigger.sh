@@ -21,6 +21,17 @@ jenkins_user=${17}
 jenkins_api_token=${18}
 jenkins_api_host=${19}
 
+# debug测试变量
+function config_debug_variable() {
+  if [[ "${repo_owner}" == "" ]]; then
+    repo_owner="src-openeuler"
+    repo_server_test_tail=""
+  elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
+    repo_server_test_tail="-test"
+  fi
+}
+config_debug_variable
+
 # 开始下载kernel代码
 function download_kernel_repo() {
   log_info "***** Start to download kernel *****"
@@ -41,7 +52,8 @@ function exec_check() {
     -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${GiteeUserPassword} \
     -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" \
     -i ${commentID} -e ${giteeCommitter} --jenkins-base-url ${jenkins_api_host} \
-    --jenkins-user ${jenkins_user} --jenkins-api-token ${jenkins_api_token}
+    --jenkins-user ${jenkins_user} --jenkins-api-token ${jenkins_api_token} \
+    -c ${repo_owner}
   log_info "***** End to exec static check *****"
 }
 
@@ -49,12 +61,21 @@ function exec_check() {
 function extra_work() {
   log_info "***** Start to exec extra worker *****"
   # pkgship and ExclusiveArch,借用rpm repo存储
+  remote_dir_create_cmd=$(
+    cat <<EOF
+if [[ ! -d "/repo/soe${repo_server_test_tail}/pkgship" ]]; then
+	mkdir -p /repo/soe${repo_server_test_tail}/pkgship
+fi
+EOF
+  )
+  ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_create_cmd"
+
   if [[ -e pkgship_notify ]]; then
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pkgship_notify root@${repo_server}:/repo/soe/pkgship
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pkgship_notify root@${repo_server}:/repo/soe${repo_server_test_tail}/pkgship
   fi
 
   if [[ -e exclusive_arch ]]; then
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null exclusive_arch root@${repo_server}:/repo/soe/exclusive_arch/${giteeRepoName}
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null exclusive_arch root@${repo_server}:/repo/soe${repo_server_test_tail}/exclusive_arch/${giteeRepoName}
   fi
   log_info "***** End to exec extra worker *****"
 }
