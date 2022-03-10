@@ -8,6 +8,17 @@ giteePullRequestIid=$4
 SaveBuildRPM2Repo=$5
 repo_server=$6
 
+# debug测试变量
+function config_debug_variable() {
+  if [[ "${repo_owner}" == "" ]]; then
+    repo_owner="src-openeuler"
+    repo_server_test_tail=""
+  elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
+    repo_server_test_tail="-test"
+  fi
+}
+config_debug_variable
+
 # 启动ipv6 loopback
 function config_ipv6() {
   log_info "***** Start to config ipv6 *****"
@@ -17,10 +28,10 @@ function config_ipv6() {
 
 function save_build_result() {
   log_info "***** Start to save build result *****"
-  committer_pr_x86_64_dir="/repo/openeuler/src-openeuler/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/x86_64/${giteePullRequestIid}/"
-  committer_pr_aarch64_dir="/repo/openeuler/src-openeuler/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/aarch64/${giteePullRequestIid}/"
-  global_x86_64_dir="/repo/openeuler/src-openeuler/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/x86_64/"
-  global_aarch64_dir="/repo/openeuler/src-openeuler/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/aarch64/"
+  committer_pr_x86_64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/x86_64/${giteePullRequestIid}/"
+  committer_pr_aarch64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/aarch64/${giteePullRequestIid}/"
+  global_x86_64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/x86_64/"
+  global_aarch64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/aarch64/"
 
   log_info "***** Start to config remote shell *****"
   remote_place_cmd=$(

@@ -1,7 +1,6 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 
-owner="src-openeuler"
 jenkins_api_host="http://jenkins.jenkins"
 check_item_comment_aarch64=""
 check_item_comment_x86=""
@@ -20,6 +19,17 @@ repo_server=$9
 compare_result=${10}
 commentid=${11}
 jenkins_api_host=${12}
+
+# debug测试变量
+function config_debug_variable() {
+  if [[ "${repo_owner}" == "" ]]; then
+    repo_owner="src-openeuler"
+    repo_server_test_tail=""
+  elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
+    repo_server_test_tail="-test"
+  fi
+}
+config_debug_variable
 
 # 清理环境
 function clearn_env() {
@@ -49,7 +59,7 @@ function clearn_env() {
 # 从文件服务器拷贝文件
 function scp_comment_file() {
   log_info "***** Start to scp comment file *****"
-  fileserver_tmpfile_path="/repo/soe/check_item"
+  fileserver_tmpfile_path="/repo/soe${repo_server_test_tail}/check_item"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64} . || log_info "file ${check_item_comment_aarch64} not exist"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_x86} . || log_info "file ${check_item_comment_x86} not exist"
   #ls $WORKSPACE/${comment}
@@ -63,7 +73,7 @@ function scp_comment_file() {
 function exec_comment() {
   log_info "***** Start to exec comment *****"
   export PYTHONPATH=${shell_path}
-  python3 ${shell_path}/src/build/gitee_comment.py -o $owner -r $repo -p $prid -c $committer -t ${giteetoken} -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86} -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid}
+  python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${giteetoken} -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86} -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid}
   log_info "***** End to exec comment *****"
 }
 

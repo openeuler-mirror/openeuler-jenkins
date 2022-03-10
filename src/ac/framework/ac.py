@@ -51,7 +51,10 @@ class AC(object):
         acl_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "../acl"))
         self._acl_package = "src.ac.acl"  # take attention about import module
         self.load_check_elements_from_acl_directory(acl_path)
-        self.load_check_elements_from_conf(conf, community)
+        if community != "src-openeuler" and community != "openeuler":
+            self.load_check_elements_from_conf(conf, "src-openeuler")
+        else:
+            self.load_check_elements_from_conf(conf, community)
 
         logger.debug("check list: %s", self._ac_check_elements)
 

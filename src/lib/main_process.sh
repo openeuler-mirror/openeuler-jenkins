@@ -29,6 +29,17 @@ repo_server=${20}
 pkgship_notify_url=${21}
 pkgship_notify_token=${22}
 
+# debug测试变量
+function config_debug_variable() {
+  if [[ "${repo_owner}" == "" ]]; then
+    repo_owner="src-openeuler"
+    repo_server_test_tail=""
+  elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
+    repo_server_test_tail="-test"
+  fi
+}
+config_debug_variable
+
 #配置osc
 function config_osc() {
   log_info "***** Start to config osc *****"
@@ -104,7 +115,7 @@ function download_kernel_repo_soe() {
   log_info "***** Start to download kernel of src-openeuler *****"
   git init kernel
   cd kernel
-  git fetch --depth 4 https://gitee.com/src-openeuler/kernel +refs/pull/${prid}/MERGE:pr_${prid}
+  git fetch --depth 4 https://gitee.com/${repo_owner}/kernel +refs/pull/${prid}/MERGE:pr_${prid}
   git checkout pr_${prid}
   cd ../
   log_info "***** End to download kernel of src-openeuler *****"
@@ -137,7 +148,7 @@ function download_kernel_repo() {
     download_kernel_repo_of_tag
   elif [ "x$1" == "xkernel" ]; then
     log_info "***** Start to download the branch ${tbranch} of kernel in src-openeuler *****"
-    git clone -b $tbranch --depth 1 https://gitee.com/src-openeuler/kernel
+    git clone -b $tbranch --depth 1 https://gitee.com/${repo_owner}/kernel
     download_kernel_repo_of_tag
   else
     log_info "now clone kernel source of branch ${tbranch}"
@@ -159,7 +170,7 @@ function download_buddy_repo() {
       download_kernel_repo $item
     elif [[ "x$item" != "x$repo" ]]; then
       log_info "clone ${item} of branch $tbranch"
-      git clone -b $tbranch --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/src-openeuler/${item}
+      git clone -b $tbranch --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/${repo_owner}/${item}
     fi
   done
   log_info "***** End to download buddy rpm *****"
@@ -200,9 +211,9 @@ function build_packages() {
     log_debug "params are [$repo, $branch, $prid, $committer, $arch, $package, $buddy, $WORKSPACE]"
 
     if [[ "x${item}" == "xkernel" ]]; then
-      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword} --spec "kernel.spec"
+      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword} --spec "kernel.spec"
     else
-      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword}
+      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword}
     fi
 
     log_debug "check install"
@@ -210,7 +221,7 @@ function build_packages() {
 
     log_debug "pkgship notify"
     if [[ "x$item" == "xpkgship" ]]; then
-      scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe/pkgship pkgship_notify
+      scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/pkgship pkgship_notify
       python3 ${SCRIPT_PATCH}/extra_work.py notify -p ${repo} -a ${arch} -n ${pkgship_notify_url} -t ${pkgship_notify_token} -l "http://${repo_server}" -m pkgship_notify -u ${PkgShipUserName} -w ${PkgShipPassword} || echo "continue although run pkgship notify error"
     fi
   done
@@ -244,9 +255,9 @@ function compare_package() {
     cp ${RPM_PATH}/noarch/*.rpm $new_dir
   fi
 
-  if [[ $(ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} test -e "root@${repo_server}:/repo/openeuler/src-openeuler/${tbranch}/0X080480000XC0000000/${repo}/${arch}/") ]]; then
+  if [[ $(ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} test -e "root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/") ]]; then
     log_info "try download rpms from ci server"
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server}:/repo/openeuler/src-openeuler/${tbranch}/0X080480000XC0000000/${repo}/${arch}/*.rpm $old_dir
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/*.rpm $old_dir
   fi
   if [[ ! "$(ls -A $old_dir | grep '.rpm')" ]]; then
     log_info "try download rpms from obs server"
@@ -258,9 +269,9 @@ function compare_package() {
 
   python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -f json || echo "continue although run oecp failed"
 
-  pr_link='https://gitee.com/src-openeuler/'${repo}'/pulls/'${prid}
+  pr_link='https://gitee.com/${repo_owner}/'${repo}'/pulls/'${prid}
   pr_commit_json_file="${JENKINS_HOME}/pr_commit_json_file"
-  curl https://gitee.com/api/v5/repos/src-openeuler/${repo}/pulls/${prid}/files?access_token=$GiteeToken >$pr_commit_json_file
+  curl https://gitee.com/api/v5/repos/${repo_owner}/${repo}/pulls/${prid}/files?access_token=$GiteeToken >$pr_commit_json_file
   compare_result="${repo}_${prid}_${arch}_compare_result"
 
   if [[ ! "$(ls -A $old_dir | grep '.rpm')" ]]; then
@@ -271,8 +282,8 @@ function compare_package() {
   fi
 
   # run before save rpm, reset remote dir
-  fileserver_user_path="/repo/openeuler/src-openeuler/${tbranch}/${committer}/${repo}/${arch}/${prid}"
-  fileserver_tmpfile_path="/repo/soe/check_item"
+  fileserver_user_path="/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/${arch}/${prid}"
+  fileserver_tmpfile_path="/repo/soe${repo_server_test_tail}/check_item"
   remote_dir_reset_cmd=$(
     cat <<EOF
 if [[ ! -d "$fileserver_user_path" ]]; then
@@ -310,10 +321,10 @@ EOF
     new_release=${new_release%%\.oe1}
 
     new_json_name=${repo}_${old_version}-${old_release}_${new_version}-${new_release}.json
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR $result_dir/report-$old_dir-$new_dir/osv.json root@${repo_server}:/repo/openeuler/src-openeuler/${tbranch}/${committer}/${repo}/${arch}/${prid}/$new_json_name
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR $result_dir/report-$old_dir-$new_dir/osv.json root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/${arch}/${prid}/$new_json_name
   fi
   if [[ -d $new_dir && "$(ls -A $new_dir | grep '.rpm')" ]]; then
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR $new_dir/* root@${repo_server}:/repo/openeuler/src-openeuler/${tbranch}/${committer}/${repo}/${arch}/${prid}/
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR $new_dir/* root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/${arch}/${prid}/
   fi
   if [[ -e $compare_result ]]; then
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ${compare_result} root@${repo_server}:$fileserver_tmpfile_path/${compare_result}
