@@ -48,4 +48,4 @@ openeuler:
     module: openlibing.check_code
     entry: CheckCode
     allow_list: ["pkgship", "kunpengsecl", "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools", "yocto-poky", 
-                 "gcc", "gcc-anti-sca", "A-Ops"]
+                 "gcc", "gcc-anti-sca", "A-Ops", "openeuler-jenkins"]
