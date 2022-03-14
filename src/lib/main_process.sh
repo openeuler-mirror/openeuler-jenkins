@@ -217,7 +217,7 @@ function build_packages() {
     fi
 
     log_debug "check install"
-    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${JENKINS_HOME}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
+    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
 
     log_debug "pkgship notify"
     if [[ "x$item" == "xpkgship" ]]; then
@@ -231,9 +231,9 @@ function build_packages() {
 # 比较软件包差异
 function compare_package() {
   log_info "***** Start to compare package diff *****"
-  old_dir="${JENKINS_HOME}/old_rpms/"
-  new_dir="${JENKINS_HOME}/new_rpms/"
-  result_dir="${JENKINS_HOME}/oecp_result"
+  old_dir="${WORKSPACE}/old_rpms/"
+  new_dir="${WORKSPACE}/new_rpms/"
+  result_dir="${WORKSPACE}/oecp_result"
   if [[ -d $old_dir ]]; then
     rm -rf $old_dir
   fi
@@ -270,7 +270,7 @@ function compare_package() {
   python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -f json || echo "continue although run oecp failed"
 
   pr_link='https://gitee.com/${repo_owner}/'${repo}'/pulls/'${prid}
-  pr_commit_json_file="${JENKINS_HOME}/pr_commit_json_file"
+  pr_commit_json_file="${WORKSPACE}/pr_commit_json_file"
   curl https://gitee.com/api/v5/repos/${repo_owner}/${repo}/pulls/${prid}/files?access_token=$GiteeToken >$pr_commit_json_file
   compare_result="${repo}_${prid}_${arch}_compare_result"
 
