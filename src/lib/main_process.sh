@@ -216,6 +216,13 @@ function build_packages() {
       python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword}
     fi
 
+    log_info "copy build package from root to home"
+    sudo su - root <<FEOF
+    if [[ -d ${BUILD_ROOT}/root/rpmbuild/ && "$(sudo ls -A ${BUILD_ROOT}/root/rpmbuild/)" ]]; then
+      mkdir -p ${BUILD_ROOT}/home/abuild/rpmbuild/
+      sudo cp -r ${BUILD_ROOT}/root/rpmbuild/* ${BUILD_ROOT}/home/abuild/rpmbuild/
+    fi
+FEOF
     log_debug "check install"
     python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
 
@@ -254,12 +261,11 @@ function compare_package() {
   if [[ -d ${RPM_PATH}/noarch && "$(ls -A ${RPM_PATH}/noarch)" ]]; then
     cp ${RPM_PATH}/noarch/*.rpm $new_dir
   fi
-
   if [[ $(ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} test -e "root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/") ]]; then
     log_info "try download rpms from ci server"
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/*.rpm $old_dir
   fi
-  if [[ ! "$(ls -A $old_dir | grep '.rpm')" ]]; then
+  if [[ ! "$(ls -A $old_dir | grep '.rpm')" && "$(ls -A $new_dir | grep '.rpm')" ]]; then
     log_info "try download rpms from obs server"
     python3 ${SCRIPT_PATCH}/extra_work.py getrelatedrpm -r $tbranch -p ${item} -a ${arch} || echo "continue although run get related rpm failed"
     if [[ -d binaries && "$(ls -A binaries | grep '\.rpm$')" ]]; then
@@ -267,14 +273,16 @@ function compare_package() {
     fi
   fi
 
-  python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -f json || echo "continue although run oecp failed"
+  if [[ "$(ls -A $new_dir | grep '.rpm')" ]]; then
+    python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -f json || echo "continue although run oecp failed"
+  fi
 
   pr_link='https://gitee.com/${repo_owner}/'${repo}'/pulls/'${prid}
   pr_commit_json_file="${WORKSPACE}/pr_commit_json_file"
   curl https://gitee.com/api/v5/repos/${repo_owner}/${repo}/pulls/${prid}/files?access_token=$GiteeToken >$pr_commit_json_file
   compare_result="${repo}_${prid}_${arch}_compare_result"
 
-  if [[ ! "$(ls -A $old_dir | grep '.rpm')" ]]; then
+  if [[ ! "$(ls -A $old_dir | grep '.rpm')" || ! "$(ls -A $new_dir | grep '.rpm')" ]]; then
     echo "this is first commit PR"
     python3 ${SCRIPT_PATCH}/extra_work.py comparepackage --ignore -p ${repo} -j $result_dir/report-$old_dir-$new_dir/osv.json -pr $pr_link -pr_commit $pr_commit_json_file -f $WORKSPACE/${compare_result} || echo "continue although run compare package failed"
   else
@@ -310,7 +318,7 @@ EOF
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_reset_cmd"
 
   log_info "save result"
-  if [[ -e $result_dir/report-$old_dir-$new_dir/osv.json && "$(ls -A $old_dir | grep '.rpm')" ]]; then
+  if [[ -e $result_dir/report-$old_dir-$new_dir/osv.json && "$(ls -A $old_dir | grep '.rpm')" && "$(ls -A $new_dir | grep '.rpm')" ]]; then
     old_any_rpm=$(ls $old_dir | head -n 1)
     old_version=$(rpm -q $old_dir/$old_any_rpm --queryformat '%{version}\n')
     old_release=$(rpm -q $old_dir/$old_any_rpm --queryformat '%{release}\n')
