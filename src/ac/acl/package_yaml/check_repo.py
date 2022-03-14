@@ -20,14 +20,16 @@
 #    /  /  |   /  | /  |   /
 #   /  /   |  /   |/   |  /_____
 
-import logging
-import re
-import urllib.parse as urlparse
-import requests
-import json
-import subprocess
-import tldextract
 import abc
+import json
+import logging
+import os
+import re
+import subprocess
+import urllib.parse as urlparse
+
+import requests
+import tldextract
 
 logging.getLogger("ac")
 
@@ -38,6 +40,7 @@ class AbsReleaseTags(object):
     """
 
     __metaclass__ = abc.ABCMeta
+
     def __init__(self, version_control):
         self.version_control = version_control
     
@@ -166,10 +169,12 @@ class HgReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
             return []
         try:
             tags_json = json.loads(response.text)
-            temp_tags = tags_json.get("tags")
+            if not all(tags_json, isinstance(tags_json, dict)):
+                return []
+            temp_tags = tags_json["tags"]
             temp_tags.sort(reverse=True, key=lambda x: x["date"][0])
             release_tags = [tag["tag"] for tag in temp_tags]
-        except Exception as e:
+        except (json.JSONDecodeError, IOError, KeyError, IndexError) as e:
             logging.error("exception, %s", e)
             return []
         return release_tags
@@ -250,7 +255,7 @@ class PypiReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         通过src_repo生成url
         return: str
         """
-        return urlparse.urljoin("https://pypi.org/pypi/", repo + "/json") if repo else ""
+        return urlparse.urljoin(os.path.join("https://pypi.org/pypi/", repo, "json")) if repo else ""
 
     def get_tags(self, repo):
         """
@@ -265,8 +270,8 @@ class PypiReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
         response = self.get_request_response(url)
         try:
             tags_json = response.json()
-            release_tags = [tag for tag in tags_json.get("releases")]
-        except Exception as e:
+            release_tags = [tag for tag in tags_json.get("releases", [])]
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
             logging.error("exception, %s", e)
             return []
         return release_tags
@@ -300,7 +305,7 @@ class RubygemReleaseTags(AbsReleaseTags, HttpReleaseTagsMixin):
             for element in tags_json:
                 if element.get("number"):
                     release_tags.append(element.get("number"))
-        except Exception as e:
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
             logging.error("exception, %s", e)
             return []
         return release_tags

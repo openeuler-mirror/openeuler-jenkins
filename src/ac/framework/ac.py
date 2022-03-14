@@ -14,25 +14,24 @@
 # Description: access control list entrypoint
 # **********************************************************************************
 
+import argparse
+import datetime
+import importlib
+import json
+import logging.config
 import os
 import sys
-import yaml
-import logging.config
-import logging
-import json
-import argparse
-import importlib
-import datetime
 import warnings
 
-from src.proxy.jenkins_proxy import JenkinsProxy
-from src.proxy.gitee_proxy import GiteeProxy
+import yaml
+from yaml.error import YAMLError
+
 from src.proxy.git_proxy import GitProxy
-from src.proxy.es_proxy import ESProxy
+from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.jenkins_proxy import JenkinsProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.utils.dist_dataset import DistDataset
-from yaml.error import YAMLError
-from src.ac.framework.ac_result import FAILED
+
 
 class AC(object):
     """
@@ -119,7 +118,7 @@ class AC(object):
         :return:
         """
         for element in self._ac_check_elements:
-            check_element = self._ac_check_elements[element]
+            check_element = self._ac_check_elements.get(element)
             logger.debug("check %s", element)
 
             # show in gitee, must starts with "check_"
@@ -151,24 +150,15 @@ class AC(object):
 
             # new a instance
             if isinstance(entry, type):  # class object
-                try:
-                    entry = entry(workspace, repo, check_element)       # new a instance
-                except Exception as exc:
-                    self._ac_check_result.append({"name": hint, "result": FAILED.val})
-                    logger.exception("new a instance of class %s exception, %s", entry_name, exc)
-                    continue
+                entry = entry(workspace, repo, check_element)       # new a instance
 
             if not callable(entry):      # check callable
                 logger.warning("entry %s not callable", entry_name)
                 continue
 
             # do ac check
-            try:
-                result = entry(**kwargs)
-                logger.debug("check result %s %s", element, result)
-            except Exception as exc:
-                logger.exception("check exception, %s %s", element, exc)
-                continue
+            result = entry(**kwargs)
+            logger.debug("check result %s %s", element, result)
 
             self._ac_check_result.append({"name": hint, "result": result.val})
             dataset.set_attr("access_control.build.acl.{}".format(element), result.hint)
@@ -255,8 +245,8 @@ def init_args():
     parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
                         default="https://majun.osinfra.cn:8384/api/openlibing/codecheck", help="codecheck api url")
 
-    parser.add_argument("--jenkins-base-url", type=str, dest="jenkins_base_url", default="https://openeulerjenkins.osinfra.cn/",
-                        help="jenkins base url")
+    parser.add_argument("--jenkins-base-url", type=str, dest="jenkins_base_url",
+                        default="https://openeulerjenkins.osinfra.cn/", help="jenkins base url")
     parser.add_argument("--jenkins-user", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("--jenkins-api-token", type=str, dest="jenkins_api_token", help="jenkins api token")
 

@@ -49,7 +49,7 @@ class GiteeRepo(object):
         compress file, patch file, diff file, spec file
         """
         spec_files = []
-        for dirpath, dirnames, filenames in os.walk(self._work_dir):
+        for dirpath, _, filenames in os.walk(self._work_dir):
             for filename in filenames:
                 rel_file_path = os.path.join(dirpath, filename).replace(self._work_dir, "").lstrip("/")
                 if self.is_compress_file(filename):

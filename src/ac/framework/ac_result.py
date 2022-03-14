@@ -16,6 +16,7 @@
 # **********************************************************************************
 """
 
+
 class ACResult(object):
     """
     Use this variables (FAILED, WARNING, SUCCESS) at most time,

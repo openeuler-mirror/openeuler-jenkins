@@ -27,6 +27,7 @@ from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 
 logger = logging.getLogger("ac")
 
+
 class PkgLicense(object):
     """
     解析获取软件包中源码、spec中的license
@@ -90,12 +91,14 @@ class PkgLicense(object):
             except yaml.YAMLError as e:
                 logger.exception("yaml load error: %s", str(e))
                 return
-        self._parse_tag_license(data["Software Licenses"]["Not Free Licenses"], 
-                                     "black")
-        self._parse_tag_license(data["Software Licenses"]["Free Licenses"], 
-                                     "white")
-        self._parse_tag_license(data["Software Licenses"]["Need Review Licenses"], 
-                                     "need review")
+        soft_license = data.get("Software Licenses", {})
+        if soft_license:
+            self._parse_tag_license(soft_license.get("Not Free Licenses"), "black")
+            self._parse_tag_license(soft_license.get("Free Licenses"), "white")
+            self._parse_tag_license(soft_license.get("Need Review Licenses"), "need review")
+        else:
+            logger.error("yaml format error")
+            return
 
     def _parse_tag_license(self, licenses, tag):
         """
@@ -149,9 +152,9 @@ class PkgLicense(object):
         分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
         """
         license_set = re.split(r'\(|\)|\s+\,|\s+[Aa][Nn][Dd]\s+|\s+-?or-?\s+|\s+/\s+', licenses)
-        for index in range(len(license_set)): # 去除字符串首尾空格
+        for index in range(len(license_set)):  # 去除字符串首尾空格
             license_set[index] = license_set[index].strip()
-        return set(filter(None, license_set)) # 去除list中空字符串
+        return set(filter(None, license_set))  # 去除list中空字符串
 
     # 以下为从license文件中获取license
     def scan_licenses_in_license(self, srcdir):
@@ -163,7 +166,7 @@ class PkgLicense(object):
             logger.error("%s not exist.", srcdir)
             return licenses_in_file
 
-        for root, dirnames, filenames in os.walk(srcdir):
+        for root, _, filenames in os.walk(srcdir):
             for filename in filenames:  
                 if (filename.lower() in self.LICENSE_FILE_TARGET 
                     or self.LICENSE_TARGET_PAT.search(filename.lower())):
@@ -231,16 +234,20 @@ class PkgLicense(object):
         if same, return True. if not same return False.
         """
         all_licenses_for_spec = set()
-        for license in licenses_for_spec:
-            if "-or-later" in license:
-                [l, v] = license.split("-or-later")[0].split("-", 1)
-                if l not in later_support_license:
-                    all_licenses_for_spec.add(license)
+        for spec_license in licenses_for_spec:
+            if "-or-later" in spec_license:
+                [license_name, least_version] = spec_license.split("-or-later")[0].split("-", 1)
+                if license_name not in later_support_license:
+                    all_licenses_for_spec.add(spec_license)
                     continue
-                for version in later_support_license[l]["versions"]:
-                    if version >= v:
-                        all_licenses_for_spec.add(f"{l}-{version}-or-later")
-                        all_licenses_for_spec.add(f"{l}-{version}-only")
+                for version in later_support_license[license_name]["versions"]:
+                    if version >= least_version:
+                        all_licenses_for_spec.add("{}-{}-or-later".format(license_name, version))
+                        all_licenses_for_spec.add("{}-{}-only".format(license_name, version))
             else:
-                all_licenses_for_spec.add(license)
+                all_licenses_for_spec.add(spec_license)
         return all_licenses_for_spec.issuperset(licenses_for_source_files)
+
+    @property
+    def later_support_license(self):
+        return self._later_support_license

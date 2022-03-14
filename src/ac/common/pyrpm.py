@@ -41,16 +41,16 @@ class _Tag(object):
 
         return self.update_impl(spec_obj, context, match_obj, line)
 
-    @abstractmethod
-    def update_impl(self, spec_obj, context, match_obj, line):
-        pass
-
     @staticmethod
     def current_target(spec_obj, context):
         target_obj = spec_obj
         if context["current_subpackage"] is not None:
             target_obj = context["current_subpackage"]
         return target_obj
+
+    @abstractmethod
+    def update_impl(self, spec_obj, context, match_obj, line):
+        """update spec object implement."""
 
 
 class _NameValue(_Tag):
@@ -208,6 +208,7 @@ _key_value_list = ["Name", "name",
 
 _macro_pattern = re.compile(r"%{(\S+?)\}")
 
+
 def _is_key_value(line):
     if line.startswith("%define") or line.startswith("%global"):
         line_without_def_glo = re.sub(r"^%define|^%global\s+", "", line).strip()
@@ -216,6 +217,7 @@ def _is_key_value(line):
         if _key_value in _key_value_list:
             return True
     return False
+
 
 def _parse(spec_obj, context, line):
     for tag in _tags:

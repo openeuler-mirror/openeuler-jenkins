@@ -55,8 +55,6 @@ class LinterCheck(object):
         """
         logger.debug(message)
         summary = {}
-        # summary["W"] = summary["W"] + message.count("Use -preproc to inhibit warning")
-        # summary["W"] = summary["W"] + message.count("Use -nestcomment to inhibit warning")
 
         return summary
 
@@ -105,7 +103,6 @@ class LinterCheck(object):
         """
         logger.debug("check c/c++ file: %s", filepath)
         splint_cmd = "splint {}".format(filepath)
-        #ret, out, _ = shell_cmd_live(splint_cmd, cap_out=True, verbose=True)
         ret, out, _ = shell_cmd(splint_cmd)
 
         if ret:
