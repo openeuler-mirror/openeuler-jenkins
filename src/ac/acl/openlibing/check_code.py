@@ -40,6 +40,30 @@ class CheckCode(BaseCheck):
         """
         super(CheckCode, self).__init__(workspace, repo, conf)
 
+        # wait to initial
+        self._pr_url = None
+        self._pr_number = None
+        self._codecheck_api_url = None
+        self._codecheck_api_key = None
+
+    def __call__(self, *args, **kwargs):
+        """
+        入口函数
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        logger.info("check %s code ...", self._repo)
+        logger.debug("args: %s, kwargs: %s", args, kwargs)
+        codecheck_conf = kwargs.get("codecheck", {})
+
+        self._pr_url = codecheck_conf.get("pr_url", "")
+        self._pr_number = codecheck_conf.get("pr_number", "")
+        self._codecheck_api_url = codecheck_conf.get("codecheck_api_url", "")
+        self._codecheck_api_key = codecheck_conf.get('codecheck_api_key', "")
+
+        return self.start_check()
+
     @staticmethod
     def get_codecheck_result(pr_url, codecheck_api_url, codecheck_api_key):
         """
@@ -111,20 +135,3 @@ class CheckCode(BaseCheck):
 
         return SUCCESS
 
-    def __call__(self, *args, **kwargs):
-        """
-        入口函数
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        logger.info("check %s code ...", self._repo)
-        logger.debug("args: %s, kwargs: %s", args, kwargs)
-        codecheck_conf = kwargs.get("codecheck", {})
-
-        self._pr_url = codecheck_conf.get("pr_url", "")
-        self._pr_number = codecheck_conf.get("pr_number", "")
-        self._codecheck_api_url = codecheck_conf.get("codecheck_api_url", "")
-        self._codecheck_api_key = codecheck_conf.get('codecheck_api_key', "")
-
-        return self.start_check()

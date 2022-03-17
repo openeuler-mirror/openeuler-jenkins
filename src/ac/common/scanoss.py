@@ -162,8 +162,6 @@ class ScanOSS(object):
         :return:
         """
         logger.debug("scan dir: %s", directory)
-        #scanoss_cmd = "scanner.py --format {} {} --apiurl {} {}".format(
-        #    "plain", "--key {}".format(self._key) if self._key else "", self._api_url, directory)
         scanoss_cmd = "scanner.py --blacklist {} --format {} {} --apiurl {} {}".format(
             self._blacklist_sbom, "plain", "--key {}".format(self._key) if self._key else "", self._api_url, directory)
         ret, out, err = shell_cmd(scanoss_cmd)

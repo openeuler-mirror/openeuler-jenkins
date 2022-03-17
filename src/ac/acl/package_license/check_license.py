@@ -17,19 +17,18 @@
 """
 
 import logging
-import time
 import os
-import yaml
 import shutil
 
-from src.proxy.git_proxy import GitProxy
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
-from src.ac.framework.ac_base import BaseCheck
-from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
-from src.ac.common.gitee_repo import GiteeRepo
 from src.ac.acl.package_license.package_license import PkgLicense
+from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
+from src.ac.framework.ac_base import BaseCheck
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.proxy.git_proxy import GitProxy
 
 logger = logging.getLogger("ac")
+
 
 class CheckLicense(BaseCheck):
     """
@@ -50,6 +49,25 @@ class CheckLicense(BaseCheck):
         self._pkg_license = PkgLicense()
         self._license_in_spec = set()
         self._license_in_src = set()
+
+    def __call__(self, *args, **kwargs):
+        """
+        入口函数
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        logger.info("check %s license ...", self._repo)
+
+        if not os.path.exists(self._work_tar_dir):
+            os.mkdir(self._work_tar_dir)
+        self._gr.decompress_all()  # decompress all compressed file into work_tar_dir
+        self._pkg_license.load_config()  # load license config into instance variable
+
+        try:
+            return self.start_check_with_order("license_in_spec", "license_in_src", "license_is_same")
+        finally:
+            shutil.rmtree(self._work_tar_dir)
 
     def check_license_in_spec(self):
         """
@@ -88,7 +106,7 @@ class CheckLicense(BaseCheck):
         :return
         """
         if self._pkg_license.check_licenses_is_same(self._license_in_spec, self._license_in_src,
-                                                    self._pkg_license._later_support_license):
+                                                    self._pkg_license.later_support_license):
             logger.info("licenses in src:%s and in spec:%s are same", self._license_in_src,
                                                                             self._license_in_spec)
             return SUCCESS
@@ -96,21 +114,3 @@ class CheckLicense(BaseCheck):
             logger.error("licenses in src:%s and in spec:%s are not same", self._license_in_src,
                                                                                    self._license_in_spec)
             return WARNING
-
-    def __call__(self, *args, **kwargs):
-        """
-        入口函数
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        logger.info("check %s license ...", self._repo)
-
-        _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
-        self._gr.decompress_all() # decompress all compressed file into work_tar_dir 
-        self._pkg_license.load_config() # load license config into instance variable
-
-        try:
-            return self.start_check_with_order("license_in_spec", "license_in_src", "license_is_same")
-        finally:
-            shutil.rmtree(self._work_tar_dir)

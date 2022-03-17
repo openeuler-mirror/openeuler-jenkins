@@ -30,6 +30,7 @@ from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 
 logger = logging.getLogger("ac")
 
+
 class CheckPackageYaml(BaseCheck):
     """
     check yaml file
@@ -59,6 +60,12 @@ class CheckPackageYaml(BaseCheck):
         self._yaml_content = None
         self._yaml_changed = True
         self._is_standard = True
+
+    def __call__(self, *args, **kwargs):
+        logger.info("check %s yaml ...", self._repo)
+        self._yaml_changed = self.is_change_package_yaml() # yaml文件变更 进行检查
+        # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_repo暂时关闭
+        return self.start_check_with_order("fields", "repo_domain", "repo_name")
 
     def is_change_package_yaml(self, base="HEAD~1", head="HEAD~0"):
         """
@@ -202,9 +209,4 @@ class CheckPackageYaml(BaseCheck):
             return WARNING
         return SUCCESS
 
-    def __call__(self, *args, **kwargs):
-        logger.info("check %s yaml ...", self._repo)
-        self._yaml_changed = self.is_change_package_yaml() # yaml文件变更 进行检查
-        # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_repo暂时关闭
-        return self.start_check_with_order("fields", "repo_domain", "repo_name")
 
