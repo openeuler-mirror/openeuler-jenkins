@@ -40,9 +40,7 @@ openeuler:
     hint: check_sca
     module: sca.check_sca
     entry: CheckSCA
-    allow_list: ["openeuler-jenkins", "pkgship", "stratovirt", "secGear", "isula-transform", "kunpengsecl",
-                 "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools", "yocto-poky", "iSulad",
-                 "gcc", "gcc-anti-sca", "A-Ops"]
+    deny_list: []
   openlibing:
     hint: code
     module: openlibing.check_code
