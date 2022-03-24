@@ -137,13 +137,13 @@ class GiteeRepo(object):
         :param max_leading: leading path
         """
         logger.debug("apply patch %s", patch)
-        for patch_dir in [filename for filename in os.listdir(self._decompress_dir) 
+        for patch_dir in [filename for filename in os.listdir(self._decompress_dir)
                 if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
             if patch_dir.startswith(".git"):
                 continue
             for leading in range(max_leading + 1):
                 logger.debug("try dir %s -p%s", patch_dir, leading)
-                if GitProxy.apply_patch_at_dir(os.path.join(self._decompress_dir, patch_dir), 
+                if GitProxy.apply_patch_at_dir(os.path.join(self._decompress_dir, patch_dir),
                         os.path.join(self._work_dir, patch), leading):
                     logger.debug("patch success")
                     self.patch_dir_mapping[patch] = os.path.join(self._decompress_dir, patch_dir)
@@ -181,6 +181,18 @@ class GiteeRepo(object):
         licenses_in_spec = PkgLicense.split_license(licenses)
         logger.info("all licenses from SPEC: %s", ", ".join(list(licenses_in_spec)))
         return licenses_in_spec
+
+    def get_compress_files(self):
+        """
+        get compress files
+        """
+        return self._compress_files
+
+    def set_compress_files(self, compress_files):
+        """
+        set compress files
+        """
+        self._compress_files = compress_files
 
     @staticmethod
     def is_py_file(filename):
