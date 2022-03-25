@@ -36,6 +36,8 @@ openeuler:
     exclude: True
   package_license:
     exclude: True
+  binary:
+    exclude: True
   sca:
     hint: check_sca
     module: sca.check_sca
