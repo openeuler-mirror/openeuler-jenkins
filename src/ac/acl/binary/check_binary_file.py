@@ -21,7 +21,7 @@ import logging
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, SUCCESS
 from src.ac.common.gitee_repo import GiteeRepo
-from src.ac.common.pyrpm import Spec, replace_macros
+from pyrpm.spec import Spec, replace_macros
 
 logger = logging.getLogger("ac")
 
