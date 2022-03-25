@@ -154,8 +154,10 @@ class BuildRPMPackage(object):
         :param rpm_fullname:
         :return:
         """
-        match_name = re.match(r"(.*)-[0-9.]+-.*rpm", rpm_fullname)
-        return match_name.group(1) if match_name else rpm_fullname
+        match_name = ''
+        if rpm_fullname:
+            match_name = "-".join(rpm_fullname.split("-")[:-2])
+        return match_name if match_name else rpm_fullname
 
     def _package_structure(self, rpmbuild_dir):
         """
