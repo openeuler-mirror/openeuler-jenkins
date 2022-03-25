@@ -16,12 +16,6 @@
 # **********************************************************************************
 """
 import sys
-
-import gevent
-from gevent import monkey
-
-monkey.patch_all()
-
 import abc
 import os
 import stat
@@ -32,6 +26,12 @@ import re
 import xml.etree.ElementTree as ET
 import yaml
 import argparse
+import gevent
+from src.utils.shell_cmd import shell_cmd
+from src.utils.shell_cmd import shell_cmd_live
+
+from gevent import monkey
+monkey.patch_all()
 
 
 class JenkinsJobs(object):
@@ -75,7 +75,11 @@ class JenkinsJobs(object):
             :param target_jobs: 目标任务列表
             :return:
             """
-            batch = int((len(target_jobs) + concurrency - 1) / concurrency)
+            if concurrency > 0:
+                batch = int((len(target_jobs) + concurrency - 1) / concurrency)
+            else:
+                raise KeyError("concurrency should be positive integer")
+
             _failed_jobs = []
             for index in range(batch):
                 works = [gevent.spawn(self.dispatch, action, job, self._jenkins_proxy)
@@ -114,8 +118,10 @@ class JenkinsJobs(object):
         :return: dict
         """
         job_config = self.update_config(job.split("/")[-1])
-        result = jenkins_proxy.create_job(job, job_config) if action == "create" \
-            else jenkins_proxy.update_job(job, job_config)
+        if action == "create":
+            result = jenkins_proxy.create_job(job, job_config)
+        else:
+            result = jenkins_proxy.update_job(job, job_config)
 
         return {"job": job, "result": result}
 
@@ -171,8 +177,18 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         """
         # download community repo
         if os.path.exists('community'):
-            os.system('rm -rf community')
-        os.system('git clone -b master --depth 1 https://%s@gitee.com/openeuler/community' % gitee_token)
+            ret, out, _ = shell_cmd_live('rm -rf community', cap_out=True, cmd_verbose=False)
+        if ret:
+            logger.error("delete community failed, %s", ret)
+            logger.error("%s", out)
+            return []
+
+        fetch_cmd = 'git clone -b master --depth 1 https://%s@gitee.com/openeuler/community' % gitee_token
+        ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
+        if ret:
+            logger.error("git fetch failed, %s", ret)
+            logger.error("%s", out)
+            return []
 
         sig_exception_list = ['README.md', 'sig-recycle', 'sig-template']
         sig_path = os.path.join('community', 'sig')
@@ -197,11 +213,15 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         """
         exists_jobs_list = self._jenkins_proxy.get_jobs_list(target_jobs_dir)
         logger.info("%s exist %s jobs", target_jobs_dir, len(exists_jobs_list))
-        exclude_jobs_with_skipped = set(exclude_jobs).union(set(self._config_table.get("skipped_repo")))
+        exclude_jobs_with_skipped = set(exclude_jobs).union(
+            set(self._config_table.get("skipped_repo")))
         if "all" in jobs:
-            jobs_in_community = list(set(self._all_community_jobs).difference(exclude_jobs_with_skipped))
+            jobs_in_community = list(set(self._all_community_jobs).difference(
+                exclude_jobs_with_skipped))
         else:
-            jobs_in_community = list(set(jobs).intersection(set(self._all_community_jobs)).difference(exclude_jobs_with_skipped))
+            jobs_in_community = list(
+                set(jobs).intersection(set(self._all_community_jobs)).difference(
+                    exclude_jobs_with_skipped))
         if action == "update":
             return list(set(jobs_in_community).intersection(set(exists_jobs_list)))
         elif action == "create":
@@ -221,17 +241,14 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             with open(os.path.join(cur_path, "soe_exclusive_config.yaml"), "r") as f:
                 config_table = yaml.safe_load(f)
         except OSError:
-            logger.exception("soe_exclusive_config.yaml not exist")
-            sys.exit(1)
+            raise OSError("soe_exclusive_config.yaml not exist")
         except yaml.MarkedYAMLError:
-            logger.exception("soe_exclusive_config.yaml is not an illegal yaml format file")
-            sys.exit(1)
+            raise yaml.MarkedYAMLError("soe_exclusive_config.yaml is not an illegal yaml format file")
         if not config_table:
             return {}
         # check yaml format and exception if not
         if not SrcOpenEulerJenkinsJobs.check_soe_exclusive_config_format(config_table):
-            logger.exception("soe_exclusive_config.yaml is not an illegal yaml format file")
-            sys.exit(1)
+            raise ValueError("soe_exclusive_config.yaml is not an illegal yaml format file")
         return config_table
 
     @staticmethod
@@ -432,13 +449,14 @@ if "__main__" == __name__:
     from src.proxy.jenkins_proxy import JenkinsProxy
 
     jp = JenkinsProxy(args.jenkins_url, args.jenkins_user, args.jenkins_api_token,
-                        args.jenkins_timeout)
+                      args.jenkins_timeout)
 
     if args.organization == "src-openeuler":
         jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir,
-            args.template_job, jp, args.organization, args.gitee_token)
+                                               args.template_job, jp, args.organization, args.gitee_token)
     else:
-        jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization, args.gitee_token)
+        jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization,
+                                            args.gitee_token)
 
     jenkins_jobs.run(args.action, args.target_jobs_dir, args.target_jobs, exclude_jobs=args.exclude_jobs,
                      concurrency=args.concurrency, retry=args.retry, interval=args.interval)

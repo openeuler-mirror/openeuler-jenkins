@@ -19,8 +19,10 @@
 from datetime import datetime
 import calendar
 
-SECOND_TO_MiLLISECOND_RATE = 1000
-MiLLISECOND_TO_MICROSECOND_RATE = 1000
+SECOND_TO_MILLISECOND_RATE = 1000
+MILLISECOND_TO_MICROSECOND_RATE = 1000
+
+
 def convert_utc_to_naive(utc_dt):
     """
     utc datetime to local datetime
@@ -32,11 +34,12 @@ def convert_utc_to_naive(utc_dt):
 
     return naive_dt.replace(microsecond=utc_dt.microsecond)
 
+
 def convert_timestamp_to_naive(timestamp):
     """
     timestamp to local datetime
     :param timestamp: 13位时间戳
     :return:
     """
-    naive_dt = datetime.fromtimestamp(timestamp / SECOND_TO_MiLLISECOND_RATE)
-    return naive_dt.replace(microsecond=((timestamp % SECOND_TO_MiLLISECOND_RATE) * MiLLISECOND_TO_MICROSECOND_RATE))
+    naive_dt = datetime.fromtimestamp(timestamp / SECOND_TO_MILLISECOND_RATE)
+    return naive_dt.replace(microsecond=((timestamp % SECOND_TO_MILLISECOND_RATE) * MILLISECOND_TO_MICROSECOND_RATE))
