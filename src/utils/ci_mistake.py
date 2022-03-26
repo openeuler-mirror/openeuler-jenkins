@@ -16,11 +16,10 @@
 # **********************************************************************************
 """
 import os
-import yaml
 import re
 import datetime
-import time
 import argparse
+import yaml
 
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
@@ -39,7 +38,6 @@ class CiMistake(object):
     def __init__(self, pr_url, gitee_token, committer, commit_at, comment_id):
         """
         initial
-        :param logger: log object
         :param pr_url: pr link
         :param gitee_token: gitee comment token
         :param committer: ci mistake comment committer
@@ -54,7 +52,8 @@ class CiMistake(object):
         self.commit_at = datetime.datetime.strptime(commit_at, "%Y-%m-%dT%H:%M:%S%z").timestamp()
         self.owner, self.repo, self.pr_id = CiMistake.get_owner_repo_id(pr_url)
 
-    def load_build_no_list(self, filepath):
+    @staticmethod
+    def load_build_no_list(filepath):
         """
         load build number list
         :param filepath:
@@ -115,17 +114,18 @@ class CiMistake(object):
         if any([all([command != "/ci_unmistake", command != "/ci_mistake"]),
                all([command == "/ci_unmistake", len(sp) != build_no_index + 1]),
                all([command == "/ci_mistake", len(sp) < build_no_index + 1])]):
-            return False, None, None, None
+            raise ValueError("command type or numbers of parameter error")
 
         try:
             build_no = int(sp[build_no_index])
-            if command == "/ci_unmistake":
-                return True, command, build_no, None
         except ValueError:
-            return False, None, None, None
+            raise ValueError("build_no is not a number")
 
-        ci_mistake_type_stage = sp[ci_type_stage_index:]
-        return True, command, build_no, ci_mistake_type_stage
+        if command == "/ci_unmistake":
+            ci_mistake_type_stage = None
+        else:
+            ci_mistake_type_stage = sp[ci_type_stage_index:]
+        return command, build_no, ci_mistake_type_stage
 
     def comment_to_pr(self, comment_content):
         """
@@ -160,7 +160,6 @@ class CiMistake(object):
             message["ci_mistake_status"] = False
         else:
             message["ci_mistake_status"] = True
-
         kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
         kp.send("openeuler_statewall_ci_mistake", key=self.comment_id, value=message)
         self.comment_to_pr("Thanks for your commit.")
@@ -178,18 +177,19 @@ class CiMistake(object):
         :param build_no_filepath: build number filepath
         :return:
         """
-        build_no_list = self.load_build_no_list(build_no_filepath)
-        status, command, build_no, ci_mistake_type_stage = CiMistake.check_command_format(mistake_comment)
+        build_no_list = CiMistake.load_build_no_list(build_no_filepath)
 
-        if not status:
+        try:
+            command, build_no, ci_mistake_type_stage = CiMistake.check_command_format(mistake_comment)
+        except ValueError:
             command_error_tips = "comment format error."
             logger.error(command_error_tips)
             self.comment_to_pr(command_error_tips)
             return
 
         if build_no not in build_no_list:
-            build_no_error_tips = "***{}*** is not an illegal build number. You should select one from ***{}***.".format(
-                    build_no, ", ".join([str(item) for item in build_no_list]))
+            build_no_error_tips = "***{}*** is not an illegal build number. You should select one from " \
+                                  "***{}***.".format(build_no, ", ".join([str(item) for item in build_no_list]))
             logger.error(build_no_error_tips)
             self.comment_to_pr(build_no_error_tips)
             return
@@ -199,12 +199,12 @@ class CiMistake(object):
         ci_mistake_others = list(set(ci_mistake_type_stage).difference(
             set(self.support_mistake_type)).difference(set(self.support_check_stage)))
         if ci_mistake_others:
-            mistake_type_stage_error_tips = "***{}*** is not an illegal mistake type or check item. \
-                               If you want to express mistake type, you can select one from ***{}***. \
-                               If you want to express check item, you can select one or more from ***{}***. ".format(
-                ", ".join(ci_mistake_others),
-                ", ".join(self.support_mistake_type),
-                ", ".join(self.support_check_stage))
+            mistake_type_stage_error_tips = "***{}*** is not an illegal mistake type or check item. " \
+                               "If you want to express mistake type, you can select one from ***{}***. " \
+                               "If you want to express check item, you can select one or more from " \
+                               "***{}***.".format(", ".join(ci_mistake_others),
+                                                 ", ".join(self.support_mistake_type),
+                                                 ", ".join(self.support_check_stage))
             logger.error(mistake_type_stage_error_tips)
             self.comment_to_pr(mistake_type_stage_error_tips)
             return

@@ -178,10 +178,10 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         # download community repo
         if os.path.exists('community'):
             ret, out, _ = shell_cmd_live('rm -rf community', cap_out=True, cmd_verbose=False)
-        if ret:
-            logger.error("delete community failed, %s", ret)
-            logger.error("%s", out)
-            return []
+            if ret:
+                logger.error("delete community failed, %s", ret)
+                logger.error("%s", out)
+                return []
 
         fetch_cmd = 'git clone -b master --depth 1 https://%s@gitee.com/openeuler/community' % gitee_token
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
