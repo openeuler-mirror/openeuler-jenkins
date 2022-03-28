@@ -37,7 +37,7 @@ class KafkaProducerProxy(object):
 
         self._timeout = timeout
         self._kp = kafka.KafkaProducer(bootstrap_servers=brokers, 
-                key_serializer=str.encode,
+                key_serializer=str.encode, api_version=(2, 3, 0),
                 value_serializer=lambda v:json.dumps(v).encode("utf-8"))
 
     def send(self, topic, key=None, value=None):
