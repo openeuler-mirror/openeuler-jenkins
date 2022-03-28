@@ -19,6 +19,7 @@ import os
 import re
 import datetime
 import argparse
+import time
 import yaml
 
 from src.proxy.gitee_proxy import GiteeProxy
@@ -49,7 +50,7 @@ class CiMistake(object):
         self.gitee_token = gitee_token
         self.committer = committer
         self.comment_id = comment_id
-        self.commit_at = datetime.datetime.strptime(commit_at, "%Y-%m-%dT%H:%M:%S%z").timestamp()
+        self.commit_at = round(datetime.datetime.strptime(commit_at, "%Y-%m-%dT%H:%M:%S%z").timestamp(), 1)
         self.owner, self.repo, self.pr_id = CiMistake.get_owner_repo_id(pr_url)
 
     @staticmethod
@@ -112,8 +113,8 @@ class CiMistake(object):
 
         command = sp[command_index]
         if any([all([command != "/ci_unmistake", command != "/ci_mistake"]),
-               all([command == "/ci_unmistake", len(sp) != build_no_index + 1]),
-               all([command == "/ci_mistake", len(sp) < build_no_index + 1])]):
+                all([command == "/ci_unmistake", len(sp) != build_no_index + 1]),
+                all([command == "/ci_mistake", len(sp) < build_no_index + 1])]):
             raise ValueError("command type or numbers of parameter error")
 
         try:
@@ -121,10 +122,8 @@ class CiMistake(object):
         except ValueError:
             raise ValueError("build_no is not a number")
 
-        if command == "/ci_unmistake":
-            ci_mistake_type_stage = None
-        else:
-            ci_mistake_type_stage = sp[ci_type_stage_index:]
+        ci_mistake_type_stage = sp[ci_type_stage_index:]
+
         return command, build_no, ci_mistake_type_stage
 
     def comment_to_pr(self, comment_content):
@@ -150,6 +149,7 @@ class CiMistake(object):
             "build_no": build_no,
             "committer": self.committer,
             "commit_at": self.commit_at,
+            "update_at": round(time.time(), 1)
         }
         if ci_mistake_type:
             message["ci_mistake_type"] = ci_mistake_type
@@ -200,11 +200,11 @@ class CiMistake(object):
             set(self.support_mistake_type)).difference(set(self.support_check_stage)))
         if ci_mistake_others:
             mistake_type_stage_error_tips = "***{}*** is not an illegal mistake type or check item. " \
-                               "If you want to express mistake type, you can select one from ***{}***. " \
-                               "If you want to express check item, you can select one or more from " \
-                               "***{}***.".format(", ".join(ci_mistake_others),
-                                                 ", ".join(self.support_mistake_type),
-                                                 ", ".join(self.support_check_stage))
+                                            "If you want to express mistake type, you can select one from ***{}***. " \
+                                            "If you want to express check item, you can select one or more from " \
+                                            "***{}***.".format(", ".join(ci_mistake_others),
+                                                               ", ".join(self.support_mistake_type),
+                                                               ", ".join(self.support_check_stage))
             logger.error(mistake_type_stage_error_tips)
             self.comment_to_pr(mistake_type_stage_error_tips)
             return
