@@ -36,17 +36,19 @@ def singleton(cls):
 @singleton
 class Logger:
     def __init__(self):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger('MyLogger')
+        self.logger.setLevel(logging.DEBUG)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_formatter = CusColoredFormatter(fmt="%(log_color)s%(asctime)s [%(levelname)7s] : %(message)s")
+        console_handler.setFormatter(console_formatter)
+        self.logger.addHandler(console_handler)
 
-        self.sh = logging.StreamHandler(sys.stdout)
-        self.sh.setFormatter(CusColoredFormatter(fmt="%(log_color)s%(asctime)s [%(levelname)7s] : %(message)s"))
-        self.sh.setLevel(logging.INFO)
-        self.fh = logging.FileHandler("{}/ci.log".format(os.path.dirname(__file__)))
-        self.fh.setFormatter(logging.Formatter(
-            "%(asctime)s %(filename)20s[line:%(lineno)3d] %(levelname)7s : %(message)s"))
-        self.fh.setLevel(logging.DEBUG)
-        self.logger.addHandler(self.sh)
-        self.logger.addHandler(self.fh)
+        file_handler = logging.FileHandler("{}/ci.log".format(os.path.dirname(__file__)))
+        file_handler.setLevel(logging.DEBUG)
+        file_formatter = logging.Formatter("%(asctime)s %(filename)20s[line:%(lineno)3d] %(levelname)7s : %(message)s")
+        file_handler.setFormatter(file_formatter)
+        self.logger.addHandler(file_handler)
 
 
 logger = Logger().logger

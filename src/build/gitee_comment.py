@@ -17,13 +17,14 @@
 """
 
 import os
+import re
+import stat
 import sys
 import logging.config
-import logging
 import json
-import yaml
 import argparse
 import warnings
+import yaml
 
 from yaml.error import YAMLError
 from src.ac.framework.ac_result import ACResult, SUCCESS
@@ -31,6 +32,7 @@ from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.dist_dataset import DistDataset
+
 
 class Comment(object):
     """
@@ -47,6 +49,9 @@ class Comment(object):
         self._up_builds = []
         self._up_up_builds = []
         self._get_upstream_builds(jenkins_proxy)
+        self.ac_result = {}
+        self.compare_package_result = {}
+        self.check_item_result = {}
 
     def comment_build(self, gitee_proxy):
         """
@@ -154,7 +159,7 @@ class Comment(object):
             else:
                 comments.append(self.__class__.comment_html_table_tr_rowspan(
                     item["name"], ac_result.emoji, ac_result.hint))
-
+            self.ac_result[item["name"]] = ac_result.hint
         logger.info("ac comment: %s", comments)
 
         return comments
@@ -182,6 +187,7 @@ class Comment(object):
                 logger.info("%s not exists", result_file)
                 continue
             for build in self._up_builds:
+                arch_cmp_result = "SUCCESS"
                 name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 logger.info("check build %s", name)
                 arch_result, arch_name = match(name, result_file)
@@ -203,6 +209,8 @@ class Comment(object):
                     rpm_name = content.get(item)
                     check_item = item.replace(" ", "_")
                     result = "FAILED" if rpm_name else "SUCCESS"
+                    if result == "FAILED":
+                        arch_cmp_result = "FAILED"
                     compare_result = ACResult.get_instance(result)
                     if index == 0:
                         comments.append("<tr><td rowspan={}>compare_package({})</td> <td>{}</td> <td>{}</td> "
@@ -213,7 +221,7 @@ class Comment(object):
                     else:
                         comments.append("<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
                             check_item, "<br>".join(rpm_name), compare_result.emoji, compare_result.hint))
-
+                self.compare_package_result[arch_name] = arch_cmp_result
         if comments:
             comments = comments_title + comments
             comments.append("</table>")
@@ -247,7 +255,7 @@ class Comment(object):
                 arch = "aarch64"
             else:
                 continue
-
+            arch_dict = {}
             check_item_result = {}
             for check_item_comment_file in self._check_item_comment_files:
                 if not os.path.exists(check_item_comment_file):
@@ -267,11 +275,12 @@ class Comment(object):
                             "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
                 1 + len(check_item_result), arch, "check_build", ac_result.emoji, ac_result.hint,
                 1 + len(check_item_result), "{}{}".format(build_url, "console"), build["number"]))
-
+            arch_dict["check_build"] = ac_result.hint
             for check_item, check_result in check_item_result.items():
                 comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
                 check_item, check_result.emoji, check_result.hint))
-
+                arch_dict[check_item] = check_result.hint
+            self.check_item_result[arch] = arch_dict
         logger.info("check item comment: %s", comments)
 
         return comments
@@ -298,6 +307,76 @@ class Comment(object):
         span row
         """
         return "<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td></tr>".format(name, icon, status)
+
+    def _get_job_url(self, comment_url):
+        """
+        get_job_url
+        :param url:
+        :return:
+        """
+        build_urls = {"trigger": self._up_up_builds[0]["url"],
+                      "comment": os.path.join(comment_url, os.environ.get("BUILD_ID"))
+                      }
+        for build in self._up_builds:
+            arch = ""
+            try:
+                arch_index = 3
+                list_step = 2
+                if build["url"]:
+                    job_path = re.sub(r"http[s]?://", "", build["url"])
+                    arch = job_path.split("/")[::list_step][arch_index]
+            except IndexError:
+                logger.info("get arch from job failed, index error.")
+            except KeyError:
+                logger.info("not find build url key")
+            if arch:
+                build_urls[arch] = build["url"]
+
+        return build_urls
+
+    def _get_all_job_result(self, check_details):
+        """
+        get_all_job_result
+        :return:
+        """
+
+        check_details["static_code"] = self.ac_result
+        for arch, arch_result in self.check_item_result.items():
+            if self.compare_package_result.get(arch):
+                arch_result["compare_package"] = self.compare_package_result.get(arch)
+            check_details[arch] = arch_result
+
+        return check_details
+
+    def get_all_result_to_kafka(self, comment_url):
+        """
+        名称            类型    必选  说明
+        build_urls      字典    是    包含多个门禁工程链接和显示文本
+        check_total     字符串  是    门禁整体结果
+        check_details   字典    是    门禁各个检查项结果
+        :return:
+        """
+        check_details = {}
+        build_urls = self._get_job_url(comment_url)
+        self._get_all_job_result(check_details)
+
+        if self.check_build_result() == SUCCESS:
+            check_total = 'SUCCESS'
+        else:
+            check_total = 'FAILED'
+
+        all_dict = {"build_urls": build_urls,
+                    "check_total": check_total,
+                    "check_details": check_details
+                    }
+        logger.info("all_dict = %s", all_dict)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        modes = stat.S_IWUSR | stat.S_IRUSR
+        try:
+            with os.fdopen(os.open("build_result.yaml", flags, modes), "w") as f:
+                yaml.safe_dump(all_dict, f)
+        except IOError:
+            logger.exception("save build result file exception")
 
 
 def init_args():
@@ -369,12 +448,13 @@ if "__main__" == __name__:
         gp.create_tags_of_pr(args.pr, "ci_failed")
         dd.set_attr("comment.build.tags", ["ci_failed"])
         dd.set_attr("comment.build.result", "failed")
+    if args.owner != "openeuler":
+        comment.get_all_result_to_kafka(url)
 
     logger.info("comment: at committer......")
     comment.comment_at(args.committer, gp)
 
     dd.set_attr_etime("comment.job.etime")
-    #dd.set_attr("comment.job.result", "successful")
 
     # suppress python warning
     warnings.filterwarnings("ignore")
