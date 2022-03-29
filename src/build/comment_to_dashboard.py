@@ -51,7 +51,7 @@ class CommentToDashboard(object):
         if args_list.trigger_build_id not in build_num_list:
             build_num_list.append(args_list.trigger_build_id)
         logger.info("build_num_list = %s", build_num_list)
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        flags = os.O_WRONLY | os.O_CREAT
         modes = stat.S_IWUSR | stat.S_IRUSR
         try:
             with os.fdopen(os.open(build_num_file, flags, modes), "w") as f:
