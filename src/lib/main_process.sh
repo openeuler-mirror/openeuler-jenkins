@@ -5,29 +5,6 @@ SCRIPT_PATCH=${shell_path}/src/build
 BUILD_ROOT=${JENKINS_HOME}/agent/buildroot
 RPM_PATH=${BUILD_ROOT}/home/abuild/rpmbuild/RPMS
 comment_file=""
-# 需要输入的参数
-OBSUserName=$1
-OBSPassword=$2
-GiteeUserName=$3
-GiteePassword=$4
-GiteeToken=$5
-GiteeUserPassword=$6
-PkgShipUserName=$7
-PkgShipPassword=$8
-buddy=$9
-repo=${10}
-tbranch=${11}
-arch=${12}
-package=${13}
-branch=${14}
-prid=${15}
-WORKSPACE=${16}
-committer=${17}
-commentid=${18}
-SaveBuildRPM2Repo=${19}
-repo_server=${20}
-pkgship_notify_url=${21}
-pkgship_notify_token=${22}
 
 # debug测试变量
 function config_debug_variable() {

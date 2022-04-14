@@ -7,18 +7,7 @@ check_item_comment_x86=""
 compare_package_result_aarch64=""
 compare_package_result_x86=""
 #需要输入的参数
-repo=$1
-prid=$2
-committer=$3
-giteetoken=$4
-jenkins_user=$5
-jenkins_api_token=$6
-WORKSPACE=$7
-SaveBuildRPM2Repo=$8
-repo_server=$9
-compare_result=${10}
-commentid=${11}
-jenkins_api_host=${12}
+jenkins_api_host="https://jenkins.openeuler.org/"
 
 # debug测试变量
 function config_debug_variable() {

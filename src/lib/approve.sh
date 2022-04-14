@@ -1,12 +1,5 @@
 #!/bin/bash
 . /home/jenkins/ci_check/src/lib/lib.sh
-# 需要输入的参数
-giteeTargetBranch=$1
-giteeCommitter=$2
-giteeRepoName=$3
-giteePullRequestIid=$4
-SaveBuildRPM2Repo=$5
-repo_server=$6
 
 # debug测试变量
 function config_debug_variable() {
