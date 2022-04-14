@@ -1,7 +1,7 @@
 # replace VERSION before run
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
 
-RUN sudo sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
+RUN sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
 
 # Install qemu 5.2.0
 RUN set -eux; \
