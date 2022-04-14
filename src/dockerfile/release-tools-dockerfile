@@ -1,7 +1,7 @@
 # replace VERSION before run
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
 
-RUN sudo sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
+RUN sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
 
 RUN set -eux; \
     yum install -y python3-pip cpio bsdtar expect openssh sudo vim git strace python-jenkins python3-requests python-concurrent-log-handler python3-gevent python3-marshmallow python3-pyyaml python-pandas python-xlrd python-retrying python-esdk-obs-python git 

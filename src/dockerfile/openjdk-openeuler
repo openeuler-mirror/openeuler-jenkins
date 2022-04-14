@@ -1,7 +1,7 @@
 # replace VERSION before build
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:VERSION
 
-RUN sudo sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
+RUN sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
 
 RUN set -eux; \
     yum install -y tar wget 
