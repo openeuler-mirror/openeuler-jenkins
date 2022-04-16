@@ -75,8 +75,9 @@ class Constant(object):
                                     "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
         "Multi-Version_OpenStack-Wallaby_openEuler-22.03-LTS": [
                                     "openEuler:22.03:LTS:Epol:Multi-Version:OpenStack:Wallaby",
-                                    "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"]
-
+                                    "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
+        "openEuler-22.03-LTS-LoongArch": [
+                                    "openEuler:22.03:LTS:LoongArch", "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"]
     }
 
     COMPARE_PACKAGE_BLACKLIST = [
