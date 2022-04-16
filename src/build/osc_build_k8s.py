@@ -15,6 +15,7 @@
 # **********************************************************************************
 
 import os
+import re
 import sys
 import logging.config
 import logging
@@ -130,6 +131,8 @@ class SinglePackageBuild(object):
                 service.set("name", "tar_local_kernel")
             elif service.get("name") == "tar_scm_kernels_repo":
                 service.set("name", "tar_local_kernels")
+            elif service.get("name") == "tar_scm":
+                service.set("name", "tar_local_kernel")
 
             for param in service.findall("param"):
                 if param.get("name") == "scm":
@@ -142,7 +145,7 @@ class SinglePackageBuild(object):
                             or "openEuler-20.09_kernel" in param.text:
                         param.text = "{}/{}".format(code_path, "code")  # kernel special logical
                     else:
-                        gitee_repo = param.text.split("/")[-1]
+                        gitee_repo = re.sub(r"\.git", "", param.text.split("/")[-1])
                         param.text = "{}/{}".format(code_path, gitee_repo)
 
         logger.info("after update meta------")
