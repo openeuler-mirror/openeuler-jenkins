@@ -34,10 +34,11 @@ class CommentToDashboard(object):
     """
 
     @staticmethod
-    def output_build_num(args_list):
+    def output_build_num(args_list, base_dict):
         """
         output_build_num
         :param args_list:
+        :param base_dict:
         :return:
         """
         build_num_list = []
@@ -50,6 +51,8 @@ class CommentToDashboard(object):
             logger.exception("Read trigger build number file exception, yaml format error")
         if args_list.trigger_build_id not in build_num_list:
             build_num_list.append(args_list.trigger_build_id)
+        else:
+            base_dict["build_time"] = 0
         logger.info("build_num_list = %s", build_num_list)
         flags = os.O_WRONLY | os.O_CREAT
         modes = stat.S_IWUSR | stat.S_IRUSR
@@ -94,7 +97,7 @@ class CommentToDashboard(object):
         build_time = round(current_time - trigger_time, 1)
         base_dict["build_time"] = build_time
 
-        self.output_build_num(args_list)
+        self.output_build_num(args_list, base_dict)
         build_file = "build_result.yaml"
         try:
             if os.path.exists(build_file):
