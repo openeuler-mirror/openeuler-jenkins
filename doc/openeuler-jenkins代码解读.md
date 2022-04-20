@@ -1,3 +1,5 @@
+
+
 # 执行流程
 
 #### ![](images/overview.png)
@@ -202,3 +204,77 @@ compare package在extra work中进行调用
 | _get_pr_changelog           | 获取更新代码的changelog内容，应承载接口变更检查原因及影响 |                                              |
 | _get_check_item_result      | 获取compare package比较结果各子项的详细信息               |                                              |
 | _result_to_table            | 获取compare package比较结果的详细信息                     |                                              |
+
+## 6 osc build
+
+![](images/osc_build.png)
+
+SinglePackageBuild在main_process.sh中进行调用
+
+| 类方法/属性              | 描述                         | 说明                                             |
+| ------------------------ | ---------------------------- | ------------------------------------------------ |
+| __init__                 | 初始化                       | SinglePackageBuild实例化对象，初始设置一些参数值 |
+| get_need_build_obs_repos | 获取需要构建obs repo列表[注] |                                                  |
+| build_obs_repos          | build                        |                                                  |
+| _handle_package_meta     | _service文件重组             |                                                  |
+| _prepare_build_environ   | 准备obs build环境            |                                                  |
+| build                    |                              | 主入口                                           |
+
+**注：**
+
+**obs_repos结构：**
+[{"repo": repo, "mpac": mpac=mpac, "state": state},{"repo": repo, "mpac": mpac=mpac, "state": state}]
+
+mpac： multibuild package
+
+**build_obs_repos 返回值意义：**
+
+1：osc co 失败
+
+2：准备obs build环境失败
+
+3：osc build失败
+
+### service文件结构说明
+
+```yaml
+<services> 1
+ <service name="MY_SCRIPT" 2 mode="MODE" 3>
+  <param name="PARAMETER1">PARAMETER1_VALUE</param> 4
+ </service>
+</services>
+
+1、_service文件的根元素。
+2、服务名称。 该服务是存储在/ usr / lib / obs / service目录中的脚本。
+3、服务模式
+4、一个或多个传递到2中定义的脚本的参数。
+```
+
+**服务模式**
+
+| Mode         | Runs remotely                                                | Runs locally               | Added File Handling                                          |
+| ------------ | ------------------------------------------------------------ | -------------------------- | ------------------------------------------------------------ |
+| Default      | After each commit                                            | Before local build         | 生成的文件以“_service：”为前缀                               |
+| `trylocal`   | Yes                                                          | Yes                        | Changes are merged into commit                               |
+| `localonly`  | No                                                           | Yes                        | Changes are merged into commit                               |
+| `serveronly` | Yes                                                          | No                         | 生成的文件以“_service：”为前缀： 当服务不可用或无法在开发人员工作站上运行时，这可能很有用。 |
+| `buildtime`  | During each build before calling the build tool (for example, rpm-build)[a] | Before each build[a]       |                                                              |
+| `manual`     | No                                                           | Only via explicit CLI call | Exists since OBS 2.11                                        |
+| `disabled`   | No                                                           | Only via explicit CLI call |                                                              |
+|              |                                                              |                            | 注：[a] A side effect is that the service package is becoming a build dependency and must be available. |
+
+注：[a] A side effect is that the service package is becoming a build dependency and must be available.
+
+**osc build 相关参数说明：**
+
+**--no-verify, --noverify** 构建包时跳过签名验证（通过PGP密钥） （在OSCRC中的全局配置：no_verify）
+
+**--noservice, --no-service**  跳过_service文件中指定的本地源服务的运行。
+
+**-M MPAC, --multibuild-package=MPAC** 构建指定的多个包
+
+**--userootforbuild** 以root身份构建。默认值是构建为非特权用户。请注意，SPEC文件中的“＃norootforbuild”在“＃norootforbuild”将使此选项无效。
+
+**--disable-debuginfo** 禁用DebugInfo软件包的构建
+
+**--disable-cpio-bulk-download** 禁用从API中将下载的包作为CPIO存档 （cpio是个归档工具）
