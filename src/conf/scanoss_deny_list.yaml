@@ -1,0 +1,17 @@
+openeuler:
+  default_deny_list:
+  - openeuler
+  - openeuler-mirror
+  - src-openeuler
+  extra_deny_list: {}
+#   gcc:
+#   - publisher: openeuler
+#     name: gcc
+#   - publisher: openeuler-mirror
+#     name: gcc
+#   - publisher: src-openeuler
+#     name: gcc
+src-openeuler:
+  default_deny_list: []
+  extra_deny_list: {}
+
