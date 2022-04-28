@@ -85,7 +85,8 @@ function exec_comment() {
   log_info "***** End to exec comment *****"
   log_info "***** Start to exec comment to kafka*****"
   python3 ${shell_path}/src/build/comment_to_dashboard.py -r $repo -c $committer -m ${commentid} -g $jobtriggertime\
-   -k "${prtitle}" -t $prcreatetime -b $tbranch -u $prurl -i $triggerbuildid -p $prid -o $repo_owner
+   -k "${prtitle}" -t $prcreatetime -b $tbranch -u $prurl -i $triggerbuildid -p $prid -o $repo_owner \
+   --gitee_token ${giteetoken}
   log_info "***** End to exec comment to kafka*****"
 }
 
