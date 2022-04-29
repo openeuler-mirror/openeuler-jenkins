@@ -10,7 +10,7 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
-# Author: 
+# Author:
 # Create: 2020-09-23
 # Description: check spec file
 # **********************************************************************************
@@ -230,7 +230,7 @@ class CheckSpec(BaseCheck):
 
         def judgment_date(date_obj):
             """
-            检查日期合法性：年，月，日，周
+            检查日期合法性
             """
             if date_obj[week].upper() not in weeks:
                 return False
@@ -239,9 +239,6 @@ class CheckSpec(BaseCheck):
             # 日期，取1-当前月份最大天数
             if not 0 < int(date_obj[day]) <= calendar.monthrange(int(date_obj[year]),
                                                                  months.index(date_obj[month].upper()) + 1)[1]:
-                return False
-            # 年份要等于当前年份
-            if int(date_obj[year]) != datetime.now(tz=timezone.utc).year:
                 return False
             return True
 
@@ -263,43 +260,61 @@ class CheckSpec(BaseCheck):
             """
             检查changelog中的版本号，release号是否和spec的版本号，release号一致
             """
-            obj_s = re.search(r"(\d+(.\d+){0,9})-\d+", changelog_con)
+            if self._spec.epoch:  # 检查spec文件中是否存在epoch字段
+                obj_s = re.search(r"\w+:(\w+(.\w+){0,9})-[\w.]+", changelog_con)
+                version = "".join([self._spec.epoch, ":", version])
+            else:
+                obj_s = re.search(r"(\w+(.\w+){0,9})-[\w.]+", changelog_con)
             if not obj_s:
-                logger.warning("%s Missing release or version!", changelog_con)
+                logger.error("%s Missing release or version!", changelog_con)
                 return False
             version_num, release_num = obj_s.group(0).split("-")
             if version_num != version:
-                logger.warning("version error in changelog: %s != %s", version_num, version)
+                logger.error("version error in changelog: %s is different from %s", version_num, version)
                 return False
             if release_num != release:
-                logger.warning("release error in changelog: %s != %s", release_num, release)
+                logger.error("release error in changelog: %s is different from %s", release_num, release)
                 return False
             return True
 
-        def every_changelog_should_start_with_star(changelog):
+        def check_mailbox(changelog):
             """
-            检查changelog中每条记录都应该以*开头
+            检查changelog中邮箱格式
             """
-            mail_obj = re.findall(r"[\w._-]+@[a-z0-9]+.[a-z]{2,4}", changelog)
-            star_obj = re.findall(r"\* ", changelog)
-            if len(mail_obj) != len(star_obj):
+            mail_obj = re.findall(r"[\w._-]+@[\w\-_]+[.a-zA-Z]+", changelog)
+            if not mail_obj:
                 return False
             return True
 
-        if not every_changelog_should_start_with_star(self._spec.changelog):
-            logger.error("Every changelog should start with * and contains a mailbox")
+        def check_changelog_entries_start(changelog):
+            """
+            %changelog 条目必须以 * 开头
+            """
+            changelog_entries_obj = re.match(r"\*", changelog)
+            if not changelog_entries_obj:
+                return False
+            return True
+
+        if not check_changelog_entries_start(self._spec.changelog):
+            logger.error("%changelog entries must start with *")
             return False
         changelog = self._spec.changelog.split("*")
         # 取最新一条changelog
         changelog_con = next(need_str for need_str in changelog if need_str)
+        # 检查changelog中邮箱格式
+        if not check_mailbox(changelog_con):
+            logger.error("bad mailbox in changelog:%s", changelog_con)
+            return False
         # date_obj是字符串列表，样例：['Tue', 'Mar', '21', '2022', 'xxx', '<xxx@xxx.com>', '-', '2.9.24-5-', 'test', '2.9.24-5']
         date_obj = [con for con in changelog_con.strip(" ").split(" ") if con]  # 列表中的空字符串已处理
         if len(date_obj) < 4:  # 列表中的字符串至少四个,包含年、月、日、星期 ['Tue', 'Mar', '21', '2022']
             logger.error("bad data in changelog:%s", changelog_con)
             return False
-        if not judgment_date(date_obj) or not release_and_version(changelog_con, self._spec.version,
-                                                                  self._spec.release):
+        if not judgment_date(date_obj):
             logger.error("bad date in changelog:%s", changelog_con)
+            return False
+        if not release_and_version(changelog_con, self._spec.version, self._spec.release):
+            logger.error("There is a problem with the version number or release number:%s", changelog_con)
             return False
         if not bogus_date(date_obj):
             logger.error("bogus date in changelog:%s", changelog_con)
