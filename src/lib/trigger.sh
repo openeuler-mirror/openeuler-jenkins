@@ -1,25 +1,7 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
-repo=$1
-SaveBuildRPM2Repo=$2
-repo_server=$3
-giteeRepoName=$4
-giteeTargetBranch=$5
-GiteeUserName=$6
-GiteePassword=$7
-GiteeToken=$8
-GiteeUserPassword=$9
-giteePullRequestIid=${10}
-prCreateTime=${11}
-giteeCommitter=${12}
-commentID=${13}
-comment=${14}
-jobTriggerTime=${15}
-triggerLink=${16}
-jenkins_user=${17}
-jenkins_api_token=${18}
-jenkins_api_host=${19}
+jenkins_api_host="https://jenkins.openeuler.org/"
 
 # debug测试变量
 function config_debug_variable() {
