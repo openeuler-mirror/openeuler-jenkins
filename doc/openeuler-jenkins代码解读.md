@@ -186,24 +186,226 @@ self._ac_check_elements
 
 ## 5 compare package
 
+![](images/compare_package.png)
+
+**compare package结果示例：**
+
+![](images/compare_package_result.png)
+
+| added rpms | deleted rpms | changed rpms                                                 |
+| ---------- | ------------ | ------------------------------------------------------------ |
+|            |              | libzip-devel-1.5.1-3.oe1.aarch64.rpm<br />libzip-1.5.1-3.oe1.aarch64.rpm |
+
+Check Abi 
+
+| rpm name | added abi | deleted abi | changed abi   |
+| -------- | --------- | ----------- | ------------- |
+| libzip   |           |             | libzip.so.5.0 |
+
+Check Config
+
+| rpm name     | added config | deleted config | changed config            |
+| ------------ | ------------ | -------------- | ------------------------- |
+| libzip-devel |              |                | zipconf.h   <br />\|zip.h |
+
+Check Provides
+
+| rpm name     | added provides                                               | deleted provides                                             | changed provides |
+| ------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ---------------- |
+| libzip-devel | libzip-devel = 1.8.0      <br />libzip-devel(aarch-64) = 1.8.0<br /> pkgconfig(libzip) = 1.8.0 <br /> | libzip-devel = 1.5.1      <br /> libzip-devel(aarch-64) = 1.5.1 <br />pkgconfig(libzip) = 1.5.1 |                  |
+| libzip       | libzip = 1.8.0         <br />cmake(libzip) = 1.8.0 <br /> libzip-tools = 1.8.0 <br />libzip-tools(aarch-64) = 1.8.0<br />libzip(aarch-64) = 1.8.0 | libzip-tools(aarch-64) = 1.5.1 <br />libzip(aarch-64) = 1.5.1  <br /> libzip-tools = 1.5.1 <br /> libzip = 1.5.1 |                  |
+
+Requires Result
+
+| rpm name     | added requires             | deleted requires         | changed requires |
+| ------------ | -------------------------- | ------------------------ | ---------------- |
+| libzip-devel | libzip(aarch-64) = 1.8.0   | libzip(aarch-64) = 1.5.1 |                  |
+| libzip       | cmake-filesystem(aarch-64) | libssl.so.1.1()(64bit)   |                  |
+
+Check Files
+
+| rpm name | added files                                                  | deleted files            | changed files |
+| -------- | ------------------------------------------------------------ | ------------------------ | ------------- |
+| libzip   | /usr/lib64/cmake/libzip/libzip-config-version.cmake  <br />/usr/lib64/cmake/libzip/libzip-targets.cmake<br /> /usr/lib64/cmake/libzip/libzip-targets-noconfig.cmake | /usr/lib64/libzip.so.5.0 |               |
+
 compare package在extra work中进行调用
 
-| 类方法/属性                 | 描述                                                      | 作用说明                                     |
-| --------------------------- | --------------------------------------------------------- | -------------------------------------------- |
-| __init__                    | 初始化                                                    | ComparePackage实例化对象，初始设置一些参数值 |
-| _get_dict                   | 获取字典值                                                |                                              |
-| _rpm_name                   | 返回rpm包名称                                             |                                              |
-| _show_rpm_diff              | 输出rpm包差异                                             |                                              |
-| _get_check_item_dict        | 获取检查项详情字典                                        |                                              |
-| _show_diff_details          | 显示有diff差异的rpm包的所有差异详情                       |                                              |
-| output_result_to_console    | 解析结果文件并输出展示到jenkins上                         |                                              |
-| _read_json_file             | 读取json文件并检查结果类型                                |                                              |
-| _get_rule_data              | 根据正则表达式过滤数据                                    |                                              |
-| _get_new_json_data          | 得到新的json数据                                          | 删除字典中的正则匹配到的数据                 |
-| _write_compare_package_file | 写接口变更检查结果文件，新增pr链接和接口变更检查原因      |                                              |
-| _get_pr_changelog           | 获取更新代码的changelog内容，应承载接口变更检查原因及影响 |                                              |
-| _get_check_item_result      | 获取compare package比较结果各子项的详细信息               |                                              |
-| _result_to_table            | 获取compare package比较结果的详细信息                     |                                              |
+| 类方法/属性                 | 描述                                                  | 说明                                         |
+| --------------------------- | ----------------------------------------------------- | -------------------------------------------- |
+| __init__                    | 初始化                                                | ComparePackage实例化对象，初始设置一些参数值 |
+| _get_dict                   | 获取字典值                                            | 公共方法                                     |
+| _rpm_name                   | 返回rpm包名称                                         | 公共方法                                     |
+| _show_rpm_diff              | 输出rpm包差异                                         |                                              |
+| _get_check_item_dict        | 获取检查项详情字典                                    |                                              |
+| _show_diff_details          | 显示有diff差异的rpm包的所有差异详情                   |                                              |
+| output_result_to_console    | 解析结果文件并输出展示到jenkins上                     | 主入口                                       |
+| _read_json_file             | 读取json文件并检查结果类型                            |                                              |
+| _get_rule_data              | 根据正则表达式过滤数据                                |                                              |
+| _get_new_json_data          | 得到新的json数据                                      | 删除字典中的正则匹配到的数据                 |
+| _write_compare_package_file | 写接口变更检查结果文件，新增pr链接和接口变更检查原因  |                                              |
+| _get_pr_changelog           | 获取更新代码的changelog内容，应包含变更检查原因及影响 |                                              |
+| _get_check_item_result      | 获取compare package比较结果各子项的详细信息           |                                              |
+| _result_to_table            | 获取compare package比较结果的详细信息                 |                                              |
+
+**output_result_to_console()函数读取的数据结构如下：**
+
+```json
+{
+	"old_path": "xxxx",
+	"new_path": "xxxx",
+	"compare_result": "not pass",
+	"compare_details": {
+		"more": {
+			"more_num": 2,
+			"more_details": [
+				"1.rpm",
+				"2.rpm"
+			]
+		},
+		"diff": {
+			"diff_num": 2,
+			"diff_details": {
+				"lib_stan": {
+					"name": {
+						"old": "xxx",
+						"new": "xxx"
+					},
+					"rpm_abi": {
+						"diff": {
+							"old": [
+								"a.so_1.0",
+								"b.so_2.0"
+							],
+							"new": [
+								"a.so_1.1",
+								"b.so_2.1"
+							]
+						},
+						"less": [],
+						"more": []
+					},
+					"rpm_provides": {
+						"e.g": [
+							"a.so_1.1",
+							"b.so_2.1"
+						]
+					}
+				}
+			}
+		},
+		"less": {
+			"less_num": 2,
+			"less_details": [
+				"3.rpm",
+				"4.rpm"
+			]
+		},
+		"same": {
+			"old": [],
+			"new": []
+		}
+	}
+}
+```
+
+**_get_pr_changelog()函数读取的数据结构如下：**
+
+```json
+{
+	"url": "https://gitee.com/api/v5/repos/src-openeuler/time/commits/8041797958a159f6d01369a9011b2db3987721bf",
+	"sha": "8041797958a159f6d01369a9011b2db3987721bf",
+	"html_url": "https://gitee.com/src-openeuler/time/commit/8041797958a159f6d01369a9011b2db3987721bf",
+	"comments_url": "https://gitee.com/api/v5/repos/src-openeuler/time/commits/8041797958a159f6d01369a9011b2db3987721bf/comments",
+	"commit": {
+		"author": {
+			"name": "Lv Genggeng",
+			"date": "2022-03-22T19:59:50+08:00",
+			"email": "lvgenggeng@uniontech.com"
+		},
+		"committer": {
+			"name": "Lv Genggeng",
+			"date": "2022-03-22T19:59:50+08:00",
+			"email": "lvgenggeng@uniontech.com"
+		},
+		"message": "add help opt cmdline\n\nSigned-off-by: Lv Genggeng \u003Clvgenggeng@uniontech.com\u003E\n",
+		"tree": {
+			"sha": "a571bcc758a3c29cd28a2e632fc1f80eb4efa6b6",
+			"url": "https://gitee.com/api/v5/repos/src-openeuler/time/git/trees/a571bcc758a3c29cd28a2e632fc1f80eb4efa6b6"
+		}
+	},
+	"author": {
+		"id": 9903315,
+		"login": "lvgenggeng",
+		"name": "lvgenggeng",
+		"avatar_url": "https://gitee.com/assets/no_portrait.png",
+		"url": "https://gitee.com/api/v5/users/lvgenggeng",
+		"html_url": "https://gitee.com/lvgenggeng",
+		"remark": "",
+		"followers_url": "https://gitee.com/api/v5/users/lvgenggeng/followers",
+		"following_url": "https://gitee.com/api/v5/users/lvgenggeng/following_url{/other_user}",
+		"gists_url": "https://gitee.com/api/v5/users/lvgenggeng/gists{/gist_id}",
+		"starred_url": "https://gitee.com/api/v5/users/lvgenggeng/starred{/owner}{/repo}",
+		"subscriptions_url": "https://gitee.com/api/v5/users/lvgenggeng/subscriptions",
+		"organizations_url": "https://gitee.com/api/v5/users/lvgenggeng/orgs",
+		"repos_url": "https://gitee.com/api/v5/users/lvgenggeng/repos",
+		"events_url": "https://gitee.com/api/v5/users/lvgenggeng/events{/privacy}",
+		"received_events_url": "https://gitee.com/api/v5/users/lvgenggeng/received_events",
+		"type": "User"
+	},
+	"committer": {
+		"id": 9903315,
+		"login": "lvgenggeng",
+		"name": "lvgenggeng",
+		"avatar_url": "https://gitee.com/assets/no_portrait.png",
+		"url": "https://gitee.com/api/v5/users/lvgenggeng",
+		"html_url": "https://gitee.com/lvgenggeng",
+		"remark": "",
+		"followers_url": "https://gitee.com/api/v5/users/lvgenggeng/followers",
+		"following_url": "https://gitee.com/api/v5/users/lvgenggeng/following_url{/other_user}",
+		"gists_url": "https://gitee.com/api/v5/users/lvgenggeng/gists{/gist_id}",
+		"starred_url": "https://gitee.com/api/v5/users/lvgenggeng/starred{/owner}{/repo}",
+		"subscriptions_url": "https://gitee.com/api/v5/users/lvgenggeng/subscriptions",
+		"organizations_url": "https://gitee.com/api/v5/users/lvgenggeng/orgs",
+		"repos_url": "https://gitee.com/api/v5/users/lvgenggeng/repos",
+		"events_url": "https://gitee.com/api/v5/users/lvgenggeng/events{/privacy}",
+		"received_events_url": "https://gitee.com/api/v5/users/lvgenggeng/received_events",
+		"type": "User"
+	},
+	"parents": [{
+		"sha": "099ff388bceae72a9a55b96b96c1d8e4716ec0c8",
+		"url": "https://gitee.com/api/v5/repos/src-openeuler/time/commits/099ff388bceae72a9a55b96b96c1d8e4716ec0c8"
+	}],
+	"stats": {
+		"id": "8041797958a159f6d01369a9011b2db3987721bf",
+		"additions": 21,
+		"deletions": 1,
+		"total": 22
+	},
+	"files": [{
+		"sha": "00627ce001927a921f850b803dfaa30ee31172a9",
+		"filename": "add-help-opt.patch",
+		"status": "added",
+		"additions": 13,
+		"deletions": 0,
+		"changes": 13,
+		"blob_url": "https://gitee.com/src-openeuler/time/blob/8041797958a159f6d01369a9011b2db3987721bf/add-help-opt.patch",
+		"raw_url": "https://gitee.com/src-openeuler/time/raw/8041797958a159f6d01369a9011b2db3987721bf/add-help-opt.patch",
+		"content_url": "https://gitee.com/api/v5/repos/src-openeuler/time/contents/add-help-opt.patch?ref=8041797958a159f6d01369a9011b2db3987721bf",
+		"patch": "@@ -0,0 +1,13 @@\n+diff --git a/src/time.c b/src/time.c\n+index 7e07995..231e8cb 100644\n+--- a/src/time.c\n++++ b/src/time.c\n+@@ -657,7 +657,7 @@ getargs (argc, argv)\n+   if (format)\n+     output_format = format;\n+ \n+-  while ((optc = getopt_long (argc, argv, \"+af:o:pqvV\", longopts, (int *) 0))\n++  while ((optc = getopt_long (argc, argv, \"+af:ho:pqvV\", longopts, (int *) 0))\n+ \t != EOF)\n+     {\n+       switch (optc)\n"
+	}, {
+		"sha": "fe105c58bcfdfa140157c43c2f7615f72dc7bc9b",
+		"filename": "time.spec",
+		"status": "modified",
+		"additions": 8,
+		"deletions": 1,
+		"changes": 9,
+		"blob_url": "https://gitee.com/src-openeuler/time/blob/8041797958a159f6d01369a9011b2db3987721bf/time.spec",
+		"raw_url": "https://gitee.com/src-openeuler/time/raw/8041797958a159f6d01369a9011b2db3987721bf/time.spec",
+		"content_url": "https://gitee.com/api/v5/repos/src-openeuler/time/contents/time.spec?ref=8041797958a159f6d01369a9011b2db3987721bf",
+		"patch": "@@ -1,10 +1,11 @@\n Name:           time\n Version:        1.9\n-Release:        7\n+Release:        8\n Summary:        Monitoring the system resources used by running program\n License:        GPLv3+ and GFDL\n URL:            http://www.gnu.org/software/%{name}/\n Source0:        ftp://ftp.gnu.org/gnu/%{name}/%{name}-%{version}.tar.gz\n+Patch0:         add-help-opt.patch\n \n BuildRequires:  autoconf automake bash coreutils gcc make texinfo sed\n \n@@ -39,6 +40,12 @@ make check %{?_smp_mflags}\n %{_infodir}/time.info*\n \n %changelog\n+* Tue Mar 22 2022 Lv Genggeng \u003Clvgenggeng@uniontech.com\u003E - 1.9-8\n+- Type: enhancement\n+- ID: NA\n+- SUG: NA\n+- DESC: add help opt in cmdline\n+\n * Wed Jan 8 2020 openEuler Buildteam \u003Cbuildteam@openeuler.org\u003E - 1.9-7\n - Type: enhancement\n - ID: NA\n"
+	}]
+}
+```
 
 ## 6 osc build
 
