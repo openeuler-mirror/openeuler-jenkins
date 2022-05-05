@@ -260,11 +260,13 @@ class CheckSpec(BaseCheck):
             """
             检查changelog中的版本号，release号是否和spec的版本号，release号一致
             """
+            # 排除邮箱格式中“-”的影响
+            new_str = re.sub(r"<[\w._-]+@[\w\-_]+[.a-zA-Z]+>", "", changelog_con)
             if self._spec.epoch:  # 检查spec文件中是否存在epoch字段
-                obj_s = re.search(r"\w+:(\w+(.\w+){0,9})-[\w.]+", changelog_con)
+                obj_s = re.search(r"\w+:(\w+(.\w+){0,9})-[\w.]+", new_str)
                 version = "".join([self._spec.epoch, ":", version])
             else:
-                obj_s = re.search(r"(\w+(.\w+){0,9})-[\w.]+", changelog_con)
+                obj_s = re.search(r"(\w+(.\w+){0,9})-[\w.]+", new_str)
             if not obj_s:
                 logger.error("%s Missing release or version!", changelog_con)
                 return False
