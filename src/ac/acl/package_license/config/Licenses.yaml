@@ -1436,6 +1436,9 @@ Software Licenses:
   - alias:
     - Zend License v2.0
     identifier: Zend-2.0
+  - alias:
+    - ANTLR Software Rights Notice
+    identifier: ANTLR-PD
   Need Review Licenses:
   - alias:
     - Apache License 1.0
