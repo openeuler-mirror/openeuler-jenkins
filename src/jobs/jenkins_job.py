@@ -190,11 +190,11 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             logger.error("%s", out)
             return []
 
-        sig_exception_list = ['README.md', 'sig-recycle', 'sig-template']
+        sig_exception_list = ['sig-recycle', 'sig-template']
         sig_path = os.path.join('community', 'sig')
         repositories = []
         for i in os.listdir(sig_path):
-            if i in sig_exception_list:
+            if i in sig_exception_list or os.path.isfile(os.path.join(sig_path, i)):
                 continue
             if organization in os.listdir(os.path.join(sig_path, i)):
                 for _, _, repos in os.walk(os.path.join(sig_path, i, organization)):
