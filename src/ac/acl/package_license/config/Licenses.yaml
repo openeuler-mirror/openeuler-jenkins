@@ -40,10 +40,6 @@ Software Licenses:
     - A.M.P.A.S.
     identifier: AMPAS
   - alias:
-    - ANTLR Software Rights Notice
-    - ANTLR 2 License
-    identifier: ANTLR-PD
-  - alias:
     - Bahyph License
     - Copyright (c) GMV 1991
     identifier: Bahyph
@@ -1438,6 +1434,7 @@ Software Licenses:
     identifier: Zend-2.0
   - alias:
     - ANTLR Software Rights Notice
+    - ANTLR 2 License
     identifier: ANTLR-PD
   Need Review Licenses:
   - alias:
