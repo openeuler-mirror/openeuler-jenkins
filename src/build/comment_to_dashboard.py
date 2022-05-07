@@ -122,7 +122,8 @@ class CommentToDashboard(object):
                        "若门禁存在误报，您可以评论/ci_mistake {}进行误报标记，{}表示本次构建号\n" \
                        "也可带上误报的门禁检查项以及误报类型（ci、obs、infra），" \
                        "比如/ci_mistake {} obs check_build check_install表示的是check_build和check_install存在误报，" \
-                       "误报类型为obs\n若想取消误报标记，可以评论/ci_unmistake {}取消。".format(
+                       "误报类型为obs\n若想取消误报标记，可以评论/ci_unmistake {}取消\n" \
+                       "也可在评论后加上一段文字描述，但请另起一行".format(
                         args_list.trigger_build_id, args_list.trigger_build_id,
                         args_list.trigger_build_id, args_list.trigger_build_id)
         gp = GiteeProxy(args_list.owner, args_list.repo, args_list.gitee_token)
