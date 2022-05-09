@@ -201,7 +201,7 @@ function build_packages() {
     fi
 FEOF
     log_debug "check install"
-    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
+    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch  --obs_rpm_host ${obs_rpm_host} --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
 
     log_debug "pkgship notify"
     if [[ "x$item" == "xpkgship" ]]; then
