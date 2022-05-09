@@ -10,28 +10,27 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
-# Author: 
+# Author:
 # Create: 2020-09-23
 # Description: duplicate jenkins jobs configuration
 # **********************************************************************************
 """
 import sys
-import abc
-import os
-import stat
-import logging.config
-import logging
-import time
-import re
-import xml.etree.ElementTree as ET
-import yaml
-import argparse
-import gevent
-from src.utils.shell_cmd import shell_cmd
-from src.utils.shell_cmd import shell_cmd_live
 
+import gevent
 from gevent import monkey
 monkey.patch_all()
+
+import abc
+import argparse
+import os
+import time
+import xml.etree.ElementTree as ET
+import yaml
+
+from src.logger import logger
+from src.proxy.jenkins_proxy import JenkinsProxy
+from src.utils.shell_cmd import shell_cmd_live
 
 
 class JenkinsJobs(object):
@@ -117,7 +116,10 @@ class JenkinsJobs(object):
         :param jenkins_proxy: 目标任务jenkins代理
         :return: dict
         """
-        job_config = self.update_config(job.split("/")[-1])
+        if not any(["trigger" in job, "comment" in job]) and "/openeuler/" in job and action == "create":
+            job_config = self.update_config(job.split("/")[-1], reset_shell=True)
+        else:
+            job_config = self.update_config(job.split("/")[-1], reset_shell=False)
         if action == "create":
             result = jenkins_proxy.create_job(job, job_config)
         else:
@@ -146,10 +148,11 @@ class JenkinsJobs(object):
             return []
 
     @abc.abstractmethod
-    def update_config(self, job):
+    def update_config(self, job, reset_shell=False):
         """
         implement in subclass
         :param job:
+        :param reset_shell:
         :return:
         """
         raise NotImplementedError
@@ -165,7 +168,7 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
 
         self._all_community_jobs = self.get_all_repos(organization, gitee_token)
         logger.info("%s exist %s jobs", organization, len(self._all_community_jobs))
-        self._config_table = self.load_exclusive_soe_config()
+        self._config_table = self.load_exclusive_soe_config(organization)
 
     @staticmethod
     def get_all_repos(organization, gitee_token):
@@ -231,9 +234,10 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             return []
 
     @staticmethod
-    def load_exclusive_soe_config():
+    def load_exclusive_soe_config(organization):
         """
-        获取src-openeuler下所有已存在仓库的工程配置
+        获取src-openeuler或openeuler下所有已存在仓库的工程配置
+        :param organization: src-openeuler or openeuler
         :return:
         """
         cur_path = os.path.abspath(os.path.dirname(__file__))
@@ -244,12 +248,14 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             raise OSError("soe_exclusive_config.yaml not exist")
         except yaml.MarkedYAMLError:
             raise yaml.MarkedYAMLError("soe_exclusive_config.yaml is not an illegal yaml format file")
-        if not config_table:
-            return {}
-        # check yaml format and exception if not
-        if not SrcOpenEulerJenkinsJobs.check_soe_exclusive_config_format(config_table):
+        if not config_table or not isinstance(config_table, dict) or organization not in config_table.keys():
             raise ValueError("soe_exclusive_config.yaml is not an illegal yaml format file")
-        return config_table
+
+        # check yaml format and exception if not
+        if not all([config_table, isinstance(config_table, dict), organization in config_table.keys(),
+                    SrcOpenEulerJenkinsJobs.check_soe_exclusive_config_format(config_table.get(organization))]):
+            raise ValueError("soe_exclusive_config.yaml is not an illegal yaml format file")
+        return config_table.get(organization)
 
     @staticmethod
     def check_soe_exclusive_config_format(config_table):
@@ -265,9 +271,9 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         skipped_repo = config_table.get("skipped_repo")
         exclusive_repo_config = config_table.get("repo_config")
         exclusive_arch_config = config_table.get("arch_config")
-        if not all([skipped_repo, isinstance(skipped_repo, list),
-                    exclusive_repo_config, isinstance(exclusive_repo_config, dict),
-                    exclusive_arch_config, isinstance(exclusive_arch_config, dict)]):
+        if not all([isinstance(skipped_repo, list),
+                    isinstance(exclusive_repo_config, dict),
+                    isinstance(exclusive_arch_config, dict)]):
             return False
         # expect exclusive_repo_config has repo/buddy/buddy keys and the value is str
         for _, value in exclusive_repo_config.items():
@@ -283,15 +289,14 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                 return False
         return True
 
-    def update_config(self, job):
+    def update_root_common(self, root, job):
         """
         根据模板生成目标任务配置信息
+        :param root: xml string before update
         :param job: 目标任务
-        :return: xml string
+        :return: xml string after update
         """
         buddy = self._config_table.get("repo_config").get(job, {"repo": job, "buddy": job, "packages": job})
-        root = ET.fromstring(self._template_job_config)
-
         ele = root.find("triggers//regexpFilterExpression")
         if ele is not None:
             ele.text = ele.text.replace(self._template_job, buddy["repo"])
@@ -330,6 +335,17 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         if ele is not None:
             ele.text = buddy["packages"]
 
+        return root
+
+    def update_config(self, job, reset_shell=False):
+        """
+        根据模板生成目标任务配置信息
+        :param job: 目标任务
+        :param reset_shell: 重置openeuler下门禁x86,aarch64等构建工程的shell脚本
+        :return: xml string
+        """
+        root = ET.fromstring(self._template_job_config)
+        root = self.update_root_common(root, job)
         return ET.tostring(root).decode("utf-8")
 
 
@@ -337,100 +353,34 @@ class OpenEulerJenkinsJobs(SrcOpenEulerJenkinsJobs):
     """
     openEuler 仓库
     """
-
-    @staticmethod
-    def guess_build_script(job):
-        """
-        返回仓库对应的jenkins build脚本
-        :param job:
-        :return:
-        """
-        jenkinsfile_dir = os.path.realpath(os.path.join(__file__, "../../jenkinsfile"))
-
-        script = job
-        for filename in os.listdir(jenkinsfile_dir):
-            if filename == script:
-                break
-            if re.match(r"{}\..*".format(job), filename):  # repo.{sufix}
-                script = filename
-                break
-
-        script = os.path.realpath(os.path.join(jenkinsfile_dir, script))
-
-        # helper chmod +x
-        if os.path.exists(script):
-            st = os.stat(script)
-            os.chmod(script, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-        return script
-
-    def update_config(self, job):
+    def update_config(self, job, reset_shell=False):
         """
         根据模板生成目标任务配置信息
         :param job: 目标任务
+        :param reset_shell: 重置openeuler下门禁x86,aarch64等构建工程的shell脚本
         :return: xml string
         """
-        root = ET.fromstring(self._template_job_config.encode("utf-8"))
-
-        buddy = self._all_community_jobs[job]  #
-
-        # triggers
-        ele = root.find("triggers//regexpFilterExpression")
-        if ele is not None:
-            ele.text = ele.text.replace(self._template_job, buddy["repo"])
-
-        # parameterized trigger
-        ele = root.find("publishers/hudson.plugins.parameterizedtrigger.BuildTrigger//projects")
-        if ele is not None:
-            arches = self._exclusive_arch.get(buddy["repo"])
-            if arches:  # eg: [x86_64]
-                projects = []
-                for project in ele.text.split(","):
-                    for arch in arches:
-                        if arch in project:
-                            projects.append(project)
-                ele.text = ",".join(projects).replace(self._template_job, buddy["repo"])
-            else:
-                ele.text = ele.text.replace(self._template_job, buddy["repo"])
-
-        # build
-        script = self.guess_build_script(buddy["repo"])
-        logger.debug("guess build script: %s", "script")
-        ele = root.findall("buiders/hudson.task.Shell/command")
-        if ele:
-            # replace first command
-            command = ele[0]
-            command.text = script
-
-        # join trigger
-        ele = root.find("publishers/join.JoinTrigger//projects")
-        if ele is not None:
-            ele.text = ele.text.replace(self._template_job, buddy["repo"])
-
-        # set repo defaultValue
-        ele = root.find("properties//*[name=\"repo\"]/defaultValue")
-        if ele is not None:
-            ele.text = buddy["repo"]
-
-        return ET.tostring(root)
+        root = ET.fromstring(self._template_job_config)
+        root = self.update_root_common(root, job)
+        if reset_shell:
+            ele_list = root.findall("builders/hudson.tasks.Shell/command")
+            for ele in ele_list:
+                ele.text = ""
+        return ET.tostring(root).decode("utf-8")
 
 
 if "__main__" == __name__:
     args = argparse.ArgumentParser()
 
     args.add_argument("-f", type=str, dest="organization", default="src-openeuler", help="src-openeuler or openeuler")
-
     args.add_argument("-a", type=str, dest="action", help="create or update")
     args.add_argument("-c", type=int, dest="concurrency", default=75, help="jobs send to jenkins server concurrency")
     args.add_argument("-r", type=int, dest="retry", default=3, help="retry times")
     args.add_argument("-i", type=int, dest="interval", default=0, help="retry interval")
-
     args.add_argument("-l", type=str, dest="exclude_jobs", nargs="*", help="jobs not to created")
     args.add_argument("-o", type=int, dest="jenkins_timeout", default=10, help="jenkins api timeout")
-
     args.add_argument("-u", type=str, dest="jenkins_user", help="jenkins user name")
     args.add_argument("-t", type=str, dest="jenkins_api_token", help="jenkins api token")
-
     args.add_argument("--gitee_token", type=str, dest="gitee_token", help="gitee token")
     args.add_argument("--jenkins_url", type=str, dest="jenkins_url", help="jenkins url")
     args.add_argument("-m", type=str, dest="template_job", help="template job name")
@@ -440,23 +390,22 @@ if "__main__" == __name__:
 
     args = args.parse_args()
 
-    # init logging
-    _ = not os.path.exists("log") and os.mkdir("log")
-    logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__), "../../conf/logger.conf"))
-    logging.config.fileConfig(logger_conf_path)
-    logger = logging.getLogger("jobs")
-
-    from src.proxy.jenkins_proxy import JenkinsProxy
-
     jp = JenkinsProxy(args.jenkins_url, args.jenkins_user, args.jenkins_api_token,
                       args.jenkins_timeout)
 
-    if args.organization == "src-openeuler":
-        jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir,
-                                               args.template_job, jp, args.organization, args.gitee_token)
+    if all([args.organization == "openeuler", args.action == "create", "all" in args.target_jobs]):
+        logger.error("all is not allowed when create ci in openeuler")
+    elif any([args.organization == "src-openeuler", "trigger" in args.target_jobs_dir,
+            "comment" in args.target_jobs_dir, args.action == "create"]):
+        if args.organization == "src-openeuler":
+            jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir,
+                                                   args.template_job, jp, args.organization, args.gitee_token)
+        else:
+            jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization,
+                                                args.gitee_token)
+        jenkins_jobs.run(args.action, args.target_jobs_dir, args.target_jobs, exclude_jobs=args.exclude_jobs,
+                         concurrency=args.concurrency, retry=args.retry, interval=args.interval)
     else:
-        jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization,
-                                            args.gitee_token)
+        logger.error("jobs in %s are not allowed update", args.target_jobs_dir)
 
-    jenkins_jobs.run(args.action, args.target_jobs_dir, args.target_jobs, exclude_jobs=args.exclude_jobs,
-                     concurrency=args.concurrency, retry=args.retry, interval=args.interval)
+
