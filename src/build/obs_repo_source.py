@@ -15,8 +15,11 @@
 # Description: obs repo as dnf source
 # **********************************************************************************
 """
-from src.proxy.requests_proxy import do_requests
 import logging
+import os
+
+from src.proxy.requests_proxy import do_requests
+from src.utils.file_operator import FileOperator
 
 logger = logging.getLogger("common")
 
@@ -25,12 +28,14 @@ class OBSRepoSource(object):
     """
     生成obs实时仓作为rpm源的配置
     """
-    def __init__(self, repo_host):
+    def __init__(self):
         """
 
         :param repo_host: obs仓库host
         """
-        self._current_repo_host = repo_host
+        cur_path = os.path.abspath(os.path.dirname(__file__))
+        config_file = os.path.join(cur_path, "../conf/project_host_mapping.yaml")
+        self.project_host_map = FileOperator.filereader(config_file, "yaml")
 
     @staticmethod
     def repo_format(repo_id, repo_name, repo_baseurl, priority=None):
@@ -58,8 +63,13 @@ class OBSRepoSource(object):
         repo_config = ""
         priority = 1
         for obs_branch in obs_branch_list:
+            host = ""
+            for backend_name, backend_conf in self.project_host_map.items():
+                if obs_branch in backend_conf.get("project_list"):
+                    host = backend_conf.get("host")
+                    break
             branch = obs_branch.replace(":", ":/")
-            url = "{}/{}/standard_{}".format(self._current_repo_host, branch, arch)
+            url = "{}/{}/standard_{}".format(host, branch, arch)
             if do_requests("GET", url) == 0:
                 logger.debug("add openstack base repo: %s", url)
                 repo_config += self.repo_format(obs_branch, repo_name_prefix + "_" + branch, url, priority)
