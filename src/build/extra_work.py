@@ -91,7 +91,7 @@ class ExtraWork(object):
         else:
             logger.error("notify ...fail")
 
-    def check_rpm_abi(self, package_url, package_arch, output, committer, comment_file, obs_addr, 
+    def check_rpm_abi(self, package_url, package_arch, output, committer, comment_file, obs_addr,
                         branch_name="master", obs_repo_url=None):
         """
         对比两个版本rpm包之间的接口差异，根据差异找到受影响的rpm包
@@ -135,11 +135,11 @@ class ExtraWork(object):
             logger.error("check abi error: %s", ret)
         else:
             logger.debug("check abi ok: %s", ret)
-        
+
         if os.path.exists(output):
             # change of abi
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "WARNING",
-                       "link": self._rpm_package.checkabi_md_in_repo(committer, self._repo, package_arch, 
+                       "link": self._rpm_package.checkabi_md_in_repo(committer, self._repo, package_arch,
                                 os.path.basename(output), package_url)}
         else:
             comment = {"name": "check_abi/{}/{}".format(package_arch, self._repo), "result": "SUCCESS"}
@@ -172,7 +172,7 @@ class ExtraWork(object):
         logger.info("create install root directory: %s", config.install_root)
 
         # 2. prepare repo
-        repo_source = OBSRepoSource("http://{}".format(config.obs_rpm_host))   # obs 实时构建repo地址
+        repo_source = OBSRepoSource()   # obs 实时构建repo地址
         obs_branch_list = Constant.GITEE_BRANCH_PROJECT_MAPPING.get(config.branch_name, [])
         repo_config = repo_source.generate_repo_info(obs_branch_list, config.arch, "check_install")
         logger.info("repo source config:\n%s", repo_config)
@@ -282,10 +282,10 @@ def getrelatedrpm(config, extrawork):
 if "__main__" == __name__:
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--package", type=str, default="src-openeuler", help="obs package")
-    parser.add_argument("-d", "--rpmbuild_dir", type=str, 
+    parser.add_argument("-d", "--rpmbuild_dir", type=str,
             default="/home/jenkins/agent/buildroot/home/abuild/rpmbuild", help="rpmbuild dir")
     subparsers = parser.add_subparsers(help='sub-command help')
-    
+
     # 添加子命令 notify
     parser_notify = subparsers.add_parser('notify', help='add help')
     parser_notify.add_argument("-n", type=str, dest="notify_url", help="target branch that merged to ")
@@ -339,7 +339,7 @@ if "__main__" == __name__:
     parser_getrelatedrpm.set_defaults(func=getrelatedrpm)
 
     args = parser.parse_args()
-    
+
     _ = not os.path.exists("log") and os.mkdir("log")
     logger_conf_path = os.path.realpath(os.path.join(os.path.realpath(__file__),
                                                      "../../conf/logger.conf"))
