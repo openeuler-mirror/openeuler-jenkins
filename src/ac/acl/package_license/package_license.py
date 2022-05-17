@@ -49,15 +49,15 @@ class PkgLicense(object):
                            "meta.yml",
                            "meta.json",
                            "pkg-info"]
-    
-    LICENSE_TARGET_PAT  = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?")
+
+    LICENSE_TARGET_PAT = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?")
 
     LICENSE_YAML_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   "config",
-                                   "Licenses.yaml")
+                                     "config",
+                                     "Licenses.yaml")
     LATER_SUPPORT_LICENSE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   "config",
-                                   "later_support_license.yaml")
+                                              "config",
+                                              "later_support_license.yaml")
 
     def __init__(self):
         self._white_black_list = {}
@@ -131,7 +131,7 @@ class PkgLicense(object):
             elif res == "black":
                 logger.error("This license: %s is not free", lic)
                 result = False
-            else: 
+            else:
                 logger.warning("This license: %s need to be review", lic)
                 result = False
         return result
@@ -151,7 +151,7 @@ class PkgLicense(object):
         """
         分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
         """
-        license_set = re.split(r'\(|\)|\s+\,|\s+[Aa][Nn][Dd]\s+|\s+-?or-?\s+|\s+/\s+', licenses)
+        license_set = re.split(r'\(|\)|\s+\,|\s+[Aa][Nn][Dd]\s+|\s+-?[Oo][Rr]-?\s+|\s+/\s+', licenses)
         for index in range(len(license_set)):  # 去除字符串首尾空格
             license_set[index] = license_set[index].strip()
         return set(filter(None, license_set))  # 去除list中空字符串
@@ -167,9 +167,9 @@ class PkgLicense(object):
             return licenses_in_file
 
         for root, _, filenames in os.walk(srcdir):
-            for filename in filenames:  
-                if (filename.lower() in self.LICENSE_FILE_TARGET 
-                    or self.LICENSE_TARGET_PAT.search(filename.lower())):
+            for filename in filenames:
+                if (filename.lower() in self.LICENSE_FILE_TARGET
+                        or self.LICENSE_TARGET_PAT.search(filename.lower())):
                     logger.info("scan the license target file: %s", os.path.join(root, filename).replace(srcdir, ""))
                     licenses_in_file.update(
                         self.scan_licenses(
@@ -203,7 +203,7 @@ class PkgLicense(object):
             try:
                 if word in data:
                     pattern_str = r'(^{word}$)|(^{word}(\W+))|((\W+){word}$)|((\W+){word}(\W+))' \
-                                  .format(word=word)
+                        .format(word=word)
                     if re.search(pattern_str, data):
                         licenses_in_file.add(word)
             except UnicodeDecodeError as e:
