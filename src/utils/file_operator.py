@@ -27,23 +27,28 @@ class FileOperator(object):
     config_table = {
         "reader": {
             "yaml": {"function": yaml.safe_load, "exception": yaml.MarkedYAMLError},
-            "json": {"function": json.load, "exception": json.JSONDecodeError}
+            "json": {"function": json.load, "exception": json.JSONDecodeError},
+            "default": {"function": lambda f: f.read(), "exception": IOError}
         },
         "writer": {
             "yaml": {"function": yaml.safe_dump, "exception": IOError},
-            "json": {"function": json.dump, "exception": IOError}
+            "json": {"function": json.dump, "exception": IOError},
+            "default": {"function": lambda f, data: f.write(data), "exception": IOError}
         },
     }
 
     @staticmethod
-    def filereader(filepath, file_format):
-        reader_config = FileOperator.config_table.get("reader").get(file_format)
+    def filereader(filepath, file_format=None):
+        if file_format:
+            reader_config = FileOperator.config_table.get("reader").get(file_format)
+        else:
+            reader_config = FileOperator.config_table.get("reader").get("default")
         if not reader_config:
             raise IOError("filereader don't support {} file".format(file_format))
         if not os.path.exists(filepath):
             raise IOError("{} not exists".format(os.path.basename(filepath)))
 
-        with open(filepath, "r") as data:
+        with open(filepath, "r", encoding='utf-8') as data:
             try:
                 all_data = reader_config.get("function")(data)
             except reader_config.get("exception") as error:
@@ -52,8 +57,11 @@ class FileOperator(object):
         return all_data
 
     @staticmethod
-    def filewriter(filepath, all_data, file_format):
-        writer_config = FileOperator.config_table.get("writer").get(file_format)
+    def filewriter(filepath, all_data, file_format=None):
+        if file_format:
+            writer_config = FileOperator.config_table.get("writer").get(file_format)
+        else:
+            writer_config = FileOperator.config_table.get("writer").get("default")
         if not writer_config:
             raise IOError("filewriter don't support {} file".format(file_format))
         try:

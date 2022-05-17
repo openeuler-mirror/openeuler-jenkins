@@ -317,6 +317,10 @@ EOF
   if [[ -e $comment_file ]]; then
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ${comment_file} root@${repo_server}:$fileserver_tmpfile_path/${comment_file}
   fi
+
+  python3 ${shell_path}/src/utils/oemaker_analyse.py --branch ${tbranch} --arch ${arch} \
+	--oecp_json_path "$result_dir/report-$old_dir-$new_dir/osv.json" --owner "src-openeuler" \
+	--repo ${repo} --gitee_token $GiteeToken --prid ${prid}
   log_info "***** End to compare package diff *****"
 }
 

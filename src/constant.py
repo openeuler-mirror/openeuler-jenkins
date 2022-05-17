@@ -21,6 +21,8 @@ class Constant(object):
     class Constant
     """
 
+    SUPPORT_ARCH = ["x86_64", "aarch64"]
+
     GITEE_BRANCH_PROJECT_MAPPING = {
         "master": ["bringInRely", "openEuler:Extras", "openEuler:Factory", "openEuler:Mainline", "openEuler:Epol"],
         "openEuler-20.03-LTS": ["openEuler:20.03:LTS"],
