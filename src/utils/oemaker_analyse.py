@@ -130,7 +130,7 @@ class OemakerAnalyse(object):
         try:
             need_check_delete_rpm_list = oecp_dict["compare_details"]["less"]["less_details"]
         except KeyError as e:
-            logger.error(e)
+            logger.info("the json file does not have key:%s", e)
             return []
 
         if not need_check_delete_rpm_list:
@@ -140,7 +140,6 @@ class OemakerAnalyse(object):
             match_result = re.match(r"^(.+)-.+-.+", value)
             need_check_delete_rpm_list[index] = match_result.group(1)
         logger.info("%s rpms to be deleted: %s", len(need_check_delete_rpm_list), need_check_delete_rpm_list)
-
 
         # download oemaker repo
         if os.path.exists('oemaker'):

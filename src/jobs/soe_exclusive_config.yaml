@@ -34,6 +34,7 @@ src-openeuler:
     libumem: ["x86_64"]
     tboot: ["x86_64"]
     libwd: ["aarch64"]
+    cpuid: ["x86_64"]
 openeuler:
   skipped_repo: ["community", "release-management"]
   repo_config: {}
