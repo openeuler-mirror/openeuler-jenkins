@@ -15,6 +15,7 @@
 # Description: check spec file
 # **********************************************************************************
 """
+import os
 import calendar
 import logging
 import time
@@ -28,6 +29,7 @@ from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.common.gitee_repo import GiteeRepo
+from pyrpm.spec import Spec
 
 logger = logging.getLogger("ac")
 
@@ -152,7 +154,7 @@ class CheckSpec(BaseCheck):
 
     def check_patches(self):
         """
-        检查spec中的patch是否存在
+        检查spec中的patch是否存在，及patch的使用情况
         :return:
         """
         patches_spec = set(self._spec.patches)
@@ -161,12 +163,45 @@ class CheckSpec(BaseCheck):
         logger.debug("file patches: %s", patches_file)
 
         result = SUCCESS
+
+        def patch_adaptation(spec_con, patches_dict):
+            """
+            检查spec文件中patch在prep阶段的使用情况
+            :param spec_con:spec文件内容
+            :param patches_dict:spec文件中补丁具体信息
+            :return:
+            """
+            if not patches_dict:
+                return True
+            miss_patches_dict = {}
+            prep_obj = re.search(r"%prep[\s\S]*%changelog", spec_con, re.I)
+            if not prep_obj:
+                logger.error("%prep part lost")
+                return False
+            prep_str = prep_obj.group().lower()
+            if prep_str.find("autosetup") != -1 or prep_str.find("autopatch") != -1:
+                return True
+            for single_key, single_patch in patches_dict.items():
+                if prep_str.find(single_key.lower()) == -1:
+                    miss_patches_dict[single_key] = single_patch
+            if miss_patches_dict:
+                logger_con = ["%s: %s" % (key, value) for key, value in miss_patches_dict.items()]
+                logger.error("The following patches in the spec file are not used: \n%s", "\n".join(logger_con))
+                return False
+            return True
+
         for patch in patches_spec - patches_file:
             logger.error("patch %s lost", patch)
             result = FAILED
         for patch in patches_file - patches_spec:
             logger.warning("patch %s redundant", patch)
             result = WARNING
+        with open(os.path.join(self._work_dir, self._gr.spec_file), "r", encoding="utf-8") as fp:
+            all_str = fp.read()
+            adapter = Spec.from_string(all_str)
+            patch_dict = adapter.__dict__.get("patches_dict")
+            if not patch_adaptation(all_str, patch_dict):
+                result = FAILED
         return result
 
     def _ex_exclusive_arch(self):
