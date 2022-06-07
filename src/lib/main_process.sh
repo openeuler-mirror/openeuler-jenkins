@@ -332,6 +332,19 @@ function main() {
   config_gradle
   download_buddy_repo
   drop_pod_cache
-  build_packages
-  compare_package
+  exclusive_arch=$arch
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_support_arch .
+  ls -l .
+  if [[ -e ${repo}_support_arch ]]; then
+    support_arch=`cat ${repo}_support_arch`
+    if [[ $support_arch != *$arch* ]]
+    then
+      exclusive_arch=""
+    fi
+  fi
+  if [[ $exclusive_arch ]]; then
+    log_info "exclusive_arch not empty"
+    build_packages
+    compare_package
+  fi
 }

@@ -48,6 +48,9 @@ function extra_work() {
 if [[ ! -d "/repo/soe${repo_server_test_tail}/pkgship" ]]; then
 	mkdir -p /repo/soe${repo_server_test_tail}/pkgship
 fi
+if [[ ! -d "/repo/soe${repo_server_test_tail}/support_arch" ]]; then
+	mkdir -p /repo/soe${repo_server_test_tail}/support_arch
+fi
 EOF
   )
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_create_cmd"
@@ -56,8 +59,9 @@ EOF
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pkgship_notify root@${repo_server}:/repo/soe${repo_server_test_tail}/pkgship
   fi
 
-  if [[ -e exclusive_arch ]]; then
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null exclusive_arch root@${repo_server}:/repo/soe${repo_server_test_tail}/exclusive_arch/${giteeRepoName}
+  if [[ -e support_arch ]]; then
+    mv support_arch ${giteeRepoName}_support_arch
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${giteeRepoName}_support_arch root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
   fi
   log_info "***** End to exec extra worker *****"
 }

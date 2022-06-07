@@ -63,36 +63,6 @@ class RPMSpecAdapter(object):
         patch = self._adapter.patches_dict.get(key, "")
         return replace_macros(patch, self._adapter) if patch else ""
 
-    def include_x86_arch(self):
-        """
-        check include x86-64
-        :return
-        """
-        try:
-            value = self.buildarch
-            logger.debug("build arch: %s", value)
-            if "x86_64" in value.lower():
-                return True
-
-            return False
-        except AttributeError:
-            return True
-
-    def include_aarch64_arch(self):
-        """
-        check include aarch64
-        :return
-        """
-        try:
-            value = self.buildarch
-            logger.debug("build arch: %s", value)
-            if "aarch64" in value.lower():
-                return True
-
-            return False
-        except AttributeError:
-            return True
-
     @staticmethod
     def compare_version(version_n, version_o):
         """
