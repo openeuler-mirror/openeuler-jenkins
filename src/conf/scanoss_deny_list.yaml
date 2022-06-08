@@ -3,7 +3,10 @@ openeuler:
   - openeuler
   - openeuler-mirror
   - src-openeuler
-  extra_deny_list: {}
+  extra_deny_list:
+    radiaTest:
+    - publisher: lemon.higgins
+      name: RadiaTest
 #   gcc:
 #   - publisher: openeuler
 #     name: gcc
