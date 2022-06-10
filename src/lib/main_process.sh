@@ -333,7 +333,7 @@ function main() {
   download_buddy_repo
   drop_pod_cache
   exclusive_arch=$arch
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_support_arch .
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_support_arch . || echo "${repo}_support_arch" not exist
   ls -l .
   if [[ -e ${repo}_support_arch ]]; then
     support_arch=`cat ${repo}_support_arch`
