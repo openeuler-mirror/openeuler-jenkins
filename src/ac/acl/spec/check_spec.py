@@ -51,7 +51,7 @@ class CheckSpec(BaseCheck):
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s spec ...", self._repo)
-        self._ex_exclusive_arch()
+        self._ex_support_arch()
         self._tbranch = kwargs.get("tbranch", None)
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
         return self.start_check_with_order("version", "patches", "changelog")
@@ -204,27 +204,23 @@ class CheckSpec(BaseCheck):
                 result = FAILED
         return result
 
-    def _ex_exclusive_arch(self):
+    def _ex_support_arch(self):
         """
-        保存spec中exclusive_arch信息
+        保存spec中exclusivearch字段信息
         :return:
         """
-        aarch64 = self._spec.include_aarch64_arch()
-        x86_64 = self._spec.include_x86_arch()
-
-        content = None
-        if aarch64 and not x86_64:  # only build aarch64
-            content = "aarch64"
-        elif not aarch64 and x86_64:  # only build x86_64
-            content = "x86-64"
-
-        if content is not None:
-            logger.info("exclusive arch \"%s\"", content)
-            try:
-                with open("exclusive_arch", "w") as f:
-                    f.write(content)
-            except IOError:
-                logger.exception("save exclusive arch exception")
+        exclusive_arch = self._spec.exclusivearch
+        logger.info("exclusive_arch \"%s\"", exclusive_arch)
+        if exclusive_arch:
+            obj_s = re.findall(r"(x86_64|aarch64)", exclusive_arch)
+            if obj_s:
+                content = " ".join(obj_s)
+                logger.info("support arch:%s", content)
+                try:
+                    with open("support_arch", "w") as f:
+                        f.write(content)
+                except IOError:
+                    logger.exception("save support arch exception")
 
     def _ex_pkgship(self, spec):
         """
