@@ -54,5 +54,8 @@ openeuler:
                  "isula-build", "cve-manager", "attest-tools", "oec-hardware", "itrustee_sdk", "wisdom-advisor",
                  "isula-transform", " itrustee_client", "A-Tune-Collector", "itrustee_tzdriver", "website-v2",
                  "yocto-poky"]
-
-
+  commit_msg:
+    hint: commit_msg
+    module: commit_msg.check_commit_msg
+    entry: CheckCommitMsg
+    allow_list: ["yocto-meta-openeuler"]

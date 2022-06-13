@@ -327,8 +327,7 @@ if "__main__" == __name__:
     scanoss = {"output": args.scanoss_output}
 
     codecheck = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
-        "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url, "codecheck_api_key": args.codecheck_api_key
-    }
+        "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url, "codecheck_api_key": args.codecheck_api_key}
 
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
