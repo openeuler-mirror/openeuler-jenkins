@@ -5,7 +5,7 @@ openeuler:
   - src-openeuler
   extra_deny_list:
     radiaTest:
-    - publisher: lemon.higgins
+    - publisher: lemon-higgins
       name: RadiaTest
 #   gcc:
 #   - publisher: openeuler

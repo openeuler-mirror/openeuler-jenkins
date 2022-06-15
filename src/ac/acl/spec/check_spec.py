@@ -209,13 +209,12 @@ class CheckSpec(BaseCheck):
         保存spec中exclusivearch字段信息
         :return:
         """
-        exclusive_arch = self._spec.exclusivearch
-        logger.info("exclusive_arch \"%s\"", exclusive_arch)
+        exclusive_arch = self._spec.get_exclusivearch()
         if exclusive_arch:
-            obj_s = re.findall(r"(x86_64|aarch64)", exclusive_arch)
-            if obj_s:
+            obj_s = list(set(exclusive_arch).intersection(("x86_64", "aarch64", "noarch")))
+            logger.info("support arch:%s", " ".join(obj_s))
+            if obj_s and "noarch" not in obj_s:
                 content = " ".join(obj_s)
-                logger.info("support arch:%s", content)
                 try:
                     with open("support_arch", "w") as f:
                         f.write(content)

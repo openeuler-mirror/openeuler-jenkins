@@ -90,9 +90,9 @@ class CheckCode(BaseCheck):
         data = {"uuid": uuid, "token": token}
         codecheck_status_api_url = '{}/{}/status'.format(codecheck_api_url, task_id)
         current_time = 0
-        logger.info("codecheck probably need to 3min")
-        # 定时3min
-        while current_time < 180:
+        logger.info("codecheck probably need to 5min")
+        # 定时5min
+        while current_time < 300:
             time.sleep(10)
             response_content = {}
             # 检查codecheck任务的执行状态
@@ -113,7 +113,7 @@ class CheckCode(BaseCheck):
 
         # 判断是否计算完成
         if rs != 0:
-            return SUCCESS
+            return FAILED
 
         if response_content.get('msg') == 'success':
             """

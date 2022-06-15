@@ -4,6 +4,7 @@ JENKINS_HOME=/home/jenkins
 SCRIPT_PATCH=${shell_path}/src/build
 BUILD_ROOT=${JENKINS_HOME}/agent/buildroot
 RPM_PATH=${BUILD_ROOT}/home/abuild/rpmbuild/RPMS
+support_arch_file=${repo}_${prid}_support_arch
 comment_file=""
 
 # debug测试变量
@@ -333,10 +334,10 @@ function main() {
   download_buddy_repo
   drop_pod_cache
   exclusive_arch=$arch
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_support_arch . || echo "${repo}_support_arch" not exist
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${support_arch_file} . || echo "${support_arch_file}" not exist
   ls -l .
-  if [[ -e ${repo}_support_arch ]]; then
-    support_arch=`cat ${repo}_support_arch`
+  if [[ -e ${support_arch_file} ]]; then
+    support_arch=`cat ${support_arch_file}`
     if [[ $support_arch != *$arch* ]]
     then
       exclusive_arch=""
