@@ -19,11 +19,10 @@
 import logging
 import os
 import re
+import json
 import chardet
-import yaml
 
-from pyrpm.spec import Spec, replace_macros
-from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
+from src.proxy.requests_proxy import do_requests
 
 logger = logging.getLogger("ac")
 
@@ -52,88 +51,44 @@ class PkgLicense(object):
 
     LICENSE_TARGET_PAT = re.compile(r"^(copying)|(copyright)|(copyrights)|(licenses)|(licen[cs]e)(\.(txt|xml))?")
 
-    LICENSE_YAML_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                     "config",
-                                     "Licenses.yaml")
-    LATER_SUPPORT_LICENSE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                              "config",
-                                              "later_support_license.yaml")
-
     def __init__(self):
-        self._white_black_list = {}
         self._license_translation = {}
         self._later_support_license = {}
-
-    def load_config(self):
-        """
-        load licenses' alias and id from Licenses.yaml
-        Software License:
-            Bad Licenses:
-                - alias: []
-                  identifier: str
-                ...
-            Good Licenses: []
-            Need Review Licenses: []
-        """
-        if not os.path.exists(self.LICENSE_YAML_PATH):
-            logger.warning("not found License config: %s", self.LICENSE_YAML_PATH)
-            return
-        data = {}
-        with open(self.LICENSE_YAML_PATH, "r") as f:
-            try:
-                data = yaml.safe_load(f)
-            except yaml.YAMLError as e:
-                logger.exception("yaml load error: %s", str(e))
-                return
-        with open(self.LATER_SUPPORT_LICENSE_PATH, "r") as f:
-            try:
-                self._later_support_license = yaml.safe_load(f)
-            except yaml.YAMLError as e:
-                logger.exception("yaml load error: %s", str(e))
-                return
-        soft_license = data.get("Software Licenses", {})
-        if soft_license:
-            self._parse_tag_license(soft_license.get("Not Free Licenses"), "black")
-            self._parse_tag_license(soft_license.get("Free Licenses"), "white")
-            self._parse_tag_license(soft_license.get("Need Review Licenses"), "need review")
-        else:
-            logger.error("yaml format error")
-            return
-
-    def _parse_tag_license(self, licenses, tag):
-        """
-        add friendly list to self._white_black_list :
-        {
-            license_id: tag,
-            ...
-        }
-        add license translation into self._license_translation
-        {
-            alias: license_id
-        }
-        """
-        for lic in licenses:
-            if lic["identifier"] not in self._white_black_list:
-                self._white_black_list[lic["identifier"]] = tag
-            for oname in lic["alias"]:
-                if oname not in self._license_translation:
-                    self._license_translation[oname] = lic["identifier"]
+        self.license_url = "https://compliance2.openeuler.org/sca?license={}&type={}"
 
     def check_license_safe(self, licenses):
         """
         Check if the license is in the blacklist
         """
-        result = True
+        result = 0
+        response_content = {}
+
+        def analysis(response):
+            """
+            requests回调
+            :param response: requests response object
+            :return:
+            """
+            response_content.update(json.loads(response.text))
+
+        if not isinstance(licenses, (set, list)):
+            licenses = [licenses]
         for lic in licenses:
-            res = self._white_black_list.get(lic, "unknow")
-            if res == "white":
+            rs = do_requests("get", url=self.license_url.format(lic, "reference"), obj=analysis)
+            if rs != 0:
+                result = 1
+                logger.warning("Failed to obtain %s information through service", lic)
+                continue
+            res = response_content.get("pass")
+            if res:
                 logger.info("This license: %s is free", lic)
-            elif res == "black":
-                logger.error("This license: %s is not free", lic)
-                result = False
             else:
-                logger.warning("This license: %s need to be review", lic)
-                result = False
+                notice_content = response_content.get("notice")
+                black_reason = response_content.get("detail").get("is_white").get("blackReason")
+                logger.warning("License: %s", notice_content)
+                if black_reason:
+                    logger.error("License: %s", black_reason)
+                result = -1
         return result
 
     def translate_license(self, licenses):
@@ -145,16 +100,6 @@ class PkgLicense(object):
             real_license = self._license_translation.get(lic, lic)
             result.add(real_license)
         return result
-
-    @staticmethod
-    def split_license(licenses):
-        """
-        分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
-        """
-        license_set = re.split(r'\(|\)|\s+\,|\s+[Aa][Nn][Dd]\s+|\s+-?[Oo][Rr]-?\s+|\s+/\s+', licenses)
-        for index in range(len(license_set)):  # 去除字符串首尾空格
-            license_set[index] = license_set[index].strip()
-        return set(filter(None, license_set))  # 去除list中空字符串
 
     # 以下为从license文件中获取license
     def scan_licenses_in_license(self, srcdir):
