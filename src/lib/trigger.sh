@@ -2,6 +2,7 @@
 . ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
 jenkins_api_host="https://jenkins.openeuler.org/"
+support_arch_file=${giteeRepoName}_${giteePullRequestIid}_support_arch
 
 # debug测试变量
 function config_debug_variable() {
@@ -14,6 +15,19 @@ function config_debug_variable() {
 }
 config_debug_variable
 
+# 清理环境
+function clearn_env() {
+  fileserver_tmpfile_path="/repo/soe${repo_server_test_tail}/support_arch/${support_arch_file}"
+  remote_dir_reset_cmd=$(
+    cat <<EOF
+    if [[ -e $fileserver_tmpfile_path ]]; then
+	    rm -f $fileserver_tmpfile_path
+    fi
+EOF
+)
+  ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_reset_cmd"
+
+}
 # 开始下载kernel代码
 function download_kernel_repo() {
   log_info "***** Start to download kernel *****"
@@ -60,14 +74,15 @@ EOF
   fi
 
   if [[ -e support_arch ]]; then
-    mv support_arch ${giteeRepoName}_support_arch
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${giteeRepoName}_support_arch root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
+    mv support_arch ${support_arch_file}
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${support_arch_file} root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
   fi
   log_info "***** End to exec extra worker *****"
 }
 
 # 执行入口
 function main() {
+  clearn_env
   download_kernel_repo
   exec_check
   extra_work

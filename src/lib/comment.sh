@@ -61,9 +61,9 @@ function scp_comment_file() {
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${compare_package_result_x86} . || log_info "file ${compare_package_result_x86} not exist"
   ls $WORKSPACE/${compare_result}
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${build_num_file} . || log_info "file ${build_num_file} not exist"
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_support_arch .
-  if [[ -e ${repo}_support_arch ]]; then
-    mv ${repo}_support_arch support_arch
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_${prid}_support_arch .
+  if [[ -e ${repo}_${prid}_support_arch ]]; then
+    mv ${repo}_${prid}_support_arch support_arch
   fi
   log_info "***** End to scp comment file *****"
 }
