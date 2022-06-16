@@ -232,7 +232,6 @@ def __call__(self, *args, **kwargs):
 
     _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
     self._gr.decompress_all() # decompress all compressed file into work_tar_dir 
-    self._pkg_license.load_config() # load license config into instance variable
 
     try:
         return self.start_check_with_order("license_in_spec", "license_in_src", "license_is_same")
@@ -242,11 +241,6 @@ def __call__(self, *args, **kwargs):
 
 **1.解压全部的压缩包**
 
-**2.加载license的config文件**
-
-根据src\ac\acl\package_license\config\Licenses.yaml文件读取license的alias and id
-
-根据src\ac\acl\package_license\config\later_support_license.yaml文件读取license的later版本信息，生成self._later_support_license
 
 **license分为三种：**
 
@@ -272,20 +266,21 @@ def check_license_in_spec(self):
     if self._spec is None:
         logger.error("spec file not find")
         return FAILED
-    self._license_in_spec = self._gr.scan_license_in_spec(self._spec)
-    self._license_in_spec = self._pkg_license.translate_license(self._license_in_spec)
-    if self._pkg_license.check_license_safe(self._license_in_spec):
+    rs_code = self._pkg_license.check_license_safe(self._spec.license)
+    if rs_code == 0:
         return SUCCESS
+    elif rs_code == 1:
+        return WARNING
     else:
         logger.error("licenses in spec are not in white list")
         return FAILED
 ```
 
-1.获取spec中的license信息，分割spec license字段的license 按() and -or- or / 进行全字匹配进行分割
+1.获取spec中的license信息
 
-2.从self._license_translation根据alias拿到license的id
+2.通过指定接口 (https://compliance2.openeuler.org/sca) 获取相关license信息
 
-3.从self._white_black_list中根据id看license是否在白名单内
+3.从接口返回的信息license是否在白名单内
 
 ### license_in_src：检查src文件中的license是否在白名单中
 
@@ -299,18 +294,21 @@ def check_license_in_src(self):
     self._license_in_src = self._pkg_license.translate_license(self._license_in_src)
     if not self._license_in_src:
         logger.warning("cannot find licenses in src")
-    if self._pkg_license.check_license_safe(self._license_in_src):
+    rs_code = self._pkg_license.check_license_safe(self._license_in_src)
+    if rs_code == 0:
         return SUCCESS
+    elif rs_code == 1:
+        return WARNING
     else:
-        logger.error("licenses in src code are not in white list")
+        logger.error("licenses in src are not in white list")
         return FAILED
 ```
 
 1.获取代码中的license文件
 
-2.从self._license_translation根据alias拿到license的id
+2.通过指定接口 (https://compliance2.openeuler.org/sca) 获取相关license信息
 
-3.从self._white_black_list中根据id看license是否在白名单内
+3.从接口返回的信息license是否在白名单内
 
 ### license_is_same：检查spec文件和src文件中的license是否一致
 

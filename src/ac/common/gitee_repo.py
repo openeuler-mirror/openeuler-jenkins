@@ -21,7 +21,6 @@ import logging
 
 from src.proxy.git_proxy import GitProxy
 from src.utils.shell_cmd import shell_cmd_live
-from src.ac.acl.package_license.package_license import PkgLicense
 
 logger = logging.getLogger("ac")
 
@@ -30,6 +29,7 @@ class GiteeRepo(object):
     """
     analysis src-openeuler repo
     """
+
     def __init__(self, repo, work_dir, decompress_dir):
         self._repo = repo
         self._work_dir = work_dir
@@ -70,7 +70,7 @@ class GiteeRepo(object):
             maybe multi spec file of repo
             :return:
             """
-            if not spec_files:      # closure
+            if not spec_files:  # closure
                 logger.warning("no spec file")
                 return None
 
@@ -104,10 +104,10 @@ class GiteeRepo(object):
         """
         if self._is_compress_zip_file(file_path):
             decompress_cmd = "cd {}; timeout 120s unzip -o -d {} {}".format(
-                    self._work_dir, self._decompress_dir, file_path)
+                self._work_dir, self._decompress_dir, file_path)
         elif self._is_compress_tar_file(file_path):
             decompress_cmd = "cd {}; timeout 120s tar -C {} -xavf {}".format(
-                    self._work_dir, self._decompress_dir, file_path)
+                self._work_dir, self._decompress_dir, file_path)
         else:
             logger.warning("unsupport compress file: %s", file_path)
             return False
@@ -138,13 +138,13 @@ class GiteeRepo(object):
         """
         logger.debug("apply patch %s", patch)
         for patch_dir in [filename for filename in os.listdir(self._decompress_dir)
-                if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
+                          if os.path.isdir(os.path.join(self._decompress_dir, filename))] + ["."]:
             if patch_dir.startswith(".git"):
                 continue
             for leading in range(max_leading + 1):
                 logger.debug("try dir %s -p%s", patch_dir, leading)
                 if GitProxy.apply_patch_at_dir(os.path.join(self._decompress_dir, patch_dir),
-                        os.path.join(self._work_dir, patch), leading):
+                                               os.path.join(self._work_dir, patch), leading):
                     logger.debug("patch success")
                     self.patch_dir_mapping[patch] = os.path.join(self._decompress_dir, patch_dir)
                     return True
@@ -170,17 +170,6 @@ class GiteeRepo(object):
                 rs.append(False)
 
         return 0 if all(rs) else (1 if any(rs) else -1)
-
-    def scan_license_in_spec(self, spec):
-        """
-        Find spec file and scan. If no spec file or open file failed, the program will exit with an error. 
-        """
-        if not spec:
-            return set()
-        licenses = spec.license
-        licenses_in_spec = PkgLicense.split_license(licenses)
-        logger.info("all licenses from SPEC: %s", ", ".join(list(licenses_in_spec)))
-        return licenses_in_spec
 
     def get_compress_files(self):
         """

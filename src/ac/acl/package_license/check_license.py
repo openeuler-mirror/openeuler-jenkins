@@ -45,7 +45,7 @@ class CheckLicense(BaseCheck):
             self._spec = RPMSpecAdapter(os.path.join(self._work_dir, self._gr.spec_file))
         else:
             self._spec = None
-        
+
         self._pkg_license = PkgLicense()
         self._license_in_spec = set()
         self._license_in_src = set()
@@ -62,7 +62,6 @@ class CheckLicense(BaseCheck):
         if not os.path.exists(self._work_tar_dir):
             os.mkdir(self._work_tar_dir)
         self._gr.decompress_all()  # decompress all compressed file into work_tar_dir
-        self._pkg_license.load_config()  # load license config into instance variable
 
         try:
             return self.start_check_with_order("license_in_spec", "license_in_src", "license_is_same")
@@ -77,10 +76,11 @@ class CheckLicense(BaseCheck):
         if self._spec is None:
             logger.error("spec file not find")
             return FAILED
-        self._license_in_spec = self._gr.scan_license_in_spec(self._spec)
-        self._license_in_spec = self._pkg_license.translate_license(self._license_in_spec)
-        if self._pkg_license.check_license_safe(self._license_in_spec):
+        rs_code = self._pkg_license.check_license_safe(self._spec.license)
+        if rs_code == 0:
             return SUCCESS
+        elif rs_code == 1:
+            return WARNING
         else:
             logger.error("licenses in spec are not in white list")
             return FAILED
@@ -94,10 +94,13 @@ class CheckLicense(BaseCheck):
         self._license_in_src = self._pkg_license.translate_license(self._license_in_src)
         if not self._license_in_src:
             logger.warning("cannot find licenses in src")
-        if self._pkg_license.check_license_safe(self._license_in_src):
+        rs_code = self._pkg_license.check_license_safe(self._license_in_src)
+        if rs_code == 0:
             return SUCCESS
+        elif rs_code == 1:
+            return WARNING
         else:
-            logger.error("licenses in src code are not in white list")
+            logger.error("licenses in src are not in white list")
             return FAILED
 
     def check_license_is_same(self):
