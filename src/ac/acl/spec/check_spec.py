@@ -118,9 +118,9 @@ class CheckSpec(BaseCheck):
                 logger.debug("revert commit")
                 return SUCCESS
 
-        logger.error("current version: %s-r%s, last version: %s-r%s",
+        logger.warning("current version: %s-r%s, last version: %s-r%s",
                      self._spec.version, self._spec.release, spec_o.version, spec_o.release)
-        return FAILED
+        return WARNING
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
         """
