@@ -119,7 +119,7 @@ class CheckSpec(BaseCheck):
                 return SUCCESS
 
         logger.warning("current version: %s-r%s, last version: %s-r%s",
-                     self._spec.version, self._spec.release, spec_o.version, spec_o.release)
+                       self._spec.version, self._spec.release, spec_o.version, spec_o.release)
         return WARNING
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
@@ -164,6 +164,16 @@ class CheckSpec(BaseCheck):
 
         result = SUCCESS
 
+        def equivalent_patch_number(patch_con):
+            """
+            处理spec文件中patch序号
+            :param patch_con:spec文件中patch内容
+            :return:
+            """
+            patch_number = re.search(r"\d+", patch_con)
+            new_patch_number = "patch" + str(int(patch_number.group()))
+            return new_patch_number
+
         def patch_adaptation(spec_con, patches_dict):
             """
             检查spec文件中patch在prep阶段的使用情况
@@ -179,10 +189,14 @@ class CheckSpec(BaseCheck):
                 logger.error("%prep part lost")
                 return False
             prep_str = prep_obj.group().lower()
-            if prep_str.find("autosetup") != -1 or prep_str.find("autopatch") != -1:
+            if prep_str.find("autosetup") != -1 or \
+                    prep_str.find("autopatch") != -1:
                 return True
+            prep_patch = [equivalent_patch_number(single_prep_patch)
+                          for single_prep_patch in re.findall(r"patch\d+", prep_str)]
             for single_key, single_patch in patches_dict.items():
-                if prep_str.find(single_key.lower()) == -1:
+                single_number = equivalent_patch_number(single_key)
+                if single_number not in prep_patch:
                     miss_patches_dict[single_key] = single_patch
             if miss_patches_dict:
                 logger_con = ["%s: %s" % (key, value) for key, value in miss_patches_dict.items()]
