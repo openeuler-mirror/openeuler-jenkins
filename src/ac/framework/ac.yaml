@@ -27,6 +27,8 @@ src-openeuler:
     exclude: True
   openlibing:
     exclude: True
+  commit_msg:
+    exclude: True
 openeuler:
   spec:
     exclude: True
