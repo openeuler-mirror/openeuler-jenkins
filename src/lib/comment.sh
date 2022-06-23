@@ -1,13 +1,12 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 
-jenkins_api_host="http://jenkins.jenkins"
 check_item_comment_aarch64=""
 check_item_comment_x86=""
 compare_package_result_aarch64=""
 compare_package_result_x86=""
 #需要输入的参数
-jenkins_api_host="https://jenkins.openeuler.org/"
+jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
 
 # debug测试变量
 function config_debug_variable() {
