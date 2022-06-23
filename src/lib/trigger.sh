@@ -1,7 +1,7 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
-jenkins_api_host="https://jenkins.openeuler.org/"
+jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
 support_arch_file=${giteeRepoName}_${giteePullRequestIid}_support_arch
 
 # debug测试变量
