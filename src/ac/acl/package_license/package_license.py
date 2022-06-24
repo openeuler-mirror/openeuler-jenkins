@@ -54,7 +54,7 @@ class PkgLicense(object):
     def __init__(self):
         self._license_translation = {}
         self._later_support_license = {}
-        self.license_url = "https://compliance2.openeuler.org/sca?license={}&type={}"
+        self.license_url = "https://compliance2.openeuler.org/sca"
 
     def check_license_safe(self, licenses):
         """
@@ -73,8 +73,9 @@ class PkgLicense(object):
 
         if not isinstance(licenses, (set, list)):
             licenses = [licenses]
-        for lic in licenses:
-            rs = do_requests("get", url=self.license_url.format(lic, "reference"), obj=analysis)
+        for lic in licenses:           
+            data = {"license": lic, "type": "reference"}
+            rs = do_requests("get", url=self.license_url, querystring=data, obj=analysis)
             if rs != 0:
                 result = 1
                 logger.warning("Failed to obtain %s information through service", lic)

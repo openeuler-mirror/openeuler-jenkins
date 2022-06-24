@@ -82,6 +82,9 @@ class CheckCode(BaseCheck):
         codecheck_task_api_url = "{}/task".format(codecheck_api_url)
         rs = do_requests("get", codecheck_task_api_url, querystring=data, obj=response_content)
         if rs != 0 or response_content.get('code', '') != '200':
+            if response_content.get('msg').find("There is no proper set of languages") != -1:
+                response_content.update(code="200", msg="success", state="pass")
+                return 0, response_content
             logger.error("create codecheck task failed; %s", response_content.get('msg', ''))
             return 'false', {}
 
@@ -132,4 +135,3 @@ class CheckCode(BaseCheck):
             logger.error("code check failed, info : %s", response_content.get('msg'))
 
         return SUCCESS
-
