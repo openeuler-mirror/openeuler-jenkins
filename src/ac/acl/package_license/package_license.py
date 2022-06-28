@@ -22,7 +22,7 @@ import re
 import chardet
 import yaml
 
-from src.ac.common.pyrpm import Spec, replace_macros
+from pyrpm.spec import Spec, replace_macros
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 
 logger = logging.getLogger("ac")
