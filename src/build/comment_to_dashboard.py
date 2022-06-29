@@ -24,6 +24,7 @@ from datetime import datetime
 
 import yaml
 
+from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.logger import logger
 
@@ -34,10 +35,11 @@ class CommentToDashboard(object):
     """
 
     @staticmethod
-    def output_build_num(args_list):
+    def output_build_num(args_list, base_dict):
         """
         output_build_num
         :param args_list:
+        :param base_dict:
         :return:
         """
         build_num_list = []
@@ -50,6 +52,8 @@ class CommentToDashboard(object):
             logger.exception("Read trigger build number file exception, yaml format error")
         if args_list.trigger_build_id not in build_num_list:
             build_num_list.append(args_list.trigger_build_id)
+        else:
+            base_dict["build_time"] = 0
         logger.info("build_num_list = %s", build_num_list)
         flags = os.O_WRONLY | os.O_CREAT
         modes = stat.S_IWUSR | stat.S_IRUSR
@@ -83,18 +87,18 @@ class CommentToDashboard(object):
         current_time = round(time.time(), 1)
 
         base_dict = {"pr_title": args_list.pr_title,
-                    "pr_url": args_list.pr_url,
-                    "pr_create_at": pr_create_time,
-                    "pr_committer": args_list.committer,
-                    "pr_branch": args_list.tbranch,
-                    "build_at": trigger_time,
-                    "update_at": current_time,
-                    "build_no": args_list.trigger_build_id
+                     "pr_url": args_list.pr_url,
+                     "pr_create_at": pr_create_time,
+                     "pr_committer": args_list.committer,
+                     "pr_branch": args_list.tbranch,
+                     "build_at": trigger_time,
+                     "update_at": current_time,
+                     "build_no": args_list.trigger_build_id
                      }
         build_time = round(current_time - trigger_time, 1)
         base_dict["build_time"] = build_time
 
-        self.output_build_num(args_list)
+        self.output_build_num(args_list, base_dict)
         build_file = "build_result.yaml"
         try:
             if os.path.exists(build_file):
@@ -111,6 +115,19 @@ class CommentToDashboard(object):
         # upload to es
         kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
         kp.send("openeuler_statewall_ci_result", key=args_list.comment_id, value=base_dict)
+
+        comment_tips = "若您对门禁结果含义不清晰或者遇到问题不知如何解决，" \
+                       "可参考<a href=https://www.openeuler.org/zh/blog/zhengyaohui/2022-03-21-ci_guild.html>" \
+                       "门禁指导手册</a>\n" \
+                       "若门禁存在误报，您可以评论/ci_mistake {}进行误报标记，{}表示本次构建号\n" \
+                       "也可带上误报的门禁检查项以及误报类型（ci、obs、infra），" \
+                       "比如/ci_mistake {} obs check_build check_install表示的是check_build和check_install存在误报，" \
+                       "误报类型为obs\n若想取消误报标记，可以评论/ci_unmistake {}取消\n" \
+                       "也可在评论后加上一段文字描述，但请另起一行".format(
+                        args_list.trigger_build_id, args_list.trigger_build_id,
+                        args_list.trigger_build_id, args_list.trigger_build_id)
+        gp = GiteeProxy(args_list.owner, args_list.repo, args_list.gitee_token)
+        gp.comment_pr(args_list.prid, comment_tips)
 
 
 def init_args():
@@ -130,6 +147,7 @@ def init_args():
     parser.add_argument("-p", type=str, dest="prid", help="pull request id")
     parser.add_argument("-o", type=str, dest="owner", help="gitee owner")
     parser.add_argument("-i", type=int, dest="trigger_build_id", help="trigger build id")
+    parser.add_argument("--gitee_token", type=str, dest="gitee_token", help="gitee api token")
 
     return parser.parse_args()
 

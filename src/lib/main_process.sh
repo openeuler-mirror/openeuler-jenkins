@@ -4,30 +4,8 @@ JENKINS_HOME=/home/jenkins
 SCRIPT_PATCH=${shell_path}/src/build
 BUILD_ROOT=${JENKINS_HOME}/agent/buildroot
 RPM_PATH=${BUILD_ROOT}/home/abuild/rpmbuild/RPMS
+support_arch_file=${repo}_${prid}_support_arch
 comment_file=""
-# 需要输入的参数
-OBSUserName=$1
-OBSPassword=$2
-GiteeUserName=$3
-GiteePassword=$4
-GiteeToken=$5
-GiteeUserPassword=$6
-PkgShipUserName=$7
-PkgShipPassword=$8
-buddy=$9
-repo=${10}
-tbranch=${11}
-arch=${12}
-package=${13}
-branch=${14}
-prid=${15}
-WORKSPACE=${16}
-committer=${17}
-commentid=${18}
-SaveBuildRPM2Repo=${19}
-repo_server=${20}
-pkgship_notify_url=${21}
-pkgship_notify_token=${22}
 
 # debug测试变量
 function config_debug_variable() {
@@ -52,7 +30,7 @@ build-root = ${BUILD_ROOT}
 [http://117.78.1.88]
 user = ${OBSUserName}
 pass = ${OBSPassword}
-trusted_prj = openEuler:22.03:LTS:selfbuild:BaseOS openEuler:22.03:LTS:Next:selfbuild:BaseOS openEuler:20.03:LTS:SP3:selfbuild:BaseOS openEuler:selfbuild:BaseOS openEuler:20.03:LTS:selfbuild:BaseOS openEuler:selfbuild:function openEuler:20.09:selfbuild:BaseOS openEuler:20.03:LTS:SP1:selfbuild:BaseOS openEuler:21.03:selfbuild:BaseOS openEuler:20.03:LTS:SP2:selfbuild:BaseOS openEuler:21.09:selfbuild:BaseOS openEuler:20.03:LTS:Next:selfbuild:BaseOS # 不用输0,1,2了
+trusted_prj = openEuler:22.03:LTS:LoongArch:selfbuild:BaseOS openEuler:22.03:LTS:selfbuild:BaseOS openEuler:22.03:LTS:Next:selfbuild:BaseOS openEuler:20.03:LTS:SP3:selfbuild:BaseOS openEuler:selfbuild:BaseOS openEuler:20.03:LTS:selfbuild:BaseOS openEuler:selfbuild:function openEuler:20.09:selfbuild:BaseOS openEuler:20.03:LTS:SP1:selfbuild:BaseOS openEuler:21.03:selfbuild:BaseOS openEuler:20.03:LTS:SP2:selfbuild:BaseOS openEuler:21.09:selfbuild:BaseOS openEuler:20.03:LTS:Next:selfbuild:BaseOS # 不用输0,1,2了
 EOF
   log_info "***** End to config osc *****"
 }
@@ -224,7 +202,7 @@ function build_packages() {
     fi
 FEOF
     log_debug "check install"
-    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
+    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch  --obs_rpm_host ${obs_rpm_host} --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
 
     log_debug "pkgship notify"
     if [[ "x$item" == "xpkgship" ]]; then
@@ -340,6 +318,10 @@ EOF
   if [[ -e $comment_file ]]; then
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR ${comment_file} root@${repo_server}:$fileserver_tmpfile_path/${comment_file}
   fi
+
+  python3 ${shell_path}/src/utils/oemaker_analyse.py --branch ${tbranch} --arch ${arch} \
+	--oecp_json_path "$result_dir/report-$old_dir-$new_dir/osv.json" --owner "src-openeuler" \
+	--repo ${repo} --gitee_token $GiteeToken --prid ${prid}
   log_info "***** End to compare package diff *****"
 }
 
@@ -351,6 +333,19 @@ function main() {
   config_gradle
   download_buddy_repo
   drop_pod_cache
-  build_packages
-  compare_package
+  exclusive_arch=$arch
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${support_arch_file} . || echo "${support_arch_file}" not exist
+  ls -l .
+  if [[ -e ${support_arch_file} ]]; then
+    support_arch=`cat ${support_arch_file}`
+    if [[ $support_arch != *$arch* ]]
+    then
+      exclusive_arch=""
+    fi
+  fi
+  if [[ $exclusive_arch ]]; then
+    log_info "exclusive_arch not empty"
+    build_packages
+    compare_package
+  fi
 }

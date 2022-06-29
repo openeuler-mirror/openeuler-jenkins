@@ -103,6 +103,9 @@ parse_params () {
         MYPACKAGE="$2"
         shift
       ;;
+      *-extract)
+        shift
+      ;;
       *)
         echo "Unknown parameter: $1"
         echo 'Usage: $SERVICE --scm $SCM --url $URL [--subdir $SUBDIR] [--revision $REVISION] [--version $VERSION] [--include $INCLUDE]* [--exclude $EXCLUDE]* [--versionformat $FORMAT] [--versionprefix $PREFIX] [--filename $FILENAME] [--package-meta $META] --outdir $OUT'

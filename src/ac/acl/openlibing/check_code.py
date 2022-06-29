@@ -82,6 +82,9 @@ class CheckCode(BaseCheck):
         codecheck_task_api_url = "{}/task".format(codecheck_api_url)
         rs = do_requests("get", codecheck_task_api_url, querystring=data, obj=response_content)
         if rs != 0 or response_content.get('code', '') != '200':
+            if response_content.get('msg').find("There is no proper set of languages") != -1:
+                response_content.update(code="200", msg="success", state="pass")
+                return 0, response_content
             logger.error("create codecheck task failed; %s", response_content.get('msg', ''))
             return 'false', {}
 
@@ -90,9 +93,9 @@ class CheckCode(BaseCheck):
         data = {"uuid": uuid, "token": token}
         codecheck_status_api_url = '{}/{}/status'.format(codecheck_api_url, task_id)
         current_time = 0
-        logger.info("codecheck probably need to 3min")
-        # 定时3min
-        while current_time < 180:
+        logger.info("codecheck probably need to 5min")
+        # 定时5min
+        while current_time < 300:
             time.sleep(10)
             response_content = {}
             # 检查codecheck任务的执行状态
@@ -113,7 +116,7 @@ class CheckCode(BaseCheck):
 
         # 判断是否计算完成
         if rs != 0:
-            return SUCCESS
+            return FAILED
 
         if response_content.get('msg') == 'success':
             """
@@ -132,4 +135,3 @@ class CheckCode(BaseCheck):
             logger.error("code check failed, info : %s", response_content.get('msg'))
 
         return SUCCESS
-

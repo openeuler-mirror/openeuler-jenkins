@@ -10,11 +10,12 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
-# Author: 
+# Author:
 # Create: 2020-09-23
 # Description: check spec file
 # **********************************************************************************
 """
+import os
 import calendar
 import logging
 import time
@@ -28,6 +29,7 @@ from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.common.gitee_repo import GiteeRepo
+from pyrpm.spec import Spec
 
 logger = logging.getLogger("ac")
 
@@ -49,7 +51,7 @@ class CheckSpec(BaseCheck):
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s spec ...", self._repo)
-        self._ex_exclusive_arch()
+        self._ex_support_arch()
         self._tbranch = kwargs.get("tbranch", None)
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
         return self.start_check_with_order("version", "patches", "changelog")
@@ -116,9 +118,9 @@ class CheckSpec(BaseCheck):
                 logger.debug("revert commit")
                 return SUCCESS
 
-        logger.error("current version: %s-r%s, last version: %s-r%s",
-                     self._spec.version, self._spec.release, spec_o.version, spec_o.release)
-        return FAILED
+        logger.warning("current version: %s-r%s, last version: %s-r%s",
+                       self._spec.version, self._spec.release, spec_o.version, spec_o.release)
+        return WARNING
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
         """
@@ -152,7 +154,7 @@ class CheckSpec(BaseCheck):
 
     def check_patches(self):
         """
-        检查spec中的patch是否存在
+        检查spec中的patch是否存在，及patch的使用情况
         :return:
         """
         patches_spec = set(self._spec.patches)
@@ -161,35 +163,77 @@ class CheckSpec(BaseCheck):
         logger.debug("file patches: %s", patches_file)
 
         result = SUCCESS
+
+        def equivalent_patch_number(patch_con):
+            """
+            处理spec文件中patch序号
+            :param patch_con:spec文件中patch内容
+            :return:
+            """
+            patch_number = re.search(r"\d+", patch_con)
+            new_patch_number = "patch" + str(int(patch_number.group()))
+            return new_patch_number
+
+        def patch_adaptation(spec_con, patches_dict):
+            """
+            检查spec文件中patch在prep阶段的使用情况
+            :param spec_con:spec文件内容
+            :param patches_dict:spec文件中补丁具体信息
+            :return:
+            """
+            if not patches_dict:
+                return True
+            miss_patches_dict = {}
+            prep_obj = re.search(r"%prep[\s\S]*%changelog", spec_con, re.I)
+            if not prep_obj:
+                logger.error("%prep part lost")
+                return False
+            prep_str = prep_obj.group().lower()
+            if prep_str.find("autosetup") != -1 or \
+                    prep_str.find("autopatch") != -1:
+                return True
+            prep_patch = [equivalent_patch_number(single_prep_patch)
+                          for single_prep_patch in re.findall(r"patch\d+", prep_str)]
+            for single_key, single_patch in patches_dict.items():
+                single_number = equivalent_patch_number(single_key)
+                if single_number not in prep_patch:
+                    miss_patches_dict[single_key] = single_patch
+            if miss_patches_dict:
+                logger_con = ["%s: %s" % (key, value) for key, value in miss_patches_dict.items()]
+                logger.error("The following patches in the spec file are not used: \n%s", "\n".join(logger_con))
+                return False
+            return True
+
         for patch in patches_spec - patches_file:
             logger.error("patch %s lost", patch)
             result = FAILED
         for patch in patches_file - patches_spec:
             logger.warning("patch %s redundant", patch)
             result = WARNING
+        with open(os.path.join(self._work_dir, self._gr.spec_file), "r", encoding="utf-8") as fp:
+            all_str = fp.read()
+            adapter = Spec.from_string(all_str)
+            patch_dict = adapter.__dict__.get("patches_dict")
+            if not patch_adaptation(all_str, patch_dict):
+                result = FAILED
         return result
 
-    def _ex_exclusive_arch(self):
+    def _ex_support_arch(self):
         """
-        保存spec中exclusive_arch信息
+        保存spec中exclusivearch字段信息
         :return:
         """
-        aarch64 = self._spec.include_aarch64_arch()
-        x86_64 = self._spec.include_x86_arch()
-
-        content = None
-        if aarch64 and not x86_64:  # only build aarch64
-            content = "aarch64"
-        elif not aarch64 and x86_64:  # only build x86_64
-            content = "x86-64"
-
-        if content is not None:
-            logger.info("exclusive arch \"%s\"", content)
-            try:
-                with open("exclusive_arch", "w") as f:
-                    f.write(content)
-            except IOError:
-                logger.exception("save exclusive arch exception")
+        exclusive_arch = self._spec.get_exclusivearch()
+        if exclusive_arch:
+            obj_s = list(set(exclusive_arch).intersection(("x86_64", "aarch64", "noarch")))
+            logger.info("support arch:%s", " ".join(obj_s))
+            if obj_s and "noarch" not in obj_s:
+                content = " ".join(obj_s)
+                try:
+                    with open("support_arch", "w") as f:
+                        f.write(content)
+                except IOError:
+                    logger.exception("save support arch exception")
 
     def _ex_pkgship(self, spec):
         """
@@ -230,7 +274,7 @@ class CheckSpec(BaseCheck):
 
         def judgment_date(date_obj):
             """
-            检查日期合法性：年，月，日，周
+            检查日期合法性
             """
             if date_obj[week].upper() not in weeks:
                 return False
@@ -239,9 +283,6 @@ class CheckSpec(BaseCheck):
             # 日期，取1-当前月份最大天数
             if not 0 < int(date_obj[day]) <= calendar.monthrange(int(date_obj[year]),
                                                                  months.index(date_obj[month].upper()) + 1)[1]:
-                return False
-            # 年份要等于当前年份
-            if int(date_obj[year]) != datetime.now(tz=timezone.utc).year:
                 return False
             return True
 
@@ -263,43 +304,63 @@ class CheckSpec(BaseCheck):
             """
             检查changelog中的版本号，release号是否和spec的版本号，release号一致
             """
-            obj_s = re.search(r"(\d+(.\d+){0,9})-\d+", changelog_con)
+            # 排除邮箱格式中“-”的影响
+            new_str = re.sub(r"<[\w._-]+@[\w\-_]+[.a-zA-Z]+>", "", changelog_con)
+            if self._spec.epoch:  # 检查spec文件中是否存在epoch字段
+                obj_s = re.search(r"\w+:(\w+(.\w+){0,9})-[\w.]+", new_str)
+                version = "".join([self._spec.epoch, ":", version])
+            else:
+                obj_s = re.search(r"(\w+(.\w+){0,9})-[\w.]+", new_str)
             if not obj_s:
-                logger.warning("%s Missing release or version!", changelog_con)
+                logger.error("%s Missing release or version!", changelog_con)
                 return False
             version_num, release_num = obj_s.group(0).split("-")
             if version_num != version:
-                logger.warning("version error in changelog: %s != %s", version_num, version)
+                logger.error("version error in changelog: %s is different from %s", version_num, version)
                 return False
             if release_num != release:
-                logger.warning("release error in changelog: %s != %s", release_num, release)
+                logger.error("release error in changelog: %s is different from %s", release_num, release)
                 return False
             return True
 
-        def every_changelog_should_start_with_star(changelog):
+        def check_mailbox(changelog):
             """
-            检查changelog中每条记录都应该以*开头
+            检查changelog中邮箱格式
             """
-            mail_obj = re.findall(r"[\w._-]+@[a-z0-9]+.[a-z]{2,4}", changelog)
-            star_obj = re.findall(r"\* ", changelog)
-            if len(mail_obj) != len(star_obj):
+            mail_obj = re.findall(r"[\w._-]+@[\w\-_]+[.a-zA-Z]+", changelog)
+            if not mail_obj:
                 return False
             return True
 
-        if not every_changelog_should_start_with_star(self._spec.changelog):
-            logger.error("Every changelog should start with * and contains a mailbox")
+        def check_changelog_entries_start(changelog):
+            """
+            %changelog 条目必须以 * 开头
+            """
+            changelog_entries_obj = re.match(r"\*", changelog)
+            if not changelog_entries_obj:
+                return False
+            return True
+
+        if not check_changelog_entries_start(self._spec.changelog):
+            logger.error("%changelog entries must start with *")
             return False
         changelog = self._spec.changelog.split("*")
         # 取最新一条changelog
         changelog_con = next(need_str for need_str in changelog if need_str)
+        # 检查changelog中邮箱格式
+        if not check_mailbox(changelog_con):
+            logger.error("bad mailbox in changelog:%s", changelog_con)
+            return False
         # date_obj是字符串列表，样例：['Tue', 'Mar', '21', '2022', 'xxx', '<xxx@xxx.com>', '-', '2.9.24-5-', 'test', '2.9.24-5']
         date_obj = [con for con in changelog_con.strip(" ").split(" ") if con]  # 列表中的空字符串已处理
         if len(date_obj) < 4:  # 列表中的字符串至少四个,包含年、月、日、星期 ['Tue', 'Mar', '21', '2022']
             logger.error("bad data in changelog:%s", changelog_con)
             return False
-        if not judgment_date(date_obj) or not release_and_version(changelog_con, self._spec.version,
-                                                                  self._spec.release):
+        if not judgment_date(date_obj):
             logger.error("bad date in changelog:%s", changelog_con)
+            return False
+        if not release_and_version(changelog_con, self._spec.version, self._spec.release):
+            logger.error("There is a problem with the version number or release number:%s", changelog_con)
             return False
         if not bogus_date(date_obj):
             logger.error("bogus date in changelog:%s", changelog_con)

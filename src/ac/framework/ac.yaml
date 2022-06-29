@@ -27,6 +27,8 @@ src-openeuler:
     exclude: True
   openlibing:
     exclude: True
+  commit_msg:
+    exclude: True
 openeuler:
   spec:
     exclude: True
@@ -47,5 +49,15 @@ openeuler:
     hint: code
     module: openlibing.check_code
     entry: CheckCode
-    allow_list: ["pkgship", "kunpengsecl", "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools", "yocto-poky", 
-                 "gcc", "gcc-anti-sca", "A-Ops", "openeuler-jenkins"]
+    allow_list: ["pkgship", "kunpengsecl", "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools",
+                 "gcc", "gcc-anti-sca", "A-Ops", "openeuler-jenkins", "lcr", "eggo", "oecp", "etmem", "A-Tune",
+                 "libkae", "KubeOS", "ci-bot", "iSulad", "gazelle", "clibcni", "secGear", "eulerfs", "oemaker",
+                 "go-gitee", "secpaver", "pyporter", "radiaTest", "stratovirt", "iSulad-img", "kae_driver",
+                 "isula-build", "cve-manager", "attest-tools", "oec-hardware", "itrustee_sdk", "wisdom-advisor",
+                 "isula-transform", " itrustee_client", "A-Tune-Collector", "itrustee_tzdriver", "website-v2",
+                 "yocto-poky", "bishengjdk-17", "bishengjdk-8", "bishengjdk-11", "bishengjdk-riscv"]
+  commit_msg:
+    hint: commit_msg
+    module: commit_msg.check_commit_msg
+    entry: CheckCommitMsg
+    allow_list: ["yocto-meta-openeuler"]

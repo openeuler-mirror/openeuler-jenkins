@@ -1,25 +1,8 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
-repo=$1
-SaveBuildRPM2Repo=$2
-repo_server=$3
-giteeRepoName=$4
-giteeTargetBranch=$5
-GiteeUserName=$6
-GiteePassword=$7
-GiteeToken=$8
-GiteeUserPassword=$9
-giteePullRequestIid=${10}
-prCreateTime=${11}
-giteeCommitter=${12}
-commentID=${13}
-comment=${14}
-jobTriggerTime=${15}
-triggerLink=${16}
-jenkins_user=${17}
-jenkins_api_token=${18}
-jenkins_api_host=${19}
+jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
+support_arch_file=${giteeRepoName}_${giteePullRequestIid}_support_arch
 
 # debug测试变量
 function config_debug_variable() {
@@ -32,6 +15,19 @@ function config_debug_variable() {
 }
 config_debug_variable
 
+# 清理环境
+function clearn_env() {
+  fileserver_tmpfile_path="/repo/soe${repo_server_test_tail}/support_arch/${support_arch_file}"
+  remote_dir_reset_cmd=$(
+    cat <<EOF
+    if [[ -e $fileserver_tmpfile_path ]]; then
+	    rm -f $fileserver_tmpfile_path
+    fi
+EOF
+)
+  ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_reset_cmd"
+
+}
 # 开始下载kernel代码
 function download_kernel_repo() {
   log_info "***** Start to download kernel *****"
@@ -66,6 +62,9 @@ function extra_work() {
 if [[ ! -d "/repo/soe${repo_server_test_tail}/pkgship" ]]; then
 	mkdir -p /repo/soe${repo_server_test_tail}/pkgship
 fi
+if [[ ! -d "/repo/soe${repo_server_test_tail}/support_arch" ]]; then
+	mkdir -p /repo/soe${repo_server_test_tail}/support_arch
+fi
 EOF
   )
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_create_cmd"
@@ -74,14 +73,16 @@ EOF
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pkgship_notify root@${repo_server}:/repo/soe${repo_server_test_tail}/pkgship
   fi
 
-  if [[ -e exclusive_arch ]]; then
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null exclusive_arch root@${repo_server}:/repo/soe${repo_server_test_tail}/exclusive_arch/${giteeRepoName}
+  if [[ -e support_arch ]]; then
+    mv support_arch ${support_arch_file}
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${support_arch_file} root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
   fi
   log_info "***** End to exec extra worker *****"
 }
 
 # 执行入口
 function main() {
+  clearn_env
   download_kernel_repo
   exec_check
   extra_work

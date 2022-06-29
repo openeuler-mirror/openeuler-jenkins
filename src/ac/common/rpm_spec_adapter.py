@@ -21,6 +21,8 @@ import logging
 
 from pyrpm.spec import Spec, replace_macros
 
+from src.utils.shell_cmd import shell_cmd
+
 logger = logging.getLogger("ac")
 
 
@@ -63,35 +65,25 @@ class RPMSpecAdapter(object):
         patch = self._adapter.patches_dict.get(key, "")
         return replace_macros(patch, self._adapter) if patch else ""
 
-    def include_x86_arch(self):
+    def get_exclusivearch(self):
         """
-        check include x86-64
-        :return
+        get exclusive arch
+        :return:
         """
-        try:
-            value = self.buildarch
-            logger.debug("build arch: %s", value)
-            if "x86_64" in value.lower():
-                return True
-
-            return False
-        except AttributeError:
-            return True
-
-    def include_aarch64_arch(self):
-        """
-        check include aarch64
-        :return
-        """
-        try:
-            value = self.buildarch
-            logger.debug("build arch: %s", value)
-            if "aarch64" in value.lower():
-                return True
-
-            return False
-        except AttributeError:
-            return True
+        exclusive_arch_list = []
+        exclusive_arch = self.exclusivearch
+        logger.info("exclusive_arch \"%s\"", exclusive_arch)
+        if exclusive_arch:
+            macros_list = exclusive_arch.split()
+            for macros_mem in macros_list:
+                if macros_mem.startswith("%"):
+                    cmd = 'rpm --eval "{}"'.format(macros_mem)
+                    ret, out, _ = shell_cmd(cmd)
+                    if out:
+                        exclusive_arch_list.extend(bytes.decode(out).strip().split())
+                else:
+                    exclusive_arch_list.append(macros_mem)
+        return exclusive_arch_list
 
     @staticmethod
     def compare_version(version_n, version_o):

@@ -135,13 +135,14 @@ class CiMistake(object):
         gp = GiteeProxy(self.owner, self.repo, self.gitee_token)
         gp.comment_pr(self.pr_id, comment_content)
 
-    def send_ci_mistake_data(self, command, build_no, ci_mistake_type, ci_mistake_stage):
+    def send_ci_mistake_data(self, command, build_no, ci_mistake_type, ci_mistake_stage, description):
         """
         send message to datebase by kafka
         :param command:
         :param build_no:
         :param ci_mistake_type:
         :param ci_mistake_stage:
+        :param description:
         :return:
         """
         message = {
@@ -155,6 +156,8 @@ class CiMistake(object):
             message["ci_mistake_type"] = ci_mistake_type
         if ci_mistake_stage:
             message["ci_mistake_stage"] = ci_mistake_stage
+        if not re.match(r"^\s*$", description):
+            message["description"] = description
 
         if command == "/ci_unmistake":
             message["ci_mistake_status"] = False
@@ -178,9 +181,10 @@ class CiMistake(object):
         :return:
         """
         build_no_list = CiMistake.load_build_no_list(build_no_filepath)
-
+        comment_sp = mistake_comment.split('\n')
+        description = "\n".join(comment_sp[1:])
         try:
-            command, build_no, ci_mistake_type_stage = CiMistake.check_command_format(mistake_comment)
+            command, build_no, ci_mistake_type_stage = CiMistake.check_command_format(comment_sp[0])
         except ValueError:
             command_error_tips = "comment format error."
             logger.error(command_error_tips)
@@ -217,7 +221,7 @@ class CiMistake(object):
             return
         ci_mistake_type = ci_mistake_type_list[0] if ci_mistake_type_list else ""
 
-        self.send_ci_mistake_data(command, build_no, ci_mistake_type, ci_mistake_stage)
+        self.send_ci_mistake_data(command, build_no, ci_mistake_type, ci_mistake_stage, description)
 
 
 def init_args():

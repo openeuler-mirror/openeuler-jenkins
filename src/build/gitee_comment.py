@@ -271,15 +271,26 @@ class Comment(object):
                     for item in content:
                         check_item_result[item.get("name")] = ACResult.get_instance(item.get("result"))
                     break
+            item_num = 1 + len(check_item_result)
+            if os.path.exists("support_arch"):
+                with open("support_arch", "r") as s_file:
+                    if arch not in s_file.readline():
+                        ac_result = ACResult.get_instance("EXCLUDE")
+                        item_num = 2
             comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
                             "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
-                1 + len(check_item_result), arch, "check_build", ac_result.emoji, ac_result.hint,
-                1 + len(check_item_result), "{}{}".format(build_url, "console"), build["number"]))
+                item_num, arch, "check_build", ac_result.emoji, ac_result.hint, item_num,
+                "{}{}".format(build_url, "console"), build["number"]))
             arch_dict["check_build"] = ac_result.hint
-            for check_item, check_result in check_item_result.items():
+            if ac_result.hint == "EXCLUDE":
                 comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
-                check_item, check_result.emoji, check_result.hint))
-                arch_dict[check_item] = check_result.hint
+                    "check_install", ac_result.emoji, ac_result.hint))
+                arch_dict["check_install"] = ac_result.hint
+            else:
+                for check_item, check_result in check_item_result.items():
+                    comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+                        check_item, check_result.emoji, check_result.hint))
+                    arch_dict[check_item] = check_result.hint
             self.check_item_result[arch] = arch_dict
         logger.info("check item comment: %s", comments)
 

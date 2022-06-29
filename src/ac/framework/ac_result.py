@@ -19,7 +19,7 @@
 
 class ACResult(object):
     """
-    Use this variables (FAILED, WARNING, SUCCESS) at most time,
+    Use this variables (FAILED, WARNING, SUCCESS， EXCLUDE) at most time,
     and don't new ACResult unless you have specific needs.
     """
     def __init__(self, val):
@@ -38,19 +38,19 @@ class ACResult(object):
     def get_instance(cls, val):
         """
         
-        :param val: 0/1/2/True/False/success/fail/warn
+        :param val: 0/1/2/3/True/False/success/fail/warn
         :return: instance of ACResult
         """
         if isinstance(val, int):
-            return {0: SUCCESS, 1: WARNING, 2: FAILED}.get(val)
+            return {0: SUCCESS, 1: WARNING, 2: FAILED, 3: EXCLUDE}.get(val)
         if isinstance(val, bool):
             return {True: SUCCESS, False: FAILED}.get(val)
 
         try:
             val = int(val)
-            return {0: SUCCESS, 1: WARNING, 2: FAILED}.get(val)
+            return {0: SUCCESS, 1: WARNING, 2: FAILED, 3: EXCLUDE}.get(val)
         except ValueError:
-            return {"success": SUCCESS, "fail": FAILED, "failed": FAILED, "failure": FAILED,
+            return {"success": SUCCESS, "fail": FAILED, "failed": FAILED, "failure": FAILED, "exclude": EXCLUDE,
                     "warn": WARNING, "warning": WARNING}.get(val.lower(), FAILED)
 
     @property
@@ -59,13 +59,14 @@ class ACResult(object):
 
     @property
     def hint(self):
-        return ["SUCCESS", "WARNING", "FAILED"][self.val]
+        return ["SUCCESS", "WARNING", "FAILED", "EXCLUDE"][self.val]
 
     @property
     def emoji(self):
-        return [":white_check_mark:", ":bug:", ":x:"][self.val]
+        return [":white_check_mark:", ":bug:", ":x:", ":ballot_box_with_check:"][self.val]
 
 
+EXCLUDE = ACResult(3)
 FAILED = ACResult(2)
 WARNING = ACResult(1)
 SUCCESS = ACResult(0)
