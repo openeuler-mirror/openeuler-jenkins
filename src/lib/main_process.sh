@@ -252,7 +252,9 @@ function compare_package() {
   fi
 
   if [[ "$(ls -A $new_dir | grep '.rpm')" ]]; then
-    python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -f json || echo "continue although run oecp failed"
+    sed -i "s/dbhost=127.0.0.1/dbhost=${MysqldbHost}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
+    sed -i "s/dbport=3306/dbport=${MysqldbPort}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
+    python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -f json -s $tbranch-${arch} -p ${JENKINS_HOME}/oecp/oecp/conf/plan/symbol.json --db-password ${MysqlUserPasswd:5} --pull-request-id ${repo}-${prid} || echo "continue although run oecp failed"
   fi
 
   pr_link='https://gitee.com/${repo_owner}/'${repo}'/pulls/'${prid}
