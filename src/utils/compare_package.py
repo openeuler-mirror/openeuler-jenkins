@@ -34,8 +34,8 @@ class ComparePackage(object):
     MIN_COLUMN_WIDTH = 16
     MAX_TABLE_WIDTH = 150
 
-    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config",
-                  "rpm kconfig", "rpm provides", "rpm requires", "rpm files"]
+    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config", "rpm service",
+                      "rpm kconfig", "rpm provides", "rpm requires", "rpm files", "rpm cmd", "rpm header", "rpm lib"]
 
     def __init__(self, logger):
         self.logger = logger
@@ -76,7 +76,7 @@ class ComparePackage(object):
         """
         tb = pt.PrettyTable(hrules=True, min_width=self.MIN_COLUMN_WIDTH, max_table_width=self.MAX_TABLE_WIDTH)
         title = "Table of Changed Rpms"
-        tb.field_names = ["added rpms", "deleted rpms", "changed rpms"]
+        tb.field_names = ["added rpms", "deleted rpms", "changed rpms", "effected rpms"]
         diff_rpm = []
 
         for key in ["more", "less", "diff"]:
@@ -85,10 +85,15 @@ class ComparePackage(object):
             if details:
                 if key == "diff":
                     diff_rpm_name = []
+                    effect_rpms = []
                     for rpm in details:
                         old_rpm_name = self._get_dict([rpm, "name", "old"], details)
+                        effect_rpm = self._get_dict([rpm, "rpm symbol", "total_effect_other_rpm"], details)
                         diff_rpm_name.append(old_rpm_name)
+                        if isinstance(effect_rpm, list):
+                            effect_rpms.extend(effect_rpm)
                     diff_rpm.append("\n".join(diff_rpm_name))
+                    diff_rpm.append("\n".join(effect_rpms))
                 else:
                     diff_rpm.append("\n".join(details))
             else:
@@ -179,7 +184,7 @@ class ComparePackage(object):
         compare_result = all_data.get("compare_result")
         compare_details = all_data.get("compare_details")
         if not all([compare_result, isinstance(compare_result, str),
-                compare_details, isinstance(compare_details, dict)]):
+                    compare_details, isinstance(compare_details, dict)]):
             self.logger.error("compare result format error")
             return self.FAILED
 
@@ -187,7 +192,7 @@ class ComparePackage(object):
         result_dict = self._result_to_table(compare_details)
         try:
             with open(check_result_file, "w") as f:
-                yaml.safe_dump(result_dict, f)     # list
+                yaml.safe_dump(result_dict, f)  # list
                 self.logger.info("output check result to comment file")
         except IOError:
             self.logger.exception("save compare package comment exception")
@@ -199,6 +204,7 @@ class ComparePackage(object):
         diff_details = self._get_dict(["diff", "diff_details"], compare_details)
         if diff_details:
             self._show_diff_details(diff_details)
+            self._show_each_rpm_effect_other_rpm_details(diff_details)
 
         if compare_result == "pass":
             return self.SUCCESS
@@ -320,6 +326,17 @@ class ComparePackage(object):
         获取compare package比较结果各子项的详细信息
         :param details:
         :return:
+        {
+        "rpm_files": [vala,xxx],
+        "rpm_requires": [vala,xxx],
+        "rpm_provides": [vala,xxx],
+        "rpm_config": [vala,xxx],
+        "rpm": [],
+        "rpm_abi": [vala,xxx],
+        "rpm_cmd": [vala,xxx],
+        "rpm_lib": [vala,xxx],
+        "rpm_symbol": [111,222,333],
+        }
         """
         rpm_dict = {}
         for rpm_name, rpm_details in details.items():
@@ -332,7 +349,10 @@ class ComparePackage(object):
                 check_item = "_".join(check_item.split())
                 rpm_list = rpm_dict.get(check_item) if rpm_dict.get(check_item) else []
                 if item_details:
-                    rpm_list.append(rpm_name)
+                    if check_item == "rpm_symbol":
+                        rpm_list.extend(item_details.get("total_effect_other_rpm", []))
+                    else:
+                        rpm_list.append(rpm_name)
                 rpm_dict[check_item] = rpm_list
         return rpm_dict
 
@@ -340,7 +360,6 @@ class ComparePackage(object):
         """
         获取compare package比较结果的详细信息
         :param compare_details:
-        :param result_dict:
         :return:
         """
         result_dict = {"add_rpms": [], "delete_rpms": []}
@@ -359,3 +378,34 @@ class ComparePackage(object):
                 elif compare_item == "less":
                     result_dict["delete_rpms"] = rpm_list
         return result_dict
+
+    def _show_each_rpm_effect_other_rpm_details(self, diff_details):
+        """
+        显示每个rpm影响的其他软件包
+        :param diff_details:
+        "diff": {
+            "diff_details": {
+                "openssl": {
+                    "name": {}
+                    "rpm files": {}
+                    "rpm requires": {}
+                    "rpm symbol": {"total_effect_other_rpm": ["vala-0.42.2-2.oe1.aarch64.rpm"]}}}}
+        :return:
+        Table of Check rpm symbol Result
+        +---------------+-----------------------------+
+        |    rpm name   | effected_other_rpm          |
+        +---------------+-----------------------------+
+        |    openssl    |vala-0.42.2-2.oe1.aarch64.rpm|
+        +---------------+-----------------------------+
+        |     ...       |          ...                |
+        +---------------+-----------------------------+
+        """
+        title = "Table of Check rpm symbol Result"
+        tb = pt.PrettyTable(hrules=True, min_width=self.MIN_COLUMN_WIDTH, max_table_width=self.MAX_TABLE_WIDTH)
+        tb.field_names = ["rpm name", "effected_other_rpm"]
+        for rpm in diff_details:
+            details = self._get_dict([rpm, "rpm symbol", "total_effect_other_rpm"], diff_details)
+            value = "\n".join(details) if isinstance(details, list) else []
+            tb.add_row([rpm, value]) if value else tb.add_row([rpm, ""])
+        self.logger.info(" %s\n%s", title, tb)
+        tb.clear()
