@@ -48,7 +48,7 @@ contrib=CC1
 # This is an example of how to configure the "title-max-length" rule and
 # set the line-length it enforces to 50
 [title-max-length]
-line-length=80
+line-length=72
 
 # Conversely, you can also enforce minimal length of a title with the
 # "title-min-length" rule:
@@ -68,7 +68,7 @@ min-length=5
 regex=^(([0-9a-zA-Z]|-|_){1,}(: ))(.){1,}$
 
 [body-max-line-length]
-line-length=72
+line-length=80
 
 [body-min-length]
 min-length=5
