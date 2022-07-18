@@ -11,6 +11,8 @@ main:
   - openEuler:22.03:LTS:LoongArch
   - openEuler:22.03:LTS:LoongArch:selfbuild:BaseOS
   - openEuler:22.03:LTS:selfbuild:BaseOS
+  - openEuler:22.09
+  - openEuler:22.09:Epol
   - openEuler:Epol
   - openEuler:Extras
   - openEuler:Factory
