@@ -1,0 +1,8 @@
+x86:
+  l1: k8s-x86-oe-level1
+  l2: k8s-x86-oe-level2
+
+aarch64:
+  l1: k8s-aarch64-openeuler-level1
+  l2: k8s-aarch64-openeuler-level2
+
