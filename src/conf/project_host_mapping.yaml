@@ -18,6 +18,22 @@ main:
   - openEuler:Factory
   - openEuler:Mainline
   - openEuler:Mainline:RISC-V
+  - openEuler:BaseTools
+  - openEuler:C
+  - openEuler:Common_Languages_Dependent_Tools
+  - openEuler:Erlang
+  - openEuler:Golang
+  - openEuler:Java
+  - openEuler:KernelSpace
+  - openEuler:Lua
+  - openEuler:Meson
+  - openEuler:MultiLanguage
+  - openEuler:Nodejs
+  - openEuler:Ocaml
+  - openEuler:Perl
+  - openEuler:Python
+  - openEuler:Qt
+  - openEuler:Ruby
   - openEuler:selfbuild:BaseOS
   - openEuler:selfbuild:function
   - python3-update
