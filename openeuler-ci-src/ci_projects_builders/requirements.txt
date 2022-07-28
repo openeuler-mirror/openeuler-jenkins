@@ -1,0 +1,7 @@
+Django==2.1.15
+django-cors-headers==3.2.0               
+djangorestframework==3.11.0              
+jenkinsapi==0.3.11
+requests==2.27.1
+python-jenkins==1.7.0
+PyYAML==5.3.1
