@@ -30,7 +30,7 @@ build-root = ${BUILD_ROOT}
 [http://117.78.1.88]
 user = ${OBSUserName}
 pass = ${OBSPassword}
-trusted_prj = openEuler:22.09:selfbuild:BaseOS openEuler:22.03:LTS:LoongArch:selfbuild:BaseOS openEuler:22.03:LTS:selfbuild:BaseOS openEuler:22.03:LTS:Next:selfbuild:BaseOS openEuler:20.03:LTS:SP3:selfbuild:BaseOS openEuler:selfbuild:BaseOS openEuler:20.03:LTS:selfbuild:BaseOS openEuler:selfbuild:function openEuler:20.09:selfbuild:BaseOS openEuler:20.03:LTS:SP1:selfbuild:BaseOS openEuler:21.03:selfbuild:BaseOS openEuler:20.03:LTS:SP2:selfbuild:BaseOS openEuler:21.09:selfbuild:BaseOS openEuler:20.03:LTS:Next:selfbuild:BaseOS # 不用输0,1,2了
+trusted_prj = openEuler:Factory openEuler:Mainline openEuler:Epol openEuler:BaseTools openEuler:C openEuler:Common_Languages_Dependent_Tools openEuler:Erlang openEuler:Golang openEuler:Java openEuler:KernelSpace openEuler:Lua openEuler:Meson openEuler:MultiLanguage openEuler:Nodejs openEuler:Ocaml openEuler:Perl openEuler:Python openEuler:Qt openEuler:Ruby openEuler:selfbuild:BaseOS openEuler:22.09:selfbuild:BaseOS openEuler:22.03:LTS:LoongArch:selfbuild:BaseOS openEuler:22.03:LTS:selfbuild:BaseOS openEuler:22.03:LTS:Next:selfbuild:BaseOS openEuler:20.03:LTS:SP3:selfbuild:BaseOS openEuler:selfbuild:BaseOS openEuler:20.03:LTS:selfbuild:BaseOS openEuler:selfbuild:function openEuler:20.09:selfbuild:BaseOS openEuler:20.03:LTS:SP1:selfbuild:BaseOS openEuler:21.03:selfbuild:BaseOS openEuler:20.03:LTS:SP2:selfbuild:BaseOS openEuler:21.09:selfbuild:BaseOS openEuler:20.03:LTS:Next:selfbuild:BaseOS # 不用输0,1,2了
 EOF
   log_info "***** End to config osc *****"
 }
