@@ -143,7 +143,7 @@ def run(owner, repo, number):
             # 创建Jenkins用户、发送邮件并添加权限
             logger.info('Create and config Jenkins users.')
             login_password = str(random.randint(100000, 999999))
-            jenkinslib = JenkinsLib(JENKINS_URL, JENKINS_USERNAME, JENKINS_PASSWORD, userCrumb=True, timeout=180)
+            jenkinslib = JenkinsLib(JENKINS_URL, JENKINS_USERNAME, JENKINS_PASSWORD, useCrumb=True, timeout=180)
             res = jenkinslib.create_user(login_name, login_password, name, email_addr)
             if res.status_code == 200:
                 sendmail(login_name, login_password, email_addr)
