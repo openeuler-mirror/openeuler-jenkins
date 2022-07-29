@@ -1,0 +1,8 @@
+repo_name: skylark
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: yezengruan
+    name: yezengruan
+    email: yezengruan@huawei.com
+    gitee_id: yezengruan
