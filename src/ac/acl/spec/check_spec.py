@@ -308,12 +308,18 @@ class CheckSpec(BaseCheck):
             new_str = re.sub(r"<[\w._-]+@[\w\-_]+[.a-zA-Z]+>", "", changelog_con)
             if self._spec.epoch:  # 检查spec文件中是否存在epoch字段
                 obj_s = re.search(r"\w+:(\w+(.\w+){0,9})-[\w.]+", new_str)
+                if not obj_s:
+                    logger.error(
+                        "There is an non-standard format in %s, please keep it consistent: Epoch:version-release \n"
+                        "e.g: 1:1.0.0-1", changelog_con)
+                    return False
                 version = "".join([self._spec.epoch, ":", version])
             else:
                 obj_s = re.search(r"(\w+(.\w+){0,9})-[\w.]+", new_str)
-            if not obj_s:
-                logger.error("%s Missing release or version!", changelog_con)
-                return False
+                if not obj_s:
+                    logger.error("%s release or version incorrect format,please keep it consistent: version-release \n"
+                                 "e.g: 1.0.0-1", changelog_con)
+                    return False
             version_num, release_num = obj_s.group(0).split("-")
             if version_num != version:
                 logger.error("version error in changelog: %s is different from %s", version_num, version)
@@ -360,7 +366,6 @@ class CheckSpec(BaseCheck):
             logger.error("bad date in changelog:%s", changelog_con)
             return False
         if not release_and_version(changelog_con, self._spec.version, self._spec.release):
-            logger.error("There is a problem with the version number or release number:%s", changelog_con)
             return False
         if not bogus_date(date_obj):
             logger.error("bogus date in changelog:%s", changelog_con)
