@@ -219,6 +219,8 @@ function compare_package() {
   old_dir="${WORKSPACE}/old_rpms/"
   new_dir="${WORKSPACE}/new_rpms/"
   result_dir="${WORKSPACE}/oecp_result"
+  ci_server_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/"
+
   if [[ -d $old_dir ]]; then
     rm -rf $old_dir
   fi
@@ -239,10 +241,9 @@ function compare_package() {
   if [[ -d ${RPM_PATH}/noarch && "$(ls -A ${RPM_PATH}/noarch)" ]]; then
     cp ${RPM_PATH}/noarch/*.rpm $new_dir
   fi
-  if [[ $(ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} test -e "root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/") ]]; then
-    log_info "try download rpms from ci server"
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server}:/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/0X080480000XC0000000/${repo}/${arch}/*.rpm $old_dir
-  fi
+  log_info "try download rpms from ci server"
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$ci_server_dir/*.rpm $old_dir || echo log_info "file ${$ci_server_dir} not exist"
+
   if [[ ! "$(ls -A $old_dir | grep '.rpm')" && "$(ls -A $new_dir | grep '.rpm')" ]]; then
     log_info "try download rpms from obs server"
     python3 ${SCRIPT_PATCH}/extra_work.py getrelatedrpm -r $tbranch -p ${item} -a ${arch} || echo "continue although run get related rpm failed"
