@@ -1,0 +1,8 @@
+repo_name: re2-rust
+container_level: l1
+init_shell: "echo re2-rust\necho $?"
+users:
+  - login_name: zhaowei
+    name: zhaowei
+    email: zhaowei23@huawei.com
+    gitee_id: seuzw
