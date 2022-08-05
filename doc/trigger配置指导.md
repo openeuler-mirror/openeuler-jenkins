@@ -28,23 +28,23 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 ### 参数配置
 
-![1645517616218](images\trigger_parameter.png)
+![1645517616218](images/trigger_parameter.png)
 
 ### 节点配置
 
 选择对应的节点，即可构建对应docker镜像，里面包含一些包的安装和配置文件等。
 
-![1645517676073](images\trigger_label_expr.png)
+![1645517676073](images/trigger_label_expr.png)
 
 ### 通过webhook设置变量
 
-![1645517779358](images\trigger_setvar_with_webhook.png)
+![1645517779358](images/trigger_setvar_with_webhook.png)
 
 ### Optional filter
 
 可以根据里面配置的正则表达式过滤匹配评论内容，如果匹配到则触发门禁，本例中是如果评论中包含Hi和/retest则启动触发。
 
-![1645673940474](images\trigger_optional_filter.png)
+![1645673940474](images/trigger_optional_filter.png)
 
 ### 构建主流程代码配置
 
@@ -52,7 +52,7 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 其中如果需要自己调试的话，可以放开下面注释内容，把代码换成自己要验证的代码路径
 
-![1645517951755](images\trigger_build.png)
+![1645517951755](images/trigger_build.png)
 
 ### 注入环境变量
 
@@ -60,7 +60,7 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 格式为ACL=[{"name":"check_spec", "result":0}]
 
-![1645518003081](images\trigger_inject_env_var.png)
+![1645518003081](images/trigger_inject_env_var.png)
 
 ### 构建后操作
 
@@ -74,7 +74,7 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 **Predefined parameters：** 预定义参数，参数可以传递到该工程
 
-![1645597235192](images\trigger_post_build.png)
+![1645597235192](images/trigger_post_build.png)
 
 ### 后连接操作
 
@@ -82,7 +82,7 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 此处配置build完成后需要启动的工程，comment工程中会汇总前面trigger和build中的结果，输出展示到评论中。
 
-![1645597470261](images\trigger_post_join.png)
+![1645597470261](images/trigger_post_join.png)
 
 
 
@@ -94,13 +94,13 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 https://openeulerjenkins.osinfra.cn/credentials/
 
-![1645683419132](images\check_credentials.png)
+![1645683419132](images/check_credentials.png)
 
 ### 添加新凭证
 
 https://openeulerjenkins.osinfra.cn/credentials/store/system/domain/_/newCredentials
 
-![1645683514928](images\add_credentials.png)
+![1645683514928](images/add_credentials.png)
 
 **Jenkins可以存储以下类型的credentials:**
 
