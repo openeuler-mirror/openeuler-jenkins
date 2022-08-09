@@ -56,7 +56,7 @@ openeuler:
                  "isula-build", "cve-manager", "attest-tools", "oec-hardware", "itrustee_sdk", "wisdom-advisor",
                  "isula-transform", " itrustee_client", "A-Tune-Collector", "itrustee_tzdriver", "website-v2",
                  "yocto-poky", "bishengjdk-17", "bishengjdk-8", "bishengjdk-11", "bishengjdk-riscv", "powerapi",
-                 "eagle", "dcs", "astream"]
+                 "eagle", "dcs", "astream", "QARobot"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
