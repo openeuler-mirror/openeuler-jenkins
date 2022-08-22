@@ -254,7 +254,7 @@ class Comment(object):
             elif "aarch64" in name:
                 arch = "aarch64"
             else:
-                continue
+                arch = name.split("/")[-2]
             arch_dict = {}
             check_item_result = {}
             for check_item_comment_file in self._check_item_comment_files:

@@ -65,7 +65,7 @@ class GiteeProxy(object):
         rs = do_requests("post", pr_tag_url, body=list(tags), timeout=10)
 
         if rs != 0:
-            logger.warning("create tags failed")
+            logger.warning("create tags:%s failed", tags)
             return False
 
         return True
@@ -87,7 +87,7 @@ class GiteeProxy(object):
 
         rs = do_requests("put", pr_tag_url, body=list(tags), timeout=10)
         if rs != 0:
-            logger.warning("replace tags failed")
+            logger.warning("replace tags:%s failed", tags)
             return False
 
         return True
@@ -106,7 +106,7 @@ class GiteeProxy(object):
         rs = do_requests("delete", pr_tag_url, timeout=10)
 
         if rs != 0:
-            logger.warning("delete tags failed")
+            logger.warning("delete tags:%s failed", tag)
             return False
 
         return True
