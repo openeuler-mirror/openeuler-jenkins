@@ -1,0 +1,8 @@
+repo_name: oec-application
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: meitingli
+    name: meitingli
+    email: bubble_mt@outlook.com
+    gitee_id: meitingli
