@@ -76,7 +76,8 @@ class CheckLicense(BaseCheck):
         if self._spec is None:
             logger.error("spec file not find")
             return FAILED
-        rs_code = self._pkg_license.check_license_safe(self._spec.license)
+        self._license_in_spec = self._spec.license
+        rs_code = self._pkg_license.check_license_safe(self._license_in_spec)
         if rs_code == 0:
             return SUCCESS
         elif rs_code == 1:
