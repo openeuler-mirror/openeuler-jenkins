@@ -17,12 +17,13 @@ from utils.send_login_info import sendmail
 
 
 logger = logging.getLogger('log')
+BASEURL = os.getenv('BASEURL', '')
 JENKINS_URL = os.getenv('JENKINS_URL', '')
 JENKINS_USERNAME = os.getenv('JENKINS_USERNAME', '')
 JENKINS_PASSWORD = os.getenv('JENKINS_PASSWORD', '')
 AUTHING_USERID = os.getenv('AUTHING_USERID', '')
 AUTHING_SECRET = os.getenv('AUTHING_SECRET', '')
-if not (JENKINS_URL and JENKINS_USERNAME and JENKINS_PASSWORD and AUTHING_USERID and AUTHING_SECRET):
+if not (JENKINS_URL and JENKINS_USERNAME and JENKINS_PASSWORD and AUTHING_USERID and AUTHING_SECRET and BASEURL):
     logger.error('Please check environment variables, exit...')
     sys.exit(1)
 
@@ -143,7 +144,7 @@ def run(owner, repo, number):
             # 创建Jenkins用户、发送邮件并添加权限
             logger.info('Create and config Jenkins users.')
             login_password = str(random.randint(100000, 999999))
-            jenkinslib = JenkinsLib(JENKINS_URL, JENKINS_USERNAME, JENKINS_PASSWORD, useCrumb=True, timeout=180)
+            jenkinslib = JenkinsLib(BASEURL, JENKINS_USERNAME, JENKINS_PASSWORD, useCrumb=True, timeout=180)
             res = jenkinslib.create_user(login_name, login_password, name, email_addr)
             if res.status_code == 200:
                 sendmail(login_name, login_password, email_addr)
