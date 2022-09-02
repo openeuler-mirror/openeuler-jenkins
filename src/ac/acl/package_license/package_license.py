@@ -75,7 +75,7 @@ class PkgLicense(object):
             data = {"prUrl": pr_url}
             rs = do_requests("get", url=self.license_url, timeout=360, querystring=data, obj=analysis)
             if rs != 0:
-                logger.warning("Failed to obtain %s information through service", pr_url)
+                logger.error("Failed to obtain %s information through service", pr_url)
         return self.response_content
 
     def check_license_in_scope(self):
@@ -86,7 +86,7 @@ class PkgLicense(object):
         license_in_scope = self.response_content.get("license_in_scope")
 
         if not license_in_scope:
-            return WARNING
+            return FAILED
 
         res = license_in_scope.get("pass")
         if res:
@@ -105,7 +105,7 @@ class PkgLicense(object):
         repo_copyright_legal = self.response_content.get("repo_copyright_legal")
 
         if not repo_copyright_legal:
-            return WARNING
+            return FAILED
 
         res = repo_copyright_legal.get("pass")
         if res:
