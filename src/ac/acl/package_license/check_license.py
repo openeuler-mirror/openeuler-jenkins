@@ -62,9 +62,13 @@ class CheckLicense(BaseCheck):
         if not os.path.exists(self._work_tar_dir):
             os.mkdir(self._work_tar_dir)
         self._gr.decompress_all()  # decompress all compressed file into work_tar_dir
+        codecheck = kwargs.get("codecheck", {})
+        pr_url = codecheck.get("pr_url", "")
+        self.response_content = self._pkg_license.get_license_info(pr_url)
 
         try:
-            return self.start_check_with_order("license_in_spec", "license_in_src", "license_is_same")
+            return self.start_check_with_order("license_in_spec", "license_in_src", "license_is_same",
+                                               "copyright_in_repo")
         finally:
             shutil.rmtree(self._work_tar_dir)
 
@@ -76,14 +80,21 @@ class CheckLicense(BaseCheck):
         if self._spec is None:
             logger.error("spec file not find")
             return FAILED
-        self._license_in_spec = self._spec.license
-        rs_code = self._pkg_license.check_license_safe(self._license_in_spec)
-        if rs_code == 0:
-            return SUCCESS
-        elif rs_code == 1:
+        spec_license_legal = self.response_content.get("spec_license_legal")
+
+        if not spec_license_legal:
             return WARNING
+
+        res = spec_license_legal.get("pass")
+        if res:
+            logger.info("the license in spec is free")
+            return SUCCESS
         else:
-            logger.error("licenses in spec are not in white list")
+            notice_content = spec_license_legal.get("notice")
+            logger.warning("License notice: %s", notice_content)
+            black_reason = spec_license_legal.get("detail").get("is_white").get("blackReason")
+            if black_reason:
+                logger.error("License black reason: %s", black_reason)
             return FAILED
 
     def check_license_in_src(self):
@@ -91,24 +102,16 @@ class CheckLicense(BaseCheck):
         check whether the license in src file is in white list
         :return
         """
-        self._license_in_src = self._pkg_license.scan_licenses_in_license(self._work_tar_dir)
-        self._license_in_src = self._pkg_license.translate_license(self._license_in_src)
-        if not self._license_in_src:
-            logger.warning("cannot find licenses in src")
-        rs_code = self._pkg_license.check_license_safe(self._license_in_src)
-        if rs_code == 0:
-            return SUCCESS
-        elif rs_code == 1:
-            return WARNING
-        else:
-            logger.error("licenses in src are not in white list")
-            return FAILED
+        return self._pkg_license.check_license_in_scope()
 
     def check_license_is_same(self):
         """
         check whether the license in spec file and in src file is same
         :return
         """
+        self._license_in_spec = self._spec.license
+        self._license_in_src = self._pkg_license.scan_licenses_in_license(self._work_tar_dir)
+        self._license_in_src = self._pkg_license.translate_license(self._license_in_src)
         if self._pkg_license.check_licenses_is_same(self._license_in_spec, self._license_in_src,
                                                     self._pkg_license.later_support_license):
             logger.info("licenses in src:%s and in spec:%s are same", self._license_in_src,
@@ -118,3 +121,10 @@ class CheckLicense(BaseCheck):
             logger.error("licenses in src:%s and in spec:%s are not same", self._license_in_src,
                                                                                    self._license_in_spec)
             return WARNING
+
+    def check_copyright_in_repo(self):
+        """
+        check whether the copyright in src file
+        :return
+        """
+        return self._pkg_license.check_repo_copyright_legal()
