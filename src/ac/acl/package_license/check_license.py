@@ -83,7 +83,7 @@ class CheckLicense(BaseCheck):
         spec_license_legal = self.response_content.get("spec_license_legal")
 
         if not spec_license_legal:
-            return WARNING
+            return FAILED
 
         res = spec_license_legal.get("pass")
         if res:
