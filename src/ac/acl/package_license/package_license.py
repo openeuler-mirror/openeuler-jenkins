@@ -23,6 +23,7 @@ import json
 import chardet
 
 from src.proxy.requests_proxy import do_requests
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
 
 logger = logging.getLogger("ac")
 
@@ -54,14 +55,13 @@ class PkgLicense(object):
     def __init__(self):
         self._license_translation = {}
         self._later_support_license = {}
-        self.license_url = "https://compliance2.openeuler.org/sca"
+        self.response_content = {}
+        self.license_url = "https://compliance3.openeuler.org/sca"
 
-    def check_license_safe(self, licenses):
+    def get_license_info(self, pr_url):
         """
-        Check if the license is in the blacklist
+        get license info from compliance2.openeuler.org
         """
-        result = 0
-        response_content = {}
 
         def analysis(response):
             """
@@ -69,28 +69,52 @@ class PkgLicense(object):
             :param response: requests response object
             :return:
             """
-            response_content.update(json.loads(response.text))
+            self.response_content.update(json.loads(response.text))
 
-        if not isinstance(licenses, (set, list)):
-            licenses = [licenses]
-        for lic in licenses:           
-            data = {"license": lic, "type": "reference"}
-            rs = do_requests("get", url=self.license_url, querystring=data, obj=analysis)
+        if pr_url:
+            data = {"prUrl": pr_url}
+            rs = do_requests("get", url=self.license_url, timeout=360, querystring=data, obj=analysis)
             if rs != 0:
-                result = 1
-                logger.warning("Failed to obtain %s information through service", lic)
-                continue
-            res = response_content.get("pass")
-            if res:
-                logger.info("This license: %s is free", lic)
-            else:
-                notice_content = response_content.get("notice")
-                black_reason = response_content.get("detail").get("is_white").get("blackReason")
-                logger.warning("License: %s", notice_content)
-                if black_reason:
-                    logger.error("License: %s", black_reason)
-                result = -1
-        return result
+                logger.warning("Failed to obtain %s information through service", pr_url)
+        return self.response_content
+
+    def check_license_in_scope(self):
+        """
+        check whether the license in src file is in white list
+        :return
+        """
+        license_in_scope = self.response_content.get("license_in_scope")
+
+        if not license_in_scope:
+            return WARNING
+
+        res = license_in_scope.get("pass")
+        if res:
+            logger.info("the license in scope is free")
+            return SUCCESS
+        else:
+            notice_content = license_in_scope.get("notice")
+            logger.warning("the license in scope is not pass, notice: %s", notice_content)
+            return FAILED
+
+    def check_repo_copyright_legal(self):
+        """
+        check whether the copyright in src file
+        :return
+        """
+        repo_copyright_legal = self.response_content.get("repo_copyright_legal")
+
+        if not repo_copyright_legal:
+            return WARNING
+
+        res = repo_copyright_legal.get("pass")
+        if res:
+            logger.info("the copyright in repo is pass")
+            return SUCCESS
+        else:
+            notice_content = repo_copyright_legal.get("notice")
+            logger.warning("the copyright in repo is not pass, notice: %s", notice_content)
+            return WARNING
 
     def translate_license(self, licenses):
         """

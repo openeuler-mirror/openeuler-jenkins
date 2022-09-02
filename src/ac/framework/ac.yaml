@@ -37,7 +37,9 @@ openeuler:
   package_yaml:
     exclude: True
   package_license:
-    exclude: True
+    hint: check_package_license
+    module: package_license.check_openeuler_license
+    entry: CheckOpeneulerLicense
   binary:
     exclude: True
   sca:
