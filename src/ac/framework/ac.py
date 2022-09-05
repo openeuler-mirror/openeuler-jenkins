@@ -31,6 +31,7 @@ from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.utils.dist_dataset import DistDataset
+from src.constant import Constant
 
 
 class AC(object):
@@ -116,6 +117,12 @@ class AC(object):
         :param repo:
         :return:
         """
+        target_branch = kwargs.get("tbranch")
+        if target_branch.lower() in Constant.STOPPED_MAINTENANCE_BRANCH:
+            logger.error("%s is no longer maintained, and access control is no longer checked.", target_branch)
+            self._ac_check_result.append({"name": "Branch is not maintained", "result": 2})
+            return
+
         for element in self._ac_check_elements:
             check_element = self._ac_check_elements.get(element)
             logger.debug("check %s", element)
