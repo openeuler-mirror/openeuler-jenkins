@@ -93,3 +93,6 @@ class Constant(object):
         r'^/etc/ima/digest_lists/0-metadata_list-compact*',
         r'^/etc/ima/digest_lists.tlv/0-metadata_list-compact_tlv*'
     ]
+
+    STOPPED_MAINTENANCE_BRANCH = ["openeuler-20.03-lts-next", "openeuler-20.03-lts", "openeuler-20.03-lts-sp2",
+                                  "openeuler-21.03", "openeuler-21.09"]

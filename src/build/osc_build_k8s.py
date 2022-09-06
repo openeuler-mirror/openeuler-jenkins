@@ -187,7 +187,9 @@ class SinglePackageBuild(object):
         if self._branch in self.BUILD_IGNORED_GITEE_BRANCH:
             logger.error("branch \"%s\" ignored", self._branch)
             return 0
-
+        if self._branch.lower() in Constant.STOPPED_MAINTENANCE_BRANCH:
+            logger.error("branch \"%s\" is no longer maintained!", self._branch)
+            return 1
         if self._branch not in Constant.GITEE_BRANCH_PROJECT_MAPPING:
             logger.error("branch \"%s\" not support yet", self._branch)
             return 1
