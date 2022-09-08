@@ -67,6 +67,7 @@ backend_003:
   - openEuler:22.03:LTS:Epol
   - openEuler:22.03:LTS:Epol:Multi-Version:OpenStack:Train
   - openEuler:22.03:LTS:Epol:Multi-Version:OpenStack:Wallaby
+  - openEuler:22.03:LTS:Epol:Multi-Version:obs-server:2.10.11
   - openEuler:22.03:LTS:Extras
   - openEuler:22.03:LTS:selfbuild:BaseOS
 backend_004:
