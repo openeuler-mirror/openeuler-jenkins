@@ -46,7 +46,7 @@ openeuler:
     hint: check_sca
     module: sca.check_sca
     entry: CheckSCA
-    deny_list: []
+    deny_list: ["bishengjdk-17", "bishengjdk-8", "bishengjdk-11", "bishengjdk-riscv", "gcc", "kernel"]
   openlibing:
     hint: code
     module: openlibing.check_code
