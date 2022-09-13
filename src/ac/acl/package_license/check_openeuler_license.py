@@ -38,7 +38,6 @@ class CheckOpeneulerLicense(BaseCheck):
     def __init__(self, workspace, repo, conf=None):
         super(CheckOpeneulerLicense, self).__init__(workspace, repo, conf)
 
-        self._work_tar_dir = os.path.join(workspace, "code")
         self._pkg_license = PkgLicense()
 
     def __call__(self, *args, **kwargs):
@@ -53,10 +52,7 @@ class CheckOpeneulerLicense(BaseCheck):
         pr_url = codecheck.get("pr_url", "")
         self.response_content = self._pkg_license.get_license_info(pr_url)
 
-        try:
-            return self.start_check_with_order("license_in_repo", "license_in_scope", "copyright_in_repo")
-        finally:
-            shutil.rmtree(self._work_tar_dir)
+        return self.start_check_with_order("license_in_repo", "license_in_scope", "copyright_in_repo")
 
     def check_license_in_repo(self):
         """
