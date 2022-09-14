@@ -34,7 +34,7 @@ class ComparePackage(object):
     MIN_COLUMN_WIDTH = 16
     MAX_TABLE_WIDTH = 150
 
-    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config", "rpm service",
+    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config", "rpm service", "service detail",
                       "rpm kconfig", "rpm provides", "rpm requires", "rpm files", "rpm cmd", "rpm header", "rpm lib"]
 
     def __init__(self, logger):
