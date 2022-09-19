@@ -320,7 +320,12 @@ class CheckSpec(BaseCheck):
                     logger.error("%s release or version incorrect format,please keep it consistent: version-release \n"
                                  "e.g: 1.0.0-1", changelog_con)
                     return False
-            version_num, release_num = obj_s.group(0).split("-")
+            try:
+                version_num, release_num = obj_s.group(0).split("-")
+            except ValueError as e:
+                logger.error("%s release or version incorrect format,please keep it consistent: version-release \n"
+                             "e.g: 1.0.0-1", changelog_con)
+                return False
             if version_num != version:
                 logger.error("version error in changelog: %s is different from %s", version_num, version)
                 return False
