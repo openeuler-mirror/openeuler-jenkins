@@ -29,6 +29,10 @@ src-openeuler:
     exclude: True
   commit_msg:
     exclude: True
+  source_consistency:
+    hint: check_consistency
+    module: source_consistency.check_consistency
+    entry: CheckSourceConsistency
 openeuler:
   spec:
     exclude: True
@@ -65,3 +69,5 @@ openeuler:
     module: commit_msg.check_commit_msg
     entry: CheckCommitMsg
     allow_list: ["yocto-meta-openeuler"]
+  source_consistency:
+    exclude: True
