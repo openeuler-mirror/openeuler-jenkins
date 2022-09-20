@@ -86,7 +86,7 @@ class JenkinsJobs(object):
                 logger.info("%s works, %s/%s ", len(works), index + 1, batch)
                 gevent.joinall(works)
                 for work in works:
-                    if work.value["result"]:
+                    if work.value.get("result"):
                         logger.info("%s job %s ... ok", action, work.value["job"])
                     else:
                         _failed_jobs.append(work.value["job"])
