@@ -26,6 +26,8 @@ function clearn_env() {
 EOF
 )
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_reset_cmd"
+  log_info "***** Start to copy db file *****"
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe/sql/source_clean.db . || log_info "file source_clean not exist"
 
 }
 # 开始下载kernel代码
