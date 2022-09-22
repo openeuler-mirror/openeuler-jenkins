@@ -133,7 +133,7 @@ class CheckSourceConsistency(BaseCheck):
         rpmbuild解析出可查询的Source URL
         """
         if spec_name == "":
-            spec_name = self._repo + "spec"
+            spec_name = self._repo + ".spec"
         spec_file = os.path.join(self._work_dir, spec_name)
         self.generate_new_spec(spec_file)
         source_url = self.do_rpmbuild()
