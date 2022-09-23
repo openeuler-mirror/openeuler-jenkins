@@ -69,7 +69,8 @@ class PkgLicense(object):
             :param response: requests response object
             :return:
             """
-            self.response_content.update(json.loads(response.text))
+            if json.loads(response.text):
+                self.response_content.update(json.loads(response.text))
 
         if pr_url:
             data = {"prUrl": pr_url}
