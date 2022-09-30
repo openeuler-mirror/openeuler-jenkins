@@ -63,7 +63,8 @@ openeuler:
                  "isula-transform", " itrustee_client", "A-Tune-Collector", "itrustee_tzdriver", "website-v2",
                  "yocto-poky", "bishengjdk-17", "bishengjdk-8", "bishengjdk-11", "bishengjdk-riscv", "powerapi",
                  "eagle", "dcs", "astream", "QARobot", "oec-application", "gala-gopher", "gala-anteater",
-                 "gala-spider", "gala-ragdoll"]
+                 "gala-spider", "gala-ragdoll", "aops-zeus", "aops-ceres", "aops-apollo", "aops-diana", "aops-hermes",
+                 "aops-vulcanus"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg

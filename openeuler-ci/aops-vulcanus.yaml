@@ -1,0 +1,8 @@
+repo_name: aops-vulcanus
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: dowzyx
+    name: dowzyx
+    email: zhaoyuxing2@huawei.com
+    gitee_id: dowzyx
