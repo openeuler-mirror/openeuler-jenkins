@@ -30,9 +30,7 @@ src-openeuler:
   commit_msg:
     exclude: True
   source_consistency:
-    hint: check_consistency
-    module: source_consistency.check_consistency
-    entry: CheckSourceConsistency
+    exclude: True
 openeuler:
   spec:
     exclude: True
