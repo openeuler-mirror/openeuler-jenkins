@@ -1,0 +1,8 @@
+repo_name: hikptool
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: veega2022
+    name: veega2022
+    email: zhuweijia@huawei.com
+    gitee_id: veega2022
