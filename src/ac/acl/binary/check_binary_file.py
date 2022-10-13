@@ -23,6 +23,8 @@ from src.ac.framework.ac_result import FAILED, SUCCESS
 from src.ac.common.gitee_repo import GiteeRepo
 from pyrpm.spec import Spec, replace_macros
 
+from src.utils.shell_cmd import shell_cmd
+
 logger = logging.getLogger("ac")
 
 
@@ -117,9 +119,25 @@ class CheckBinaryFile(BaseCheck):
             for single_file in files:
                 file_suffixes = os.path.splitext(single_file)[1]
                 if file_suffixes in self.BINARY_LIST:
-                    binary_file.append(single_file)
+                    if self._get_file_type(os.path.join(root, single_file)):
+                        binary_file.append(single_file)
             if binary_file:
                 binary_list.append({root.split("code")[-1]: binary_file})
         return binary_list
 
-
+    @staticmethod
+    def _get_file_type(filepath):
+        """
+        run the file command to check whether a file is a binary file
+        :param filepath:
+        :return:
+        """
+        file_cmd = "file -b {}".format(filepath)
+        ret, out, _ = shell_cmd(file_cmd)
+        if ret:
+            logger.error("file command error, %s", ret)
+            return False
+        if out and "text" not in str(out).lower():
+            logger.debug("%s not a text file", filepath)
+            return True
+        return False
