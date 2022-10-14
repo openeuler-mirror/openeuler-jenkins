@@ -56,7 +56,7 @@ class PkgLicense(object):
         self._license_translation = {}
         self._later_support_license = {}
         self.response_content = {}
-        self.license_url = "https://compliance3.openeuler.org/sca"
+        self.license_url = "https://compliance.openeuler.org/sca"
 
     def get_license_info(self, pr_url):
         """
@@ -87,7 +87,8 @@ class PkgLicense(object):
         license_in_scope = self.response_content.get("license_in_scope")
 
         if not license_in_scope:
-            return FAILED
+            logger.warning("No src license data is obtained")
+            return WARNING
 
         res = license_in_scope.get("pass")
         if res:
@@ -106,7 +107,8 @@ class PkgLicense(object):
         repo_copyright_legal = self.response_content.get("repo_copyright_legal")
 
         if not repo_copyright_legal:
-            return FAILED
+            logger.warning("No copyright data is obtained")
+            return WARNING
 
         res = repo_copyright_legal.get("pass")
         if res:
