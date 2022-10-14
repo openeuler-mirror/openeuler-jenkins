@@ -61,7 +61,8 @@ class CheckOpeneulerLicense(BaseCheck):
         """
         repo_license_legal = self.response_content.get("repo_license_legal")
         if not repo_license_legal:
-            return FAILED
+            logger.warning("No repo license data is obtained")
+            return WARNING
         res = repo_license_legal.get("pass")
         if res:
             logger.info("the license in repo is free")
