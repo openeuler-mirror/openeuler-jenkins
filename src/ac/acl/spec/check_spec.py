@@ -30,6 +30,7 @@ from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.common.gitee_repo import GiteeRepo
 from pyrpm.spec import Spec
+from src.constant import Constant
 
 logger = logging.getLogger("ac")
 
@@ -72,14 +73,13 @@ class CheckSpec(BaseCheck):
 
     def _is_lts_branch(self):
         """
-        检查分支是否是lts分支
+        检查lts分支是否是维护分支
         :return boolean
         """
         if self._tbranch:
-            if "lts" in self._tbranch.lower():
-                return True
-
-        return False
+            if self._tbranch.lower() in Constant.MAINTENANCE_LTS_BRANCH:
+                return False
+        return True
 
     def check_version(self):
         """
@@ -105,7 +105,7 @@ class CheckSpec(BaseCheck):
 
         self._ex_pkgship(spec_o)
 
-        # if lts branch, version update is forbidden
+        # if lts branch is in MAINTENANCE_LTS_BRANCH, version update is allowed
         if self._is_lts_branch():
             logger.debug("lts branch %s", self._tbranch)
             if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
@@ -322,7 +322,7 @@ class CheckSpec(BaseCheck):
                     return False
             try:
                 version_num, release_num = obj_s.group(0).split("-")
-            except ValueError as e:
+            except (ValueError, IOError, KeyError, IndexError) as e:
                 logger.error("%s release or version incorrect format,please keep it consistent: version-release \n"
                              "e.g: 1.0.0-1", changelog_con)
                 return False
