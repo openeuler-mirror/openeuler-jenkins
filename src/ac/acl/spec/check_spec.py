@@ -73,13 +73,13 @@ class CheckSpec(BaseCheck):
 
     def _is_lts_branch(self):
         """
-        检查lts分支是否是维护分支
+        检查lts分支是否是告警分支
         :return boolean
         """
         if self._tbranch:
-            if self._tbranch.lower() in Constant.MAINTENANCE_LTS_BRANCH:
-                return False
-        return True
+            if self._tbranch.lower() in Constant.ALARM_LTS_BRANCH:
+                return True
+        return False
 
     def check_version(self):
         """
