@@ -2,6 +2,8 @@ main:
   host: "http://119.3.219.20:82"
   project_list:
   - deleted
+  - openEuler:22.03:LTS:SP1
+  - openEuler:22.03:LTS:SP1:Epol
   - openEuler:22.03:LTS:LoongArch
   - openEuler:22.03:LTS:LoongArch:selfbuild:BaseOS
   - openEuler:22.09
