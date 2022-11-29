@@ -121,9 +121,9 @@ set +e
 此操作重新安排失败的构建。
 注意：立即重新安排失败的构建， 配置适当的延迟或限制最大重试次数。
 
-**Fixed delay：**对不稳定的构建和失败重新运行构建，延迟时间为60秒
+**Fixed delay：** 对不稳定的构建和失败重新运行构建，延迟时间为60秒
 
-**Maximum number of successive failed builds：**限制连续失败的构建重试。 设置为 0 表示没有限制。
+**Maximum number of successive failed builds：** 限制连续失败的构建重试。 设置为 0 表示没有限制。
 
 
 
