@@ -48,7 +48,7 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 ### 构建主流程代码配置
 
-此处为构建的主要流程，当前代码路径在https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/lib/trigger.sh，该代码在门禁docker创建上会自动部署。
+此处为构建的主要流程，当前代码路径在https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/lib/trigger.sh ，该代码在门禁docker创建上会自动部署。
 
 其中如果需要自己调试的话，可以放开下面注释内容，把代码换成自己要验证的代码路径
 
@@ -64,7 +64,7 @@ https://openeulerjenkins.osinfra.cn/job/multiarch/job/src-openeuler/job/trigger/
 
 ### 构建后操作
 
-**Projects to build：**trigger工程完成后会自动启动此处配置的工程，一般为x86和aarch64两个架构的build工程。如果只需要某个仓库只支持一个架构构建，此处只填写支持架构的工程即可，另外需要在https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/jobs/soe_exclusive_config.yaml里的arch_config把这个包加上。
+**Projects to build：**trigger工程完成后会自动启动此处配置的工程，一般为x86和aarch64两个架构的build工程。如果只需要某个仓库只支持一个架构构建，此处只填写支持架构的工程即可，另外需要在https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/jobs/soe_exclusive_config.yaml 里的arch_config把这个包加上。
 
 **Trigger when build is：**Stable,unstable or failed,but not aborted
 
@@ -114,5 +114,5 @@ SSH Username with private key - SSH 公钥/私钥对
 
 Certificate - a PKCS#12 证书文件 和可选密码
 
-**ID：**在 ID 字段中，必须指定一个有意义的Credential ID，注意: 该字段是可选的。 如果没有指定值, Jenkins 则Jenkins会分配一个全局唯一ID（GUID）值。
+**ID：** 在 ID 字段中，必须指定一个有意义的Credential ID，注意: 该字段是可选的。 如果没有指定值, Jenkins 则Jenkins会分配一个全局唯一ID（GUID）值。
 
