@@ -1,0 +1,8 @@
+repo_name: BiShengCLanguage
+container_level: l2
+init_shell: "echo Hello BiShengC\necho $?"
+users:
+  - login_name: EdwardWang
+    name: EdwardWang
+    email: wangyantao4@huawei.com
+    gitee_id: plt42
