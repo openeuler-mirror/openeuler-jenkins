@@ -5,9 +5,9 @@ import re
 import stat
 import shutil
 import sqlite3
+import subprocess
 from sqlite3 import Error
 
-from src.ac.common.gitee_repo import GiteeRepo
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 
@@ -39,7 +39,8 @@ class CheckSourceConsistency(BaseCheck):
         :param kwargs:
         :return:
         """
-        logger.info("check %s source consistency ...", self._repo)
+        logger.info("check %s source consistency. If sha256sum of repo source package is different from Official"
+                    " website, check fail", self._repo)
         _ = not os.path.exists("log") and os.mkdir("log")
         try:
             return self.start_check_with_order("source_consistency")
@@ -49,17 +50,11 @@ class CheckSourceConsistency(BaseCheck):
             self.clear_temp()
 
     @staticmethod
-    def get_package_from_source(url):
-        """
-        从url中获取包名
-        """
-        package_name = url.split("/")[-1].strip()
-        return package_name
-
-    @staticmethod
     def get_sha256sum(package):
         """
         计算文件的sha256sum值
+        :param package:包路径
+        :return:
         """
         logger.info("getting sha256sum of native source package...")
         native_sha256sum = ""
@@ -77,32 +72,57 @@ class CheckSourceConsistency(BaseCheck):
                 logger.warning(e)
         return native_sha256sum.strip()
 
+    def get_package_name(self, url):
+        """
+        从文件列表或者url中获取包名
+        """
+        package_name = os.popen("ls -S {0} |grep -v .spec |grep -v .yaml |grep -v .patch |grep -v .md |head -n "
+                                "1".format(self._work_dir)).read().split()[0]
+        if package_name == "":
+            package_name = os.path.basename(url)
+        return package_name
+
     def check_source_consistency(self):
         """
         检查源码包是否一致
+        :return:
         """
-        os.makedirs(os.path.join(self.rpmbuild_dir, "SOURCES"), exist_ok=True)
+        if not os.path.exists(os.path.join(self.rpmbuild_dir, "SOURCES")):
+            os.makedirs(os.path.join(self.rpmbuild_dir, "SOURCES"))
         source_url = self.get_source_url()
         if source_url == "":
-            logger.warning("no valid source url")
+            logger.warning("Source keywords of spec content are invalid or spec content is illegal")
+            logger.warning("Check source consistency warning: If you have some questions, you can ask "
+                           "qiutangke1@h-partners.com!")
             return WARNING
 
-        package_name = self.get_package_from_source(source_url)
+        package_name = self.get_package_name(source_url)
         if package_name not in os.listdir(self._work_dir):
-            logger.warning("no source package file")
+            logger.warning("no source package file in the repo, the package name is " + package_name)
+            logger.warning("Check source consistency warning: If you have some questions, you can ask "
+                           "qiutangke1@h-partners.com!")
             return WARNING
 
         native_sha256sum = self.get_sha256sum(os.path.join(self._work_dir, package_name))
         if native_sha256sum == "":
             logger.warning("get sha256sum of native source package failed")
+            logger.warning("Check source consistency warning: If you have some questions, you can ask "
+                           "qiutangke1@h-partners.com!")
             return WARNING
 
         remote_sha256sum = self.get_sha256sum_from_url(source_url)
         if remote_sha256sum == "":
-            logger.warning("no url in source_clean.db")
+            logger.warning("Failed to get sha256sum of official website source package, please find out reason from "
+                           "the web: https://majun.osinfra.cn/sourceClean/index. Try to modify repo and ask "
+                           "qiutangke1@h-partners.com to scan repo")
+            logger.warning("Check source consistency warning: If you have some questions, you can ask "
+                           "qiutangke1@h-partners.com!")
             return WARNING
         if native_sha256sum != remote_sha256sum:
-            logger.error("repo is inconsistency")
+            logger.error("The sha256sum of source package is inconsistency, maybe you modified source code, "
+                         "please check the sha256sum in the web: https://majun.osinfra.cn/sourceClean/index")
+            logger.warning("Check source consistency warning: If you have some questions, you can ask "
+                           "qiutangke1@h-partners.com!")
             return FAILED
 
         return SUCCESS
@@ -110,6 +130,7 @@ class CheckSourceConsistency(BaseCheck):
     def get_source_url(self):
         """
         获取spec文件中的Source URL
+        :return:
         """
         spec_name = ""
         files_list = os.listdir(self._work_dir)
@@ -125,12 +146,17 @@ class CheckSourceConsistency(BaseCheck):
             if spec_name == "":
                 logger.error("no spec file, please check!")
                 return ""
-        source_url = self.get_source_from_rpmbuild(spec_name)
+        source_url = self.get_source_from_spec(spec_name)
+        # If program can't get source url from spec, try to get source url by rpmbuild
+        if source_url == "":
+            source_url = self.get_source_from_rpmbuild(spec_name)
         return source_url
 
     def get_source_from_rpmbuild(self, spec_name=""):
         """
         rpmbuild解析出可查询的Source URL
+        :param spec_name:spec文件名
+        :return:
         """
         if spec_name == "":
             spec_name = self._repo + ".spec"
@@ -139,9 +165,45 @@ class CheckSourceConsistency(BaseCheck):
         source_url = self.do_rpmbuild()
         return source_url
 
+    def get_source_from_spec(self, spec_name=""):
+        """
+        spec文件中得到可查询的Source URL
+        :param spec_name:spec文件名
+        :return:
+        """
+        if spec_name == "":
+            spec_name = self._repo + ".spec"
+        spec_file = os.path.join(self._work_dir, spec_name)
+        if not os.path.exists(spec_file):
+            temp_file_list = os.listdir(self._work_dir)
+            spec_file_list = []
+            for temp_file in temp_file_list:
+                if temp_file.endswith(".spec"):
+                    spec_file_list.append(temp_file)
+            if len(spec_file_list) == 1:
+                spec_file = os.getcwd() + os.path.sep + "gitee_code" + os.path.sep + self._repo + os.path.sep + \
+                            spec_file_list[0]
+            elif len(spec_file_list) > 1:
+                for s_file in spec_file_list:
+                    if self._repo in s_file or s_file in self._repo:
+                        spec_file = os.getcwd() + os.path.sep + "gitee_code" + os.path.sep + self._repo + os.path.sep +\
+                                    s_file
+            else:
+                return ""
+        ret = subprocess.check_output(["/usr/bin/spectool", "-S", spec_file], shell=False)
+        content = ret.decode('utf-8').strip()
+        source_url = content.split(os.linesep)[0].strip() if os.linesep in content else content.strip()
+        if ":" in source_url:
+            source_url = ":".join(source_url.split(":")[1:]).strip()
+        elif "No such file or directory" in source_url:
+            return ""
+        return source_url
+
     def generate_new_spec(self, spec_file):
         """
         读取spec文件并生成新的spec文件
+        :param spec_file:spec文件名
+        :return:
         """
         logger.info("reading spec file : %s ...", os.path.basename(spec_file))
 
@@ -169,6 +231,8 @@ class CheckSourceConsistency(BaseCheck):
     def get_prep_function(self, url):
         """
         生成spec文件%prep部分的内容
+        :param url:source0的值
+        :return:
         """
         logger.info("generating %prep function")
         function_content = "%prep" + os.linesep
@@ -180,6 +244,7 @@ class CheckSourceConsistency(BaseCheck):
     def do_rpmbuild(self):
         """
         对新生成的spec文件执行rpmbuild
+        :return:
         """
         logger.info("start to do rpmbuild")
         new_spec_file = os.path.join(self.rpmbuild_sources_path, "get_source.spec")
@@ -195,6 +260,7 @@ class CheckSourceConsistency(BaseCheck):
     def create_connection(self):
         """
         与数据库建立连接
+        :return:
         """
         logger.info("getting connection with source_clean.db ...")
         try:
@@ -208,6 +274,8 @@ class CheckSourceConsistency(BaseCheck):
     def get_sha256sum_from_url(self, url):
         """
         查询数据库，获取url的sha256sum值
+        :param url:source0的值
+        :return:
         """
         logger.info("getting sha256sum of remote source package from source_clean.db ...")
         if self.con is None:
@@ -223,6 +291,7 @@ class CheckSourceConsistency(BaseCheck):
     def clear_temp(self):
         """
         清理生成的中间文件
+        :return:
         """
         if os.path.exists(self._work_dir):
             shutil.rmtree(self._work_dir)
