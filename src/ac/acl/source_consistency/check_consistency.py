@@ -31,6 +31,7 @@ class CheckSourceConsistency(BaseCheck):
         self.rpmbuild_sources_path = os.path.join(self.rpmbuild_dir, "SOURCES")
         self.database_path = "source_clean.db"
         self.con = self.create_connection()
+        self.ask_warning = "If you have some questions, you can ask q_qiutangke@163.com!"
 
     def __call__(self, *args, **kwargs):
         """
@@ -91,38 +92,38 @@ class CheckSourceConsistency(BaseCheck):
             os.makedirs(os.path.join(self.rpmbuild_dir, "SOURCES"))
         source_url = self.get_source_url()
         if source_url == "":
-            logger.warning("Source keywords of spec content are invalid or spec content is illegal")
-            logger.warning("Check source consistency warning: If you have some questions, you can ask "
-                           "qiutangke1@h-partners.com!")
+            logger.warning("Source keywords of spec content are invalid or spec content is illegal. " +
+                           self.ask_warning)
             return WARNING
 
         package_name = self.get_package_name(source_url)
         if package_name not in os.listdir(self._work_dir):
-            logger.warning("no source package file in the repo, the package name is " + package_name)
-            logger.warning("Check source consistency warning: If you have some questions, you can ask "
-                           "qiutangke1@h-partners.com!")
+            logger.warning("no source package file in the repo, the package name is " + package_name + ". " +
+                           self.ask_warning)
             return WARNING
 
         native_sha256sum = self.get_sha256sum(os.path.join(self._work_dir, package_name))
         if native_sha256sum == "":
-            logger.warning("get sha256sum of native source package failed")
-            logger.warning("Check source consistency warning: If you have some questions, you can ask "
-                           "qiutangke1@h-partners.com!")
+            logger.warning("get sha256sum of native source package failed, internal error. " + self.ask_warning)
             return WARNING
 
         remote_sha256sum = self.get_sha256sum_from_url(source_url)
         if remote_sha256sum == "":
-            logger.warning("Failed to get sha256sum of official website source package, please find out reason from "
-                           "the web: https://majun.osinfra.cn/sourceClean/index. Try to modify repo and ask "
-                           "qiutangke1@h-partners.com to scan repo")
-            logger.warning("Check source consistency warning: If you have some questions, you can ask "
-                           "qiutangke1@h-partners.com!")
-            return WARNING
+            logger.warning("Failed to get sha256sum of official website source package, there is no sha256sum in "
+                           "the system database")
+            detail_info = self.check_spec_validity()
+            if detail_info == "maybe url is unreachable":
+                logger.warning("Maybe url is unreachable, you need to check the connectivity of url. If connectivity is"
+                               " good, please ignore this warning! " + self.ask_warning)
+                return WARNING
+            else:
+                logger.warning(detail_info + ", please check spec file! " + self.ask_warning)
+                return WARNING
+
         if native_sha256sum != remote_sha256sum:
             logger.error("The sha256sum of source package is inconsistency, maybe you modified source code, "
-                         "please check the sha256sum in the web: https://majun.osinfra.cn/sourceClean/index")
-            logger.warning("Check source consistency warning: If you have some questions, you can ask "
-                           "qiutangke1@h-partners.com!")
+                         "you must let the source package keep consistency with official website source package. " +
+                         self.ask_warning)
             return FAILED
 
         return SUCCESS
@@ -151,6 +152,34 @@ class CheckSourceConsistency(BaseCheck):
         if source_url == "":
             source_url = self.get_source_from_rpmbuild(spec_name)
         return source_url
+
+    def check_spec_validity(self):
+        """
+        检查spec文件的合法性
+        :return:
+        """
+        spec_name = ""
+        files_list = os.listdir(self._work_dir)
+        if self._repo + ".spec" not in files_list:
+            spec_file_list = []
+            for temp_file in files_list:
+                if temp_file.endswith(".spec"):
+                    spec_file_list.append(temp_file)
+            if len(spec_file_list) == 1:
+                spec_name = os.path.join(self._work_dir, spec_file_list[0])
+            elif len(spec_file_list) > 1:
+                for s_file in spec_file_list:
+                    if self._repo in s_file or s_file in self._repo:
+                        spec_name = os.path.join(self._work_dir, s_file)
+                        break
+            if spec_name == "":
+                return "no spec file"
+        else:
+            spec_name = os.path.join(self._work_dir, self._repo + ".spec")
+        source_url = self.spectool_check_source(spec_name)
+        if not source_url.startswith("http"):
+            return "source url format error"
+        return "maybe url is unreachable"
 
     def get_source_from_rpmbuild(self, spec_name=""):
         """
@@ -181,15 +210,23 @@ class CheckSourceConsistency(BaseCheck):
                 if temp_file.endswith(".spec"):
                     spec_file_list.append(temp_file)
             if len(spec_file_list) == 1:
-                spec_file = os.getcwd() + os.path.sep + "gitee_code" + os.path.sep + self._repo + os.path.sep + \
-                            spec_file_list[0]
+                spec_file = os.path.join(self._work_dir, spec_file_list[0])
             elif len(spec_file_list) > 1:
                 for s_file in spec_file_list:
                     if self._repo in s_file or s_file in self._repo:
-                        spec_file = os.getcwd() + os.path.sep + "gitee_code" + os.path.sep + self._repo + os.path.sep +\
-                                    s_file
+                        spec_file = os.path.join(self._work_dir, s_file)
+                        break
             else:
                 return ""
+        source_url = self.spectool_check_source(spec_file)
+        return source_url
+
+    def spectool_check_source(self, spec_file):
+        """
+        执行spectool命令
+        :param spec_file:spec文件名
+        :return:
+        """
         ret = subprocess.check_output(["/usr/bin/spectool", "-S", spec_file], shell=False)
         content = ret.decode('utf-8').strip()
         source_url = content.split(os.linesep)[0].strip() if os.linesep in content else content.strip()
