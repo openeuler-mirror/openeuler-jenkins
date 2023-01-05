@@ -1,0 +1,8 @@
+repo_name: bishengjdk-build
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: wanghao_hw
+    name: wanghao_hw
+    email: wanghao564@huawei.com
+    gitee_id: wanghao_hw
