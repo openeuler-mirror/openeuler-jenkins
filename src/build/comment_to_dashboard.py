@@ -116,9 +116,9 @@ class CommentToDashboard(object):
         kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
         kp.send("openeuler_statewall_ci_result", key=args_list.comment_id, value=base_dict)
 
-        comment_tips = "若您对门禁结果含义不清晰或者遇到问题不知如何解决，" \
-                       "可参考<a href=https://www.openeuler.org/zh/blog/zhengyaohui/2022-03-21-ci_guild.html>" \
-                       "门禁指导手册</a>\n" \
+        comment_tips = "门禁常见失败问题及解决方案, 可参考" \
+                       "<a href=https://gitee.com/openeuler/openeuler-jenkins/blob/master/doc/门禁问题排查手册.md>" \
+                       "门禁问题排查手册</a>\n" \
                        "若门禁存在误报，您可以评论/ci_mistake {}进行误报标记，{}表示本次构建号\n" \
                        "也可带上误报的门禁检查项以及误报类型（ci、obs、infra），" \
                        "比如/ci_mistake {} obs check_build check_install表示的是check_build和check_install存在误报，" \
