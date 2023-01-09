@@ -94,6 +94,8 @@ class AC(object):
                 comment_job_url = project.get("url")
                 comments.append("门禁结果回显: <a href={}>{}</a>".format(
                     comment_job_url, jp.get_job_path_from_job_url(comment_job_url)))
+        comments.append("若您对门禁结果含义不清晰或者遇到问题不知如何解决，可参考"
+                         "<a href=https://www.openeuler.org/zh/blog/zhengyaohui/2022-03-21-ci_guild.html>门禁指导手册</a>")
         gp.comment_pr(pr, "\n".join(comments))
 
     @staticmethod
