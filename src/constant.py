@@ -93,7 +93,10 @@ class Constant(object):
         "openEuler-22.03-LTS-LoongArch": [
                                     "openEuler:22.03:LTS:LoongArch", "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
         "openEuler-22.03-LTS-performance": [
-            "gcc-performance", "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"]
+            "gcc-performance", "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
+        "Multi-Version_obs-server-2.10.11_openEuler-22.03-LTS-SP1": [
+            "openEuler:22.03:LTS:SP1:Epol:Multi-Version:obs-server:2.10.11",
+            "openEuler:22.03:LTS:SP1", "openEuler:22.03:LTS:SP1:Epol"]
         }
 
     COMPARE_PACKAGE_BLACKLIST = [
