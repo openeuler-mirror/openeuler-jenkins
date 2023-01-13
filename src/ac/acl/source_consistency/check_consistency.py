@@ -77,8 +77,8 @@ class CheckSourceConsistency(BaseCheck):
         """
         从文件列表或者url中获取包名
         """
-        package_name = os.popen("ls -S {0} |grep -v .spec |grep -v .yaml |grep -v .patch |grep -v .md |head -n "
-                                "1".format(self._work_dir)).read().split()[0]
+        package_name = os.popen("ls -S {0} |grep -v '\\.spec' |grep -v '\\.yaml' |grep -v '\\.patch' |grep -v '\\.md' |"
+                                "head -n 1".format(self._work_dir)).read().split()[0]
         if package_name == "":
             package_name = os.path.basename(url)
         return package_name
@@ -121,6 +121,8 @@ class CheckSourceConsistency(BaseCheck):
                 return WARNING
 
         if native_sha256sum != remote_sha256sum:
+            logger.info("The sha256sum of source package is " + native_sha256sum)
+            logger.info("The sha256sum of official website source package is " + remote_sha256sum)
             logger.error("The sha256sum of source package is inconsistency, maybe you modified source code, "
                          "you must let the source package keep consistency with official website source package. " +
                          self.ask_warning)
