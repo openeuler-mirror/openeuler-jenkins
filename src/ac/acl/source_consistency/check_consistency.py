@@ -1,3 +1,4 @@
+import difflib
 import hashlib
 import logging
 import os
@@ -83,6 +84,25 @@ class CheckSourceConsistency(BaseCheck):
             package_name = os.path.basename(url)
         return package_name
 
+    def get_native_sha256sum_again(self, repo):
+        base_path = os.getcwd()
+        os.chdir(self._work_dir)
+        line_list = os.popen("/usr/bin/file -i * |grep application/. |awk '{print $1}'").read().split(os.linesep)
+        os.chdir(base_path)
+        if len(line_list) == 0:
+            return "", ""
+        elif len(line_list) == 1:
+            package_name = line_list[0].strip().rstrip(":")
+            return self.get_sha256sum(os.path.join(self._work_dir, package_name)), package_name
+        else:
+            file_dict = {}
+            for line in line_list:
+                file_dict[line.strip().rstrip(":")] = difflib.SequenceMatcher(None, repo, line).quick_ratio()
+            sorted_file_dict = sorted(file_dict.items(), key=lambda x: x[1], reverse=True)
+            converted_dict = dict(sorted_file_dict)
+            package_name = next(iter(converted_dict))
+            return self.get_sha256sum(os.path.join(self._work_dir, package_name)), package_name
+
     def check_source_consistency(self):
         """
         检查源码包是否一致
@@ -121,8 +141,15 @@ class CheckSourceConsistency(BaseCheck):
                 return WARNING
 
         if native_sha256sum != remote_sha256sum:
-            logger.info("The sha256sum of source package is " + native_sha256sum)
-            logger.info("The sha256sum of official website source package is " + remote_sha256sum)
+            new_native_sha256sum, new_package_name = self.get_native_sha256sum_again(self._repo)
+            logger.info("The sha256sum of new source package is " + new_native_sha256sum + ", package name is " +
+                        new_package_name)
+            if new_native_sha256sum == remote_sha256sum:
+                return SUCCESS
+            logger.info("The sha256sum of source package is " + native_sha256sum + ", package name is " +
+                        package_name)
+            logger.info("The sha256sum of official website source package is " + remote_sha256sum + ", package name is "
+                        + package_name)
             logger.error("The sha256sum of source package is inconsistency, maybe you modified source code, "
                          "you must let the source package keep consistency with official website source package. " +
                          self.ask_warning)
