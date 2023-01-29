@@ -55,7 +55,7 @@ class CheckSpec(BaseCheck):
         self._ex_support_arch()
         self._tbranch = kwargs.get("tbranch", None)
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
-        return self.start_check_with_order("patches", "changelog", "version")
+        return self.start_check_with_order("patches", "changelog", "version_pr_changelog")
 
     def _only_change_package_yaml(self):
         """
@@ -81,9 +81,9 @@ class CheckSpec(BaseCheck):
                 return True
         return False
 
-    def check_version(self):
+    def check_version_pr_changelog(self):
         """
-        检查当前版本号是否比上一个commit新
+        检查当前版本号是否比上一个commit新，每次提交pr的changelog
         :return:
         """
         # need check version？
@@ -111,6 +111,9 @@ class CheckSpec(BaseCheck):
             if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
                 logger.error("version update of lts branch is forbidden")
                 return FAILED
+        if set(self._spec.changelog) == set(spec_o.changelog):
+            logger.error("Every pr commit requires a changelog!")
+            return FAILED
         if self._spec > spec_o:
             return SUCCESS
         elif self._spec < spec_o:
