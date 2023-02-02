@@ -87,6 +87,12 @@ class Constant(object):
         "Multi-Version_OpenStack-Wallaby_openEuler-22.03-LTS": [
                                     "openEuler:22.03:LTS:Epol:Multi-Version:OpenStack:Wallaby",
                                     "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
+        "Multi-Version_OpenStack-Train_openEuler-22.03-LTS-SP1": [
+                                    "openEuler:22.03:LTS:SP1:Epol:Multi-Version:OpenStack:Train",
+                                    "openEuler:22.03:LTS:SP1", "openEuler:22.03:LTS:SP1:Epol"],
+        "Multi-Version_OpenStack-Wallaby_openEuler-22.03-LTS-SP1": [
+                                    "openEuler:22.03:LTS:SP1:Epol:Multi-Version:OpenStack:Wallaby",
+                                    "openEuler:22.03:LTS:SP1", "openEuler:22.03:LTS:SP1:Epol"],
         "Multi-Version_obs-server-2.10.11_openEuler-22.03-LTS": [
                                     "openEuler:22.03:LTS:Epol:Multi-Version:obs-server:2.10.11",
                                     "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
