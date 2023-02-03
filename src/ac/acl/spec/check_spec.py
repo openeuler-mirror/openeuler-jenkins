@@ -111,7 +111,16 @@ class CheckSpec(BaseCheck):
             if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
                 logger.error("version update of lts branch is forbidden")
                 return FAILED
-        if set(self._spec.changelog) == set(spec_o.changelog):
+
+        def every_pr_changelog(changelog):
+            """
+            提取最新的一次changelog
+            """
+            return next(need_str for need_str in changelog.split("*") if need_str)
+
+        changelog_new = every_pr_changelog(self._spec.changelog)
+        changelog_old = every_pr_changelog(spec_o.changelog)
+        if changelog_new == changelog_old:
             logger.error("Every pr commit requires a changelog!")
             return FAILED
         if self._spec > spec_o:
