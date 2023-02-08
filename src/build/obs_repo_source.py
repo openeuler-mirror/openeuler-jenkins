@@ -17,6 +17,7 @@
 """
 import logging
 import os
+import re
 
 from src.proxy.requests_proxy import do_requests
 from src.utils.file_operator import FileOperator
@@ -52,9 +53,10 @@ class OBSRepoSource(object):
         else:
             return "[{}]\nname={}\nbaseurl={}\nenabled=1\ngpgcheck=0\n".format(repo_id, repo_name,repo_baseurl)
 
-    def generate_repo_info(self, obs_branch_list, arch, repo_name_prefix):
+    def generate_repo_info(self, branch, obs_branch_list, arch, repo_name_prefix):
         """
         不同的分支生成不同的repo
+        :param branch:
         :param obs_branch_list:
         :param arch:
         :param repo_name_prefix:
@@ -62,6 +64,8 @@ class OBSRepoSource(object):
         """
         repo_config = ""
         priority = 1
+        if not branch.startswith("Multi-Version"):
+            obs_branch_list = self.remove_useless_repo(obs_branch_list)
         for obs_branch in obs_branch_list:
             host = ""
             for backend_name, backend_conf in self.project_host_map.items():
@@ -76,3 +80,22 @@ class OBSRepoSource(object):
                 priority += 1
 
         return repo_config
+
+    def remove_useless_repo(self, obs_branch_list):
+        """
+        删除多余的依赖repo
+        :param obs_branch_list:
+        :return:
+        """
+        with open("obs_project", "r") as f:
+            obs_repos = f.read()
+        obs_repo_suffix = obs_repos.split(":")[-1]
+        if obs_repo_suffix == "Epol" and "openEuler:Factory" in obs_branch_list:
+            obs_branch_list.remove("openEuler:Factory")
+        elif obs_repo_suffix not in ["Factory", "Epol"]:
+            pattern = re.compile(".*:Factory$|.*:Epol$")
+            pattern_result = list(filter(None, [pattern.match(obs_branch) for obs_branch in obs_branch_list]))
+            if pattern_result:
+                for obs_branch in pattern_result:
+                    obs_branch_list.remove(obs_branch.group(0))
+        return obs_branch_list

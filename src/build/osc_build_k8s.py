@@ -202,8 +202,12 @@ class SinglePackageBuild(object):
             if not obs_repos:
                 logger.info("all repos ignored of project %s", project)
                 continue
-
             logger.debug("build obs repos: %s", obs_repos)
+
+            logger.info("project: %s", project)
+            with open("obs_project", "w") as f:
+                f.write(project)
+
             has_any_repo_build = True
             ret = self.build_obs_repos(project, obs_repos, spec, work_dir, code_dir)
             if ret > 0:
