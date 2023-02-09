@@ -150,7 +150,7 @@ class ComparePackage(object):
                         more_value = "\n".join(value)
                     elif key == "less":
                         less_value = "\n".join(value)
-                    elif key in ["diff", "changed"]:
+                    elif key == "diff":
                         diff_value = value.get("old")
                         if len(diff_value) > self.MAX_SHOW_DATA_NUM:
                             diff_value = diff_value[:self.MAX_SHOW_DATA_NUM]
@@ -363,10 +363,10 @@ class ComparePackage(object):
         :return:
         """
         result_dict = {"add_rpms": [], "delete_rpms": []}
-        for compare_item in ["more", "less", "diff", "changed"]:
+        for compare_item in ["more", "less", "diff"]:
             key_list = [compare_item, "%s_details" % compare_item]
             details = self._get_dict(key_list, compare_details)
-            if details and isinstance(details, dict) and compare_item in ["diff", "changed"]:
+            if details and isinstance(details, dict) and compare_item == "diff":
                 rpm_dict = self._get_check_item_result(details)
                 result_dict.update(rpm_dict)
             elif details and isinstance(details, list):
