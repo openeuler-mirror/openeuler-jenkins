@@ -45,6 +45,9 @@ backend_002:
   - openEuler:22.09
   - openEuler:22.09:Epol
   - openEuler:22.09:Epol:Multi-Version:obs-server:2.10.11
+  - openEuler:23.03
+  - openEuler:23.03:Epol
+  - openEuler:23.03:selfbuild
 backend_003:
   host: "http://121.36.94.113:82"
   project_list:
