@@ -58,10 +58,10 @@ if [[ -d "$committer_pr_aarch64_dir" && ("\$(ls -A $committer_pr_aarch64_dir | g
 	fi
 
     if [[ -d "$committer_pr_aarch64_dir" && "\$(ls -A $committer_pr_aarch64_dir | grep '\.rpm$')" ]]; then
-		cp $committer_pr_aarch64_dir/*.rpm $global_x86_64_dir/
+		cp $committer_pr_aarch64_dir/*.rpm $global_aarch64_dir/
 	fi
 	if [[ -d "$committer_pr_aarch64_dir" && "\$(ls -A $committer_pr_aarch64_dir | grep '\.json$')" ]]; then
-		cp $committer_pr_aarch64_dir/*.json $global_x86_64_dir/report/
+		cp $committer_pr_aarch64_dir/*.json $global_aarch64_dir/report/
 	fi
 fi
 
