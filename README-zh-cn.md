@@ -4,7 +4,7 @@
 
 openEuler社区代码均托管在gitee上，为了保证代码提交质量，开发者在gitee提交PR时，会自动触发门禁执行编码规范检查、构建、安装、接口变更等检查，最后将门禁检查结果返回到PR评论中，帮助开发者定位问题及maintainer检视代码。
 
-门禁代码开源https://gitee.com/openeuler/openeuler-jenkins。
+门禁代码开源 https://gitee.com/openeuler/openeuler-jenkins
 
 ## 2. src-openeuler门禁检查项
 
@@ -37,7 +37,7 @@ openEuler社区代码均托管在gitee上，为了保证代码提交质量，开
 | 检查项                  | 功能描述               | 主要代码位置                                                 |
 | ----------------------- | ---------------------- | ------------------------------------------------------------ |
 | check_binary_file       | 二进制文件检查         | [check_binary_file.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/binary/check_binary_file.py) |
-| check_package_license   | license合法性检查      | [check_spec.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/spec/check_spec.py)、[Licenses.yaml](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/config/Licenses.yaml) |
+| check_package_license   | license合法性检查      | [check_license.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/check_license.py)、[check_openeuler_license.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/check_openeuler_license.py)、[package_license.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/package_license.py) |
 | check_package_yaml_file | yaml文件格式检查       | [check_yaml.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_yaml/check_yaml.py)、[check_repo.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_yaml/check_repo.py) |
 | check_spec_file         | spec文件格式检查       | [check_spec.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/spec/check_spec.py) |
 | check_consistency       | 源码文件一致性检查     | [check_consistency.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/source_consistency/check_consistency.py) |
@@ -86,7 +86,7 @@ openEuler社区代码均托管在gitee上，为了保证代码提交质量，开
 | 检查项                | 功能描述                        | 主要代码位置                                                 |
 | --------------------- | ------------------------------- | ------------------------------------------------------------ |
 | check_code            | 编码规范检查                    | [check_code.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/openlibing/check_code.py) |
-| check_package_license | 检查license合法性               | [check_spec.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/spec/check_spec.py)、[Licenses.yaml](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/config/Licenses.yaml) |
+| check_package_license | 检查license合法性               | [check_license.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/check_license.py)、[check_openeuler_license.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/check_openeuler_license.py)、[package_license.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/package_license/package_license.py) |
 | check_sca             | 代码片段扫描                    | [check_sca.py](https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/ac/acl/sca/check_sca.py) |
 | x86-64/仓库名         | x86-64环境下包构建及构建后检查  | 维护者自行实现，不属于门禁代码                               |
 | aarch64/仓库名        | aarch64环境下包构建及构建后检查 | 同上                                                         |
@@ -107,7 +107,7 @@ openEuler社区代码均托管在gitee上，为了保证代码提交质量，开
 | release_management仓库维护人员                               | [dongjie110](https://e.gitee.com/open_euler/members/trend/dongjie110) |
 | 软件包单仓门禁维护人员                                       | [wanghuan158](https://e.gitee.com/open_euler/members/trend/wanghuan158), [MementoMoriCheng](https://e.gitee.com/open_euler/members/trend/MementoMoriCheng) |
 | 基础设施维护（包括obs、gitee、jenkins基础服务，也包括硬件和网络）人员 | [georgecao](https://gitee.com/open_euler/dashboard/members/georgecao), [liuqi469227928](https://gitee.com/open_euler/dashboard/members/liuqi469227928), [dakang_siji](https://e.gitee.com/open_euler/members/trend/dakang_siji) |
-| obs工程维护人员                                              | [wangchong1995924](https://gitee.com/open_euler/dashboard/members/wangchong1995924), [small_leek](https://e.gitee.com/open_euler/members/trend/small_leek), [zhouxiaxiang](https://e.gitee.com/open_euler/members/trend/zhouxiaxiang) |
+| obs工程维护人员                                              | [wangchong1995924](https://gitee.com/open_euler/dashboard/members/wangchong1995924), [small_leek](https://e.gitee.com/open_euler/members/trend/small_leek), [dongjie110](https://e.gitee.com/open_euler/members/trend/dongjie110) |
 | majun维护人员                                                | [openlibing@163.com](openlibing@163.com)                     |
 
 注：1. 软件包单仓门禁中的代码片段扫描（check_sca）和编码规范检查（check_code）是通过调用majun平台服务实现的
@@ -176,7 +176,7 @@ openEuler社区代码均托管在gitee上，为了保证代码提交质量，开
 
 门禁提供的容器环境是可以在运行时安装依赖包的，因此少量依赖包建议直接在运行脚本中使用sudo yum install -y xxx安装。当缺乏的依赖包比较多时，则建议向门禁仓库[https://gitee.com/openeuler/openeuler-jenkins](https://gitee.com/openeuler/openeuler-jenkins)提交一个dockfile，由门禁侧检视合入后重新制作镜像，并创建一个新的运行节点。
 
-dockerfile格式可参考https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/dockerfile/release-tools-dockerfile，通常只需要修改前两条语句即可：
+dockerfile格式可参考https://gitee.com/openeuler/openeuler-jenkins/blob/master/src/dockerfile/release-tools-dockerfile, 通常只需要修改前两条语句即可：
 
 ```
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
