@@ -1,0 +1,8 @@
+repo_name: bgmprovider
+container_level: l1
+init_shell: "echo Hello bgmprovider\necho $?"
+users:
+  - login_name: DXwangg
+    name: DXwangg
+    email: wangjiawei80@huawei.com
+    gitee_id: DXwangg
