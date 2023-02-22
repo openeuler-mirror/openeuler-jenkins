@@ -31,7 +31,8 @@ class SinglePackageBuild(object):
     build single package using obs
     """
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
-    PACKAGES_USE_ROOT = ["iproute", "libaio", "A-Ops", "multipath-tools", "libnetfilter_conntrack", "mcelog", "openEuler_chroot", "conntrack-tools", "linux-sgx"]
+    PACKAGES_USE_ROOT = ["iproute", "libaio", "A-Ops", "multipath-tools", "libnetfilter_conntrack", "mcelog",
+                         "openEuler_chroot", "conntrack-tools", "linux-sgx", "gala-gopher"]
 
     def __init__(self, package, arch, target_branch):
         """

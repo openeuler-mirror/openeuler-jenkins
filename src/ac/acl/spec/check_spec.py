@@ -186,6 +186,21 @@ class CheckSpec(BaseCheck):
             new_patch_number = "patch" + str(int(patch_number.group()))
             return new_patch_number
 
+        def rpm_new_standard_distinguishe_patch(patch_con):
+            """
+            匹配rpm新规则patch号
+            :param patch_con:spec文件中patch内容
+            :return:
+            """
+            prep_patchs = []
+            if re.findall(r"patch\d+", patch_con):
+                prep_patchs = re.findall(r"patch\d+", patch_con)
+            if re.findall(r"patch \d+", patch_con):
+                prep_patchs.extend(re.findall(r"patch \d+", patch_con))
+            if re.findall(r"(-p\d+) (-p\d+)", patch_con):
+                prep_patchs.extend(con[1] for con in re.findall(r"(-p\d+) (-p\d+)", patch_con))
+            return [equivalent_patch_number(single_prep_patch) for single_prep_patch in prep_patchs]
+
         def patch_adaptation(spec_con, patches_dict):
             """
             检查spec文件中patch在prep阶段的使用情况
@@ -204,8 +219,7 @@ class CheckSpec(BaseCheck):
             if prep_str.find("autosetup") != -1 or \
                     prep_str.find("autopatch") != -1:
                 return True
-            prep_patch = [equivalent_patch_number(single_prep_patch)
-                          for single_prep_patch in re.findall(r"patch\d+", prep_str)]
+            prep_patch = rpm_new_standard_distinguishe_patch(prep_str)
             for single_key, single_patch in patches_dict.items():
                 single_number = equivalent_patch_number(single_key)
                 if single_number not in prep_patch:
@@ -213,6 +227,13 @@ class CheckSpec(BaseCheck):
             if miss_patches_dict:
                 logger_con = ["%s: %s" % (key, value) for key, value in miss_patches_dict.items()]
                 logger.error("The following patches in the spec file are not used: \n%s", "\n".join(logger_con))
+                logger.error(
+                    "%patch is used to apply patches on top of the just unpacked pristine sources.Historically it \n"
+                    "supported multiple strange syntaxes and buggy behaviors, which are no longer maintained. To apply\n"
+                    "patch number 1, the following are recognized:\n"
+                    "1 %patch 1 (since rpm >= 4.18)\n"
+                    "2 %patch -P1 (all rpm versions)\n"
+                    "3 %patch1 (deprecated, do not use)")
                 return False
             return True
 
