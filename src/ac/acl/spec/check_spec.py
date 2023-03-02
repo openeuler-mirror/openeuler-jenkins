@@ -118,8 +118,12 @@ class CheckSpec(BaseCheck):
             """
             return next(need_str for need_str in changelog.split("*") if need_str)
 
-        changelog_new = every_pr_changelog(self._spec.changelog)
-        changelog_old = every_pr_changelog(spec_o.changelog)
+        try:
+            changelog_new = every_pr_changelog(self._spec.changelog)
+            changelog_old = every_pr_changelog(spec_o.changelog)
+        except StopIteration as error:
+            logger.error("new spec.changelog: %s, old spec.changelog: %s", self._spec.changelog, spec_o.changelog)
+            return FAILED
         if changelog_new == changelog_old:
             logger.error("Every pr commit requires a changelog!")
             return FAILED
@@ -385,6 +389,22 @@ class CheckSpec(BaseCheck):
                 return False
             return True
 
+        def get_date_data(date_con):
+            """
+            年、月、日、星期
+            """
+            date_list = []
+            date_data = [con for con in date_con.strip(" ").split(" ") if con]  # 列表中的空字符串已处理
+            if len(date_data) < 4:  # 列表中的字符串至少四个,包含年、月、日、星期 ['Tue', 'Mar', '21', '2022']
+                logger.error("bad data in changelog:%s", date_con)
+                return False
+            for index, con in enumerate(date_data[:4]):
+                if index < 2:
+                    date_list.append(con[:3])
+                else:
+                    date_list.append(con)
+            return date_list
+
         if not check_changelog_entries_start(self._spec.changelog):
             logger.error("%changelog entries must start with *")
             return False
@@ -396,9 +416,8 @@ class CheckSpec(BaseCheck):
             logger.error("bad mailbox in changelog:%s", changelog_con)
             return False
         # date_obj是字符串列表，样例：['Tue', 'Mar', '21', '2022', 'xxx', '<xxx@xxx.com>', '-', '2.9.24-5-', 'test', '2.9.24-5']
-        date_obj = [con for con in changelog_con.strip(" ").split(" ") if con]  # 列表中的空字符串已处理
-        if len(date_obj) < 4:  # 列表中的字符串至少四个,包含年、月、日、星期 ['Tue', 'Mar', '21', '2022']
-            logger.error("bad data in changelog:%s", changelog_con)
+        date_obj = get_date_data(changelog_con)  # 列表中的空字符串已处理
+        if not date_obj:
             return False
         if not judgment_date(date_obj):
             logger.error("bad date in changelog:%s", changelog_con)
