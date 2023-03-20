@@ -341,8 +341,8 @@ class CheckSpec(BaseCheck):
             """
             检查changelog中的版本号，release号是否和spec的版本号，release号一致
             """
-            # 排除邮箱格式中“-”的影响
-            new_str = re.sub(r"<[\w._-]+@[\w\-_]+[.a-zA-Z]+>", "", changelog_con)
+            # 排除名字、邮箱格式中“-”的影响
+            new_str = re.sub(r".*<[\w._-]+@[\w\-_]+[.a-zA-Z]+>", "", changelog_con)
             if self._spec.epoch:  # 检查spec文件中是否存在epoch字段
                 obj_s = re.search(r"\w+:(\w+(.\w+){0,9})-[\w.]+", new_str)
                 if not obj_s:
