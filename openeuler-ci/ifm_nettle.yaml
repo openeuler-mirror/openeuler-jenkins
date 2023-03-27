@@ -1,0 +1,8 @@
+repo_name: ifm_nettle
+container_level: l1
+init_shell: "echo Hello ifm_nettle\necho $?"
+users:
+  - login_name: huangduirong
+    name: huangduirong
+    email: huangduirong@huawei.com
+    gitee_id: huangduirong
