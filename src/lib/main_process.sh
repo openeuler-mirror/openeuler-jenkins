@@ -184,6 +184,8 @@ function build_packages() {
   log_info "***** Start to build package *****"
   comment_file="${repo}_${prid}_${arch}_comment"
   export PYTHONPATH=${shell_path}
+  python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p ${package} -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword}
+  python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch  --obs_rpm_host ${obs_rpm_host} --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
   for item in $(echo ${package} | sed 's/,/ /g'); do
     log_info "start build package $item"
     log_debug "params are [$repo, $branch, $prid, $committer, $arch, $package, $buddy, $WORKSPACE]"
@@ -330,7 +332,6 @@ EOF
 
 # 执行入口
 function main() {
-  config_osc
   config_ipv6
   config_maven
   config_gradle
@@ -349,6 +350,5 @@ function main() {
   if [[ $exclusive_arch ]]; then
     log_info "exclusive_arch not empty"
     build_packages
-    compare_package
   fi
 }
