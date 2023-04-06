@@ -1,4 +1,5 @@
 import argparse
+import base64
 import json
 import os
 import sys
@@ -24,17 +25,23 @@ if __name__ == '__main__':
         comment = """
     <table><tr><th>Check Name</th> <th>Build Result</th> <th>Build Details</th></tr><tr><td>check_consistency</td> <td>:x:<strong>FAILED</strong></td> <td rowspan=1><a href={}/console>#{}</a></td></tr></table>""".format(
             args.build_url, args.build_number)
-        msg = json.dumps({
-            "pkg_id": args.pkg_id,
-            "success": False,
-            "detail": comment
-        })
+        body_content = {
+            'pkg_id': os.getenv('pkg_id'),
+            'success': False,
+            'detail': comment
+        }
+        body = base64.b64encode(json.dumps(body_content).encode('utf-8')).decode()
+        msg = {
+            'Header': None,
+            'Body': body
+        }
+
         if 'test' in args.service:
             topic = 'software_pkg_ci_checked_test'
         else:
             topic = 'software_pkg_ci_checked'
         kp = KafkaProducerProxy(brokers=os.getenv('KAFKAURL'))
-        kp.send(topic, 'body', json.dumps(msg).encode('utf-8'))
+        kp.send(topic, '', msg)
+        print('Error report had been sent.')
         print('Fail to check consistency of package name. Exit...')
         sys.exit(1)
-
