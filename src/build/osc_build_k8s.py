@@ -69,15 +69,6 @@ class SinglePackageBuild(object):
 
         logger.info("checkout ... ok")
 
-        # update package meta file "_service"
-        self._handle_package_meta(project, work_dir, code_dir)
-        logger.debug("prepare \"_service\" ... ok")
-
-        # process_service.pl
-        if not self._prepare_build_environ(project, work_dir):
-            logger.error("prepare environ ... failed")
-            return 2
-
         logger.info("prepare environ ... ok")
 
         # osc build
@@ -191,40 +182,22 @@ class SinglePackageBuild(object):
         if self._branch.lower() in Constant.STOPPED_MAINTENANCE_BRANCH:
             logger.error("branch \"%s\" is no longer maintained!", self._branch)
             return 1
-        if self._branch not in Constant.GITEE_BRANCH_PROJECT_MAPPING:
-            logger.error("branch \"%s\" not support yet", self._branch)
-            return 1
 
         has_any_repo_build = False
-        for project in Constant.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
-            logger.debug("start build project %s", project)
-
-            obs_repos = self.get_need_build_obs_repos(project)
-            if not obs_repos:
-                logger.info("all repos ignored of project %s", project)
-                continue
-            logger.debug("build obs repos: %s", obs_repos)
-
-            logger.info("project: %s", project)
-            with open("obs_project", "w") as f:
-                f.write(project)
-
-            has_any_repo_build = True
-            ret = self.build_obs_repos(project, obs_repos, spec, work_dir, code_dir)
-            if ret > 0:
-                logger.debug("build run return %s", ret)
-                logger.error("build %s %s %s ... %s", project, self._package, self._arch, "failed")
-                return 1     # finish if any error
-            else:
-                logger.info("build %s %s %s ... %s", project, self._package, self._arch, "ok")
-            break
-
-        # if no repo build, regard as fail
-        if not has_any_repo_build:
-            logger.error("package not in any obs projects, please add package into obs")
-            return 1
-
-        return 0
+        project = 'home:nicliuqi'
+        obs_repos = [{
+            'repo': 'standard_' + self._arch.replace('-', '_'),
+            'mpac': os.getenv('package'),
+            'state': 'succeeded*'
+        }]
+        ret = self.build_obs_repos(project, obs_repos, spec, work_dir, code_dir)
+        if ret > 0:
+            logger.debug("build run return %s", ret)
+            logger.error("build %s %s %s ... %s", project, self._package, self._arch, "failed")
+            return 1     # finish if any error
+        else:
+            logger.info("build %s %s %s ... %s", project, self._package, self._arch, "ok")
+            return 0
 
 
 def init_args():
@@ -259,64 +232,15 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
 
-    logger.info("using credential %s", args.account.split(":")[0])
-    logger.info("cloning repository https://gitee.com/%s/%s.git ", args.owner, args.repo)
-    logger.info("clone depth 1")
-    logger.info("checking out pull request %s", args.pr)
+    logger.info('osc buils k8s start')
 
     from src.utils.dist_dataset import DistDataset
     from src.proxy.git_proxy import GitProxy
     from src.proxy.obs_proxy import OBSProxy
-    from src.proxy.es_proxy import ESProxy
     from src.proxy.kafka_proxy import KafkaProducerProxy
     from src.utils.shell_cmd import shell_cmd_live
 
-    dd = DistDataset()
-    dd.set_attr_stime("spb.job.stime")
-    dd.set_attr("spb.job.link", os.environ["BUILD_URL"])
-    dd.set_attr("spb.trigger.reason", os.environ["BUILD_CAUSE"])
-
-    # suppress python warning
-    warnings.filterwarnings("ignore")
-    logging.getLogger("elasticsearch").setLevel(logging.WARNING)
-    logging.getLogger("kafka").setLevel(logging.WARNING)
-
-    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
-
-    # download repo
-    dd.set_attr_stime("spb.scm.stime")
-    gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
-    repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.owner, args.repo)
-    if not gp.fetch_pull_request(repo_url, args.pr, depth=1):
-        logger.info("fetch finished -")
-
-        dd.set_attr("spb.scm.result", "failed")
-        dd.set_attr_etime("spb.scm.etime")
-        dd.set_attr_etime("spb.job.etime")
-        #dd.set_attr("spb.job.result", "failed")
-
-        # upload to es
-        query = {"term": {"id": args.comment_id}}
-        script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch),
-                "params": dd.to_dict()}
-        kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
-        sys.exit(-1)
-    else:
-        gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
-        logger.info("fetch finished +")
-        dd.set_attr("spb.scm.result", "successful")
-        dd.set_attr_etime("spb.scm.etime")
-
-    dd.set_attr_stime("spb.build.stime")
     spb = SinglePackageBuild(args.package, args.arch, args.branch)
     rs = spb.build(args.spec, args.workspace, args.code)
-    dd.set_attr("spb.build.result", "failed" if rs else "successful")
-    dd.set_attr_etime("spb.build.etime")
-
-    dd.set_attr_etime("spb.job.etime")
-
-    # upload to es
-    query = {"term": {"id": args.comment_id}}
-    script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch), "params": dd.to_dict()}
-    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
+    logger.info('osc build k8s ends')
     sys.exit(rs)
