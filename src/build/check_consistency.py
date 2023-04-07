@@ -22,9 +22,9 @@ if __name__ == '__main__':
     args = parse_args()
     spec_name = args.spec_url.split('/')[-1].split('.spec')[0]
     if args.pkg_name != spec_name:
-        comment = """
-    <table><tr><th>Check Name</th> <th>Build Result</th> <th>Build Details</th></tr><tr><td>check_consistency</td> <td>:x:<strong>FAILED</strong></td> <td rowspan=1><a href={}/console>#{}</a></td></tr></table>""".format(
-            args.build_url, args.build_number)
+        comment = '<table><tr><th>Check Name</th> <th>Build Result</th> <th>Build ' \
+                  'Details</th></tr><tr><td>check_consistency</td> <td>:x:<strong>FAILED</strong></td> <td ' \
+                  'rowspan=1><a href={}/console>#{}</a></td></tr></table>'.format(args.build_url, args.build_number)
         body_content = {
             'pkg_id': os.getenv('pkg_id'),
             'success': False,
