@@ -442,4 +442,7 @@ if "__main__" == __name__:
         "Body": body
     }
     kp = KafkaProducerProxy(brokers=os.getenv('KAFKAURL'))
-    kp.send('software_pkg_ci_checked_test', '', msg)
+    if 'test' in os.getenv('service'):
+        kp.send('software_pkg_ci_checked_test', '', msg)
+    else:
+        kp.send('software_pkg_ci_checked', '', msg)
