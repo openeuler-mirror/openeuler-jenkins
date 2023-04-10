@@ -8,10 +8,11 @@ import sys
 from urllib.parse import urlparse
 
 
-if len(sys.argv) < 2:
-    print('ERROR! Lost of required source url.')
+if len(sys.argv) < 3:
+    print('ERROR! Lost of required source url and access token.')
     sys.exit(1)
 url = sys.argv[1]
+access_token = sys.argv[2]
 urlparse_res = urlparse(url)
 if urlparse_res.netloc != 'gitee.com':
     cmd = 'wget {}'.format(url)
@@ -25,8 +26,12 @@ _, owner, repo, fmt, branch, filepath = urlparse_path.split('/', 5)
 if fmt != 'raw':
     print('ERROR! Source file must be raw format.')
     sys.exit(1)
-request_url = 'https://gitee.com/api/v5/repos/{}/{}/contents/{}?ref={}'.format(owner, repo, filepath, branch)
-r = requests.get(request_url)
+request_url = 'https://gitee.com/api/v5/repos/{}/{}/contents/{}'.format(owner, repo, filepath)
+params = {
+    'branch': branch,
+    'access_token': access_token
+}
+r = requests.get(request_url, params=params)
 if r.status_code != 200:
     print('ERROR! Unexpected Error: {}'.format(r.content))
     sys.exit(1)
