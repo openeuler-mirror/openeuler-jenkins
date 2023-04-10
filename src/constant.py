@@ -103,7 +103,10 @@ class Constant(object):
             "gcc-performance", "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
         "Multi-Version_obs-server-2.10.11_openEuler-22.03-LTS-SP1": [
             "openEuler:22.03:LTS:SP1:Epol:Multi-Version:obs-server:2.10.11",
-            "openEuler:22.03:LTS:SP1", "openEuler:22.03:LTS:SP1:Epol"]
+            "openEuler:22.03:LTS:SP1", "openEuler:22.03:LTS:SP1:Epol"],
+        "Multi-Version_ldiskfsprogs_master": [
+            "openEuler:Epol:Multi-Version:ldiskfsprogs", "openEuler:Epol"
+        ]
         }
 
     COMPARE_PACKAGE_BLACKLIST = [
