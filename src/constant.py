@@ -24,11 +24,11 @@ class Constant(object):
     SUPPORT_ARCH = ["x86_64", "aarch64"]
 
     GITEE_BRANCH_PROJECT_MAPPING = {
-        "master": ["openEuler:Extras", "openEuler:Factory", "openEuler:Mainline", "openEuler:Epol",
+        "master": ["openEuler:Extras", "openEuler:Mainline", "openEuler:Epol",
                    "openEuler:BaseTools", "openEuler:C", "openEuler:Common_Languages_Dependent_Tools",
                    "openEuler:Erlang", "openEuler:Golang", "openEuler:Java", "openEuler:KernelSpace", "openEuler:Lua",
                    "openEuler:Meson", "openEuler:MultiLanguage", "openEuler:Nodejs", "openEuler:Ocaml",
-                   "openEuler:Perl", "openEuler:Python", "openEuler:Qt", "openEuler:Ruby"],
+                   "openEuler:Perl", "openEuler:Python", "openEuler:Qt", "openEuler:Ruby", "openEuler:Factory"],
         "openEuler-20.03-LTS": ["openEuler:20.03:LTS"],
         "openEuler-20.03-LTS-Next": ["openEuler:20.03:LTS:Next", "openEuler:20.03:LTS:Next:Epol"],
         "openEuler-EPOL-LTS": ["bringInRely"],
