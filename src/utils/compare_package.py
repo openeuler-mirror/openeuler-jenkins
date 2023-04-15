@@ -94,8 +94,16 @@ class ComparePackage(object):
                             effect_rpms.extend(effect_rpm)
                     diff_rpm.append("\n".join(diff_rpm_name))
                     diff_rpm.append("\n".join(effect_rpms))
+                elif key == "less":
+                    if isinstance(details, dict):
+                        delete_rpms = []
+                        for rpm, obsolete in details.items():
+                            delete_rpm = "%s (need obsoletes)" % rpm if obsolete == "obsoletes" else rpm
+                            delete_rpms.append(delete_rpm)
+                        diff_rpm.append("\n".join(delete_rpms))
                 else:
                     diff_rpm.append("\n".join(details))
+
             else:
                 diff_rpm.append("")
 
@@ -369,6 +377,14 @@ class ComparePackage(object):
             if details and isinstance(details, dict) and compare_item == "diff":
                 rpm_dict = self._get_check_item_result(details)
                 result_dict.update(rpm_dict)
+            elif details and isinstance(details, dict) and compare_item == "less":
+                    if isinstance(details, dict):
+                        delete_rpms = []
+                        for rpm, obsolete in details.items():
+                            rpm = self._rpm_name(rpm)
+                            delete_rpm = "%s (need obsoletes)" % rpm if obsolete == "obsoletes" else rpm
+                            delete_rpms.append(delete_rpm)
+                        result_dict["delete_rpms"] = delete_rpms
             elif details and isinstance(details, list):
                 rpm_list = []
                 for rpm in details:
