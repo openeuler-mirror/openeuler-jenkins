@@ -326,7 +326,9 @@ if "__main__" == __name__:
     if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
         jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
         AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
-
+        if args.repo == "glibc":
+            comment = "若您想制作热补丁，可以评论/syscare_patch_build"
+            gitee_proxy_inst.comment_pr(args.pr, comment)
     # gitee pr tag
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_successful")
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_failed")
