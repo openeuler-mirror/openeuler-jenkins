@@ -136,6 +136,9 @@ class OemakerAnalyse(object):
         if not need_check_delete_rpm_list:
             return []
 
+        if isinstance(need_check_delete_rpm_list, dict):
+            need_check_delete_rpm_list = list(need_check_delete_rpm_list.keys())
+
         for index, value in enumerate(need_check_delete_rpm_list):
             match_result = re.match(r"^(.+)-.+-.+", value)
             need_check_delete_rpm_list[index] = match_result.group(1)
