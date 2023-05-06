@@ -105,6 +105,8 @@ class ComparePackage(object):
                     diff_rpm.append("\n".join(details))
 
             else:
+                if key == "diff":
+                    diff_rpm.append("")
                 diff_rpm.append("")
 
         tb.add_row(diff_rpm)
