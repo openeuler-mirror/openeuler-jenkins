@@ -105,7 +105,11 @@ class Constant(object):
             "openEuler:22.03:LTS:SP1:Epol:Multi-Version:obs-server:2.10.11",
             "openEuler:22.03:LTS:SP1", "openEuler:22.03:LTS:SP1:Epol"],
         "Multi-Version_ldiskfsprogs_master": [
-            "openEuler:Epol:Multi-Version:ldiskfsprogs", "openEuler:Epol"
+            "openEuler:Epol:Multi-Version:ldiskfsprogs", "openEuler:Extras", "openEuler:Mainline", "openEuler:Epol",
+                   "openEuler:BaseTools", "openEuler:C", "openEuler:Common_Languages_Dependent_Tools",
+                   "openEuler:Erlang", "openEuler:Golang", "openEuler:Java", "openEuler:KernelSpace", "openEuler:Lua",
+                   "openEuler:Meson", "openEuler:MultiLanguage", "openEuler:Nodejs", "openEuler:Ocaml",
+                   "openEuler:Perl", "openEuler:Python", "openEuler:Qt", "openEuler:Ruby", "openEuler:Factory"
         ]
         }
 
