@@ -375,7 +375,10 @@ class CheckSpec(BaseCheck):
             """
             检查changelog中邮箱格式
             """
-            mail_obj = re.findall(r"[\w._-]+@[\w\-_]+[.a-zA-Z]+", changelog)
+            if "<" in changelog or ">" in changelog:
+                mail_obj = re.findall(r"<[\w._-]+@[\w\-_]+[.a-zA-Z]+>", changelog)
+            else:
+                mail_obj = re.findall(r"[\w._-]+@[\w\-_]+[.a-zA-Z]+", changelog)
             if not mail_obj:
                 return False
             return True
