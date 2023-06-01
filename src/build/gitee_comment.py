@@ -53,6 +53,21 @@ class Comment(object):
         self.compare_package_result = {}
         self.check_item_result = {}
 
+    @staticmethod
+    def _get_rpm_name(rpm):
+        """
+        返回rpm包名称
+        :param rpm:
+        :return:
+        """
+        rpm_name = re.match(r"^(.+)-.+-.+", rpm)
+
+        if rpm_name:
+            return rpm_name.group(1)
+        else:
+            logger.error(f"Prase rpm name error: {rpm}")
+            return rpm
+
     def comment_build(self, gitee_proxy):
         """
         构建结果
@@ -209,6 +224,14 @@ class Comment(object):
                     rpm_name = content.get(item)
                     check_item = item.replace(" ", "_")
                     result = "FAILED" if rpm_name else "SUCCESS"
+                    if item == "delete_rpms" and rpm_name:
+                        for single_result in rpm_name:
+                            if single_result.get("RPM Level") in ["level3", "level4"] and single_result.get(
+                                    "Obsoletes") == "yes" and single_result.get("Provides") == "yes":
+                                result = "WARNING"
+                            else:
+                                result = "FAILED"
+                        rpm_name = [self._get_rpm_name(single.get('Name', '')) for single in rpm_name]
                     if result == "FAILED":
                         arch_cmp_result = "FAILED"
                     compare_result = ACResult.get_instance(result)

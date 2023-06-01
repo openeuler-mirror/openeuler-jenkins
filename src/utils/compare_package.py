@@ -95,12 +95,11 @@ class ComparePackage(object):
                     diff_rpm.append("\n".join(diff_rpm_name))
                     diff_rpm.append("\n".join(effect_rpms))
                 elif key == "less":
-                    if isinstance(details, dict):
-                        delete_rpms = []
-                        for rpm, obsolete in details.items():
-                            delete_rpm = "%s (need obsoletes)" % rpm if obsolete == "obsoletes" else rpm
-                            delete_rpms.append(delete_rpm)
-                        diff_rpm.append("\n".join(delete_rpms))
+                    delete_rpms = []
+                    for rpm, check_item in details.items():
+                        delete_rpm = "%s (need obsoletes)" % rpm if check_item.get("Obsoletes") == "no" else rpm
+                        delete_rpms.append(delete_rpm)
+                    diff_rpm.append("\n".join(delete_rpms))
                 else:
                     diff_rpm.append("\n".join(details))
 
@@ -379,22 +378,14 @@ class ComparePackage(object):
             if details and isinstance(details, dict) and compare_item == "diff":
                 rpm_dict = self._get_check_item_result(details)
                 result_dict.update(rpm_dict)
-            elif details and isinstance(details, dict) and compare_item == "less":
-                    if isinstance(details, dict):
-                        delete_rpms = []
-                        for rpm, obsolete in details.items():
-                            rpm = self._rpm_name(rpm)
-                            delete_rpm = "%s (need obsoletes)" % rpm if obsolete == "obsoletes" else rpm
-                            delete_rpms.append(delete_rpm)
-                        result_dict["delete_rpms"] = delete_rpms
+            elif details and compare_item == "less":
+                result_dict["delete_rpms"] = list(details.values())
             elif details and isinstance(details, list):
                 rpm_list = []
                 for rpm in details:
                     rpm_list.append(self._rpm_name(rpm))
                 if compare_item == "more":
                     result_dict["add_rpms"] = rpm_list
-                elif compare_item == "less":
-                    result_dict["delete_rpms"] = rpm_list
         return result_dict
 
     def _show_each_rpm_effect_other_rpm_details(self, diff_details):
