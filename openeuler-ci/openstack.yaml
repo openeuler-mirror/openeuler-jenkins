@@ -1,0 +1,8 @@
+repo_name: openstack
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: wangxiyuan
+    name: wangxiyuan
+    email: wangxiyuan@huawei.com
+    gitee_id: xiyuanwang
