@@ -32,8 +32,13 @@ def sendmail(account, password, receiver):
     msg['From'] = '{}<openEuler Infrastructure>'.format(smtp_server_user)
     msg['To'] = receiver
 
-    server = smtplib.SMTP(smtp_server_host, smtp_server_port)
-    server.ehlo()
-    server.starttls()
-    server.login(smtp_server_user, smtp_server_pass)
+    if str(smtp_server_port) == '465':
+        server = smtplib.SMTP_SSL(smtp_server_host, smtp_server_port)
+        server.ehlo()
+        server.login(smtp_server_user, smtp_server_pass)
+    else:
+        server = smtplib.SMTP(smtp_server_host, smtp_server_port)
+        server.ehlo()
+        server.starttls()
+        server.login(smtp_server_user, smtp_server_pass)
     server.sendmail(smtp_server_user, receiver, msg.as_string())
