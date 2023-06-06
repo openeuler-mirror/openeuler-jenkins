@@ -1,0 +1,20 @@
+repo_name: syscare
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: renoseven
+    name: RenoSeven
+    email: dev@renoseven.net
+    gitee_id: renoseven
+  - login_name: anatas
+    name: Anatas
+    email: luolongjuna@gmail.com
+    gitee_id: anatas
+  - login_name: lzwycc
+    name: lzwycc
+    email: lzw32321226@163.com
+    gitee_id: lzwycc
+  - login_name: snoweay
+    name: Snoweay
+    email: snoweay@163.com
+    gitee_id: snoweay
