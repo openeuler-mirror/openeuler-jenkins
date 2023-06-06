@@ -1,8 +1,7 @@
-FROM openeuler/openeuler:21.03
+FROM openeuler/openeuler:22.03
 
-RUN yum update && \
-    yum install -y vim wget git xz tar make automake autoconf libtool gcc gcc-c++ kernel-devel libmaxminddb-devel pcre-devel openssl openssl-devel tzdata \
-        readline-devel libffi-devel python3-devel mariadb-devel python3-pip net-tools.x86_64 iputils
+RUN yum install -y vim wget git xz tar make automake autoconf libtool gcc gcc-c++ kernel-devel libmaxminddb-devel pcre-devel openssl openssl-devel tzdata \
+readline-devel libffi-devel python3-devel mariadb-devel python3-pip net-tools.x86_64 iputils
 
 RUN pip3 install uwsgi
 
