@@ -1,0 +1,8 @@
+repo_name: TC
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: zhuchao
+    name: zhuchao
+    email: tom_toworld@163.com
+    gitee_id: Tom_zc
