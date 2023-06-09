@@ -104,6 +104,15 @@ class Constant(object):
         "Multi-Version_obs-server-2.10.11_openEuler-22.03-LTS": [
                                     "openEuler:22.03:LTS:Epol:Multi-Version:obs-server:2.10.11",
                                     "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
+        "humble": [
+                                    "openEuler:Epol:Multi-Version:ROS:humble",
+                                    "openEuler:Mainline", "openEuler:Epol"],
+        "Multi-Version_ros-humble_openEuler-22.03-LTS-Next": [
+                                    "openEuler:22.03:LTS:Next:Epol:Multi-Version:ROS:humble",
+                                    "openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"],
+        "Multi-Version_ros-humble_openEuler-22.03-LTS-SP2": [
+                                    "openEuler:22.03:LTS:SP2:Epol:Multi-Version:ROS:humble",
+                                    "openEuler:22.03:LTS:SP2", "openEuler:22.03:LTS:SP2:Epol"],
         "openEuler-22.03-LTS-LoongArch": [
                                     "openEuler:22.03:LTS:LoongArch", "openEuler:22.03:LTS", "openEuler:22.03:LTS:Epol"],
         "openEuler-22.03-LTS-performance": [
