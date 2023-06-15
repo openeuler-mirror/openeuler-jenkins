@@ -1,5 +1,5 @@
-repo_name: Kmesh
-container_level: l1
+repo_name: dpu-utilities
+container_level: l2
 init_shell: "echo hello\necho $?"
 users:
       - login_name: swf504
