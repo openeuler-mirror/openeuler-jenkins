@@ -267,6 +267,11 @@ class Comment(object):
                 return True
             return False
 
+        check_branches = None
+        if os.path.exist('check_build.yaml'):
+            with open('check_build.yaml', 'r') as f:
+                check_branches = yaml.safe_load(f)
+        tbranch = os.getenv('tbranch')
         for build in builds:
             name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
             status = build["result"]
@@ -278,6 +283,11 @@ class Comment(object):
                 arch = "aarch64"
             else:
                 arch = name.split("/")[-2]
+            if check_branches:
+                arches = check_branches.get(tbranch)
+                if arches:
+                    if arch in arches.keys() and not arches.get(arch):
+                        continue
             arch_dict = {}
             check_item_result = {}
             for check_item_comment_file in self._check_item_comment_files:
