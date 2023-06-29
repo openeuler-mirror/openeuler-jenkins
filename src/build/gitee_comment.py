@@ -268,7 +268,7 @@ class Comment(object):
             return False
 
         check_branches = None
-        if os.path.exist('check_build.yaml'):
+        if os.path.exists('check_build.yaml'):
             with open('check_build.yaml', 'r') as f:
                 check_branches = yaml.safe_load(f)
         tbranch = os.getenv('tbranch')
