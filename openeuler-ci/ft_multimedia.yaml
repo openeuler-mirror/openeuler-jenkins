@@ -1,6 +1,6 @@
 repo_name: ft_multimedia
 container_level: l2
-init_shell: "./build/prebuild.sh ; ./build.sh -i;echo hello\necho $?"
+init_shell: "echo hello\necho $?"
 users:
   - login_name: xieyijun3
     name: xieyijun3
