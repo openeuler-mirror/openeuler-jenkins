@@ -1,0 +1,8 @@
+repo_name: easybox
+container_level: l1
+init_shell: "echo Hello easybox\necho $?"
+users:
+  - login_name: huangduirong
+    name: huangduirong
+    email: huangduirong@huawei.com
+    gitee_id: huangduirong
