@@ -1,0 +1,16 @@
+repo_name: arkui-linux
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: xieyijun3
+    name: xieyijun3
+    email: xieyijun3@huawei.com
+    gitee_id: xieyijun3
+  - login_name: yanansong
+    name: yanansong
+    email: songyanan5@huawei.com
+    gitee_id: yanansong
+  - login_name: ShaoboFeng
+    name: ShaoboFeng
+    email: fengshaobo@huawei.com
+    gitee_id: ShaoboFeng
