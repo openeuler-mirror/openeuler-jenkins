@@ -1,0 +1,12 @@
+repo_name: ft_flutter
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: xieyijun3
+    name: xieyijun3
+    email: xieyijun3@huawei.com
+    gitee_id: xieyijun3
+  - login_name: yanansong
+    name: yanansong
+    email: songyanan5@huawei.com
+    gitee_id: yanansong
