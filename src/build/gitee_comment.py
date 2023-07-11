@@ -272,6 +272,8 @@ class Comment(object):
             with open('check_build.yaml', 'r') as f:
                 check_branches = yaml.safe_load(f)
         tbranch = os.getenv('tbranch')
+        if tbranch not in check_branches.keys():
+            return comments
         for build in builds:
             name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
             status = build["result"]
