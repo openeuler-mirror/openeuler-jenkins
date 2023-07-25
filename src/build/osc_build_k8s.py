@@ -32,7 +32,7 @@ class SinglePackageBuild(object):
     """
     BUILD_IGNORED_GITEE_BRANCH = ["riscv"]
     PACKAGES_USE_ROOT = ["iproute", "libaio", "A-Ops", "multipath-tools", "libnetfilter_conntrack", "mcelog",
-                         "openEuler_chroot", "conntrack-tools", "linux-sgx", "gala-gopher", "iputils"]
+                         "openEuler_chroot", "conntrack-tools", "linux-sgx", "gala-gopher", "iputils", "fuse3"]
 
     def __init__(self, package, arch, target_branch):
         """
