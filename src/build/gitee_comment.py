@@ -68,6 +68,21 @@ class Comment(object):
             logger.error(f"Prase rpm name error: {rpm}")
             return rpm
 
+    def _get_dict(self, key_list, data):
+        """
+        获取字典value
+        :param key_list: key列表
+        :param data: 字典
+        :return:
+        """
+        value = data
+        for key in key_list:
+            if value and isinstance(value, dict):
+                value = value.get(key)
+            else:
+                return None
+        return value
+
     def comment_build(self, gitee_proxy):
         """
         构建结果
@@ -278,7 +293,7 @@ class Comment(object):
             name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
             status = build["result"]
             ac_result = ACResult.get_instance(status)
-            build_url = build["url"]
+
             if "x86-64" in name:
                 arch = "x86_64"
             elif "aarch64" in name:
@@ -290,43 +305,87 @@ class Comment(object):
                 if arches:
                     if arch in arches.keys() and not arches.get(arch):
                         continue
-            arch_dict = {}
-            check_item_result = {}
+            json_data, yaml_data = None, None
             for check_item_comment_file in self._check_item_comment_files:
+                logger.info(f"check_item_comment_file:{check_item_comment_file}")
                 if not os.path.exists(check_item_comment_file):
                     logger.info("%s not exists", check_item_comment_file)
                     continue
                 if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
-                    with open(check_item_comment_file, "r") as f:
+                    with open(check_item_comment_file, "r") as data:
                         try:
-                            content = yaml.safe_load(f)
-                        except YAMLError:  # yaml base exception
-                            logger.exception("illegal yaml format of check item comment file ")
-                        logger.debug("comment: %s", content)
-                    for item in content:
-                        check_item_result[item.get("name")] = ACResult.get_instance(item.get("result"))
+                            json_data = json.load(data)
+                        except json.decoder.JSONDecodeError:
+                            logger.error("%s is not an legal json file", os.path.basename(check_item_comment_file))
+                            json_data = None
+                            with open(check_item_comment_file, "r") as data:
+                                try:
+                                    yaml_data = yaml.safe_load(data)
+                                except YAMLError:
+                                    logger.error("%s is not an legal yaml file",
+                                                 os.path.basename(check_item_comment_file))
+                        else:
+                            yaml_data = None
                     break
-            item_num = 1 + len(check_item_result)
-            if os.path.exists("support_arch"):
-                with open("support_arch", "r") as s_file:
-                    if arch not in s_file.readline():
-                        ac_result = ACResult.get_instance("EXCLUDE")
-                        item_num = 2
-            comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
-                            "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
-                item_num, arch, "check_build", ac_result.emoji, ac_result.hint, item_num,
-                "{}{}".format(build_url, "console"), build["number"]))
-            arch_dict["check_build"] = ac_result.hint
-            if ac_result.hint == "EXCLUDE":
-                comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
-                    "check_install", ac_result.emoji, ac_result.hint))
-                arch_dict["check_install"] = ac_result.hint
-            else:
-                for check_item, check_result in check_item_result.items():
+            comment = self._comment_of_combine_item(arch, build, ac_result, json_data=json_data, yaml_data=yaml_data)
+            comments.extend(comment)
+        return comments
+
+    def _comment_of_combine_item(self, arch, build, ac_result, json_data=None, yaml_data=None):
+        """
+        check item combine comment
+        :param json_data:
+        :param yaml_data:
+        :param arch:
+        :param build:
+        :return:
+        """
+        comments = []
+        arch_dict = {}
+        check_item_info = {}
+        if json_data:
+            logger.info(f"JSON DATA:{json_data}")
+            single_build_result = self._get_dict(["single_build_check", "current_result"], json_data)
+            check_item_info["check_install"] = self._get_dict(["single_install_check",
+                                                                "current_result"], json_data)
+        elif yaml_data:
+            logger.info(f"YAML DATA:{yaml_data}")
+            single_build_result = build["result"]
+            check_item_info["check_install"] = yaml_data[0]["result"]
+        else:
+            single_build_result = build["result"]
+        logger.info(f"single_build_result:{single_build_result}")
+        logger.info(f"check_item_info:{check_item_info}")
+        if os.path.exists("support_arch"):
+            with open("support_arch", "r") as s_file:
+                if arch not in s_file.readline():
+                    ac_result = ACResult.get_instance("EXCLUDE")
+                    item_num = 2
+                else:
+                    ac_result = ACResult.get_instance(single_build_result)
+                    item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
+        else:
+            ac_result = ACResult.get_instance(single_build_result)
+            item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
+
+        comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
+                        "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
+            item_num, arch, "check_build", ac_result.emoji, ac_result.hint, item_num,
+            "{}{}".format(build["url"], "console"), build["number"]))
+        arch_dict["check_build"] = ac_result.hint
+
+        if ac_result.hint == "EXCLUDE":
+            comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+                "check_install", ac_result.emoji, ac_result.hint))
+            arch_dict["check_install"] = ac_result.hint
+        else:
+            for check_item, check_result in check_item_info.items():
+                if check_result:
+                    check_result = ACResult.get_instance(check_result)
                     comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
                         check_item, check_result.emoji, check_result.hint))
                     arch_dict[check_item] = check_result.hint
-            self.check_item_result[arch] = arch_dict
+        self.check_item_result[arch] = arch_dict
         logger.info("check item comment: %s", comments)
 
         return comments
