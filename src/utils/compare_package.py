@@ -236,7 +236,7 @@ class ComparePackage(object):
         with open(json_file, "r") as data:
             try:
                 all_data = json.load(data)
-            except json.decode.JSONDecodeError:
+            except json.decoder.JSONDecodeError:
                 self.logger.error("%s is not an illegal json file", os.path.basename(json_file))
                 return status, all_data
         try:
