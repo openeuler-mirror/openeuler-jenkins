@@ -41,8 +41,10 @@ class CheckCode(BaseCheck):
         # wait to initial
         self._pr_url = None
         self._pr_number = None
-        self._codecheck_api_url = None
-        self._codecheck_api_key = None
+        self._dynamic_token = None
+        self._static_key = None
+        self._codecheck_ip = 'https://majun.osinfra.cn'
+        self._codecheck_prefix = '/api/ci-backend/ci-portal/webhook/codecheck/v1'
 
     def __call__(self, *args, **kwargs):
         """
@@ -57,30 +59,41 @@ class CheckCode(BaseCheck):
 
         self._pr_url = codecheck_conf.get("pr_url", "")
         self._pr_number = codecheck_conf.get("pr_number", "")
-        self._codecheck_api_url = codecheck_conf.get("codecheck_api_url", "")
-        self._codecheck_api_key = codecheck_conf.get('codecheck_api_key', "")
+        self._static_key = codecheck_conf.get('codecheck_api_key', "")
 
         return self.start_check()
 
-    @staticmethod
-    def get_codecheck_result(pr_url, codecheck_api_url, codecheck_api_key):
+    def _get_dynamic_token(self):
+        try:
+            response_content = {}
+            token_url = f'{self._codecheck_ip}{self._codecheck_prefix}/token'
+            post_data = {
+                "static_token": self._static_key
+            }
+            rs = do_requests("post", token_url, body=post_data, obj=response_content)
+            if rs == 0 and response_content.get('code', "") == "200":
+                self._dynamic_token = response_content.get('data', '')
+                logger.info('get dynamic token success')
+            else:
+                logger.error('get dynamic token failed: %s', response_content.get("msg"))
+        except Exception as error:
+            logger.error('get dynamic token failed exception:%s', error)
+
+    def get_codecheck_result(self, pr_url):
         """
         通过api调用codecheck
         """
         # get codecheck Api Token
-        codecheck_token_api_url = '{}/token/{}'.format(codecheck_api_url, codecheck_api_key)
-        token_resp = {}
-        rs = do_requests("get", codecheck_token_api_url, obj=token_resp)
-        if rs != 0 or token_resp.get("code", "") != "200":
-            logger.error("get dynamic token failed")
-            return 'false', {}
+        self._get_dynamic_token()
 
-        token = token_resp.get("data")
-        data = {"pr_url": pr_url, "token": token}
         response_content = {}
         # 创建codecheck检查任务
-        codecheck_task_api_url = "{}/task".format(codecheck_api_url)
-        rs = do_requests("get", codecheck_task_api_url, querystring=data, obj=response_content)
+        task_url = f'{self._codecheck_ip}{self._codecheck_prefix}/task'
+        post_data = {
+            "pr_url": pr_url,
+            "token": self._dynamic_token
+        }
+        rs = do_requests("post", task_url, body=post_data, obj=response_content)
         if rs != 0 or response_content.get('code', '') != '200':
             if response_content.get('msg').find("There is no proper set of languages") != -1:
                 response_content.update(code="200", msg="success", state="pass")
@@ -90,16 +103,22 @@ class CheckCode(BaseCheck):
 
         uuid = response_content.get('uuid')
         task_id = response_content.get('task_id')
-        data = {"uuid": uuid, "token": token}
-        codecheck_status_api_url = '{}/{}/status'.format(codecheck_api_url, task_id)
+        data = {
+            "uuid": uuid,
+            "task_id": task_id,
+            "token": self._dynamic_token
+        }
+        status_url = f'{self._codecheck_ip}{self._codecheck_prefix}/task/status'
         current_time = 0
         logger.info("codecheck probably need to 5min")
+
         # 定时5min
         while current_time < 300:
             time.sleep(10)
             response_content = {}
             # 检查codecheck任务的执行状态
-            rs = do_requests("get", codecheck_status_api_url, querystring=data, obj=response_content)
+
+            rs = do_requests("post", status_url, body=data, obj=response_content)
             if rs == 0 and response_content.get('code') == '100':
                 current_time = current_time + 10
                 continue
@@ -112,7 +131,7 @@ class CheckCode(BaseCheck):
         开始进行codecheck检查
         """
         # 等待计算结果
-        rs, response_content = self.get_codecheck_result(self._pr_url, self._codecheck_api_url, self._codecheck_api_key)
+        rs, response_content = self.get_codecheck_result(self._pr_url)
 
         # 判断是否计算完成
         if rs != 0:
