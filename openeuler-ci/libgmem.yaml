@@ -1,0 +1,12 @@
+repo_name: libgmem
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+      - login_name: yang_yanchao
+        name: yangyanchao
+        email: yangyanchao6@huawei.com
+        gitee_id: yang_yanchao
+      - login_name: LemmyHuang
+        name: huangliming
+        email: huangliming5@huawei.com
+        gitee_id: LemmyHuang
