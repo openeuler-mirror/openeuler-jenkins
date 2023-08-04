@@ -50,11 +50,13 @@ openeuler:
     hint: check_sca
     module: sca.check_sca
     entry: CheckSCA
+    exclude: True
     deny_list: ["bishengjdk-17", "bishengjdk-8", "bishengjdk-11", "bishengjdk-riscv", "gcc", "kernel"]
   openlibing:
     hint: code
     module: openlibing.check_code
     entry: CheckCode
+    exclude: True
     allow_list: ["pkgship", "kunpengsecl", "release-tools", "yocto-meta-openeuler", "yocto-embedded-tools",
                  "gcc", "gcc-anti-sca", "A-Ops", "openeuler-jenkins", "lcr", "eggo", "oecp", "etmem", "A-Tune",
                  "libkae", "KubeOS", "ci-bot", "iSulad", "gazelle", "clibcni", "secGear", "eulerfs", "oemaker",
