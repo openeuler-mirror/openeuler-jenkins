@@ -47,6 +47,7 @@ class Constant(object):
         "openEuler-22.03-LTS-SP2": ["openEuler:22.03:LTS:SP2", "openEuler:22.03:LTS:SP2:Epol"],
         "openEuler-22.09": ["openEuler:22.09", "openEuler:22.09:Epol"],
         "openEuler-23.03": ["openEuler:23.03", "openEuler:23.03:Epol"],
+        "openEuler-23.09": ["openEuler:23.09", "openEuler:23.09:Epol"],
         "Multi-Version_obs-server-2.10.11_openEuler-22.09": [
                     "openEuler:22.09:Epol:Multi-Version:obs-server:2.10.11",
                     "openEuler:22.09", "openEuler:22.09:Epol"],
