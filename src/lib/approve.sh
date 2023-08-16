@@ -28,7 +28,7 @@ function save_build_result() {
 
   sed -i "s/dbhost=127.0.0.1/dbhost=${MysqldbHost}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
   sed -i "s/dbport=3306/dbport=${MysqldbPort}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
-  python3 ${JENKINS_HOME}/oecp/cli.py -s ${giteeTargetBranch}-${arch} --db-password ${MysqlUserPasswd:5} --pull-request-id ${giteeRepoName}-${giteePullRequestIid} --submit-symbol
+  python3 ${JENKINS_HOME}/oecp/cli.py -s ${giteeTargetBranch} --db-password ${MysqlUserPasswd:5} --pull-request-id ${giteeRepoName}-${giteePullRequestIid} --submit-symbol
 
   log_info "***** Start to config remote shell *****"
   remote_place_cmd=$(
