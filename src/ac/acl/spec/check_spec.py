@@ -196,14 +196,26 @@ class CheckSpec(BaseCheck):
             :param patch_con:spec文件中patch内容
             :return:
             """
-            prep_patchs = []
+            prep_patches = []
+            not_used_patches = []
+            if re.findall(r"#\s*%patch\w+", patch_con):
+                not_used_patches = re.findall(r"#\s*%patch\w+", patch_con)
+            if re.findall(r"#\s*%patch \d+", patch_con):
+                not_used_patches.extend(re.findall(r"#\s*%patch \d+", patch_con))
+            if re.findall(r"#\s*%(-p\d+) (-p\d+)", patch_con):
+                not_used_patches.extend(con[1] for con in re.findall(r"#\s*%(-p\d+) (-p\d+)", patch_con))
+            format_not_used_patches = [equivalent_patch_number(single_prep_patch) for single_prep_patch in
+                                       not_used_patches]
+
             if re.findall(r"patch\d+", patch_con):
-                prep_patchs = re.findall(r"patch\d+", patch_con)
+                prep_patches = re.findall(r"patch\d+", patch_con)
             if re.findall(r"patch \d+", patch_con):
-                prep_patchs.extend(re.findall(r"patch \d+", patch_con))
+                prep_patches.extend(re.findall(r"patch \d+", patch_con))
             if re.findall(r"(-p\d+) (-p\d+)", patch_con):
-                prep_patchs.extend(con[1] for con in re.findall(r"(-p\d+) (-p\d+)", patch_con))
-            return [equivalent_patch_number(single_prep_patch) for single_prep_patch in prep_patchs]
+                prep_patches.extend(con[1] for con in re.findall(r"(-p\d+) (-p\d+)", patch_con))
+            all_patches = [equivalent_patch_number(single_prep_patch) for single_prep_patch in prep_patches]
+
+            return list(set(all_patches) - set(format_not_used_patches))
 
         def patch_adaptation(spec_con, patches_dict):
             """
