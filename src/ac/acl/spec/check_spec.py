@@ -190,6 +190,25 @@ class CheckSpec(BaseCheck):
             new_patch_number = "patch" + str(int(patch_number.group()))
             return new_patch_number
 
+        def filter_patch(patch_list, rules, patch_con):
+            """
+            处理rpm新规则patch号
+            :param patch_con:spec文件中patch内容
+            :param patch_list:处理后的统一规则的patch列表
+            :param rules:patch 匹配规则
+            :return:
+            """
+            return_list = []
+            for rule in rules:
+                find_patches = re.findall(rule, patch_con)
+                if find_patches and isinstance(find_patches[0], str):
+                    patch_list.extend(find_patches)
+                else:
+                    patch_list.extend(con[0] for con in re.findall(rule, patch_con))
+            for single_prep_patch in patch_list:
+                return_list.append(equivalent_patch_number(single_prep_patch))
+            return return_list
+
         def rpm_new_standard_distinguishe_patch(patch_con):
             """
             匹配rpm新规则patch号
@@ -198,23 +217,8 @@ class CheckSpec(BaseCheck):
             """
             prep_patches = []
             not_used_patches = []
-            if re.findall(r"#\s*%patch\w+", patch_con):
-                not_used_patches = re.findall(r"#\s*%patch\w+", patch_con)
-            if re.findall(r"#\s*%patch \d+", patch_con):
-                not_used_patches.extend(re.findall(r"#\s*%patch \d+", patch_con))
-            if re.findall(r"#\s*%(-p\d+) (-p\d+)", patch_con):
-                not_used_patches.extend(con[1] for con in re.findall(r"#\s*%(-p\d+) (-p\d+)", patch_con))
-            format_not_used_patches = [equivalent_patch_number(single_prep_patch) for single_prep_patch in
-                                       not_used_patches]
-
-            if re.findall(r"patch\d+", patch_con):
-                prep_patches = re.findall(r"patch\d+", patch_con)
-            if re.findall(r"patch \d+", patch_con):
-                prep_patches.extend(re.findall(r"patch \d+", patch_con))
-            if re.findall(r"(-p\d+) (-p\d+)", patch_con):
-                prep_patches.extend(con[1] for con in re.findall(r"(-p\d+) (-p\d+)", patch_con))
-            all_patches = [equivalent_patch_number(single_prep_patch) for single_prep_patch in prep_patches]
-
+            format_not_used_patches = filter_patch(not_used_patches, Constant.NOT_USED_PATCH_RULE, patch_con)
+            all_patches = filter_patch(prep_patches, Constant.PATCH_RULE, patch_con)
             return list(set(all_patches) - set(format_not_used_patches))
 
         def patch_adaptation(spec_con, patches_dict):

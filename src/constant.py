@@ -140,3 +140,6 @@ class Constant(object):
 
     ALARM_LTS_BRANCH = ["openeuler-20.03-lts-sp1", "openeuler-20.03-lts-sp3", "openeuler-22.03-lts"]
 
+    PATCH_RULE = [r"patch\w+", r"patch \d+", r"(-p\d+) (-p\d+)"]
+    NOT_USED_PATCH_RULE = [r"#\s*%patch\w+", r"#\s*%patch \d+", r"#\s*%(-p\d+) (-p\d+)", r"#\s*%patch -p\d+"]
+
