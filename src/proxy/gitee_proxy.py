@@ -171,3 +171,35 @@ class GiteeProxy(object):
             logger.warning("get last pr committer failed")
 
         return committer[0]
+
+    def get_issue(self, cve_issue, enterprises="open_euler"):
+        resp = {}
+        issue_url = "https://gitee.com/api/v5/enterprises/{}/issues/{}?access_token={}".format(
+           enterprises, cve_issue, self._token)
+        logging.info(issue_url)
+        rs = do_requests("get", issue_url, timeout=10, obj=resp)
+    
+        if rs != 0:
+            logging.warning("get issue failed")
+        return resp
+
+    @staticmethod
+    def create_issue(owner, data):
+        resp = {}
+        issue_url = "https://gitee.com/api/v5/repos/{}/issues".format(owner)
+    
+        rs = do_requests("post", issue_url, body=data, timeout=10, obj=resp)
+        if rs != 0:
+            logging.warning("create issue failed")
+        return resp
+
+    @staticmethod
+    def update_issue(owner, data, number):
+        resp = {}
+        issue_url = "https://gitee.com/api/v5/repos/{}/issues/{}".format(owner, number)
+
+        rs = do_requests("patch", issue_url, body=data, timeout=10, obj=resp)
+        if rs != 0:
+            logging.warning("update issue failed")
+        return resp
+
