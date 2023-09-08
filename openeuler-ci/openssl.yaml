@@ -1,0 +1,8 @@
+repo_name: openssl
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: xuhuiyue
+    name: xuhuiyue
+    email: xuhuiyue@foxmail.com
+    gitee_id: xuhuiyue
