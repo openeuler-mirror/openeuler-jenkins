@@ -11,9 +11,9 @@ RUN set -eux; \
     mkdir -p /usr/src/rust-1.64.0; \
     cd /usr/src/rust-1.64.0; \
     ARCH=$(arch); \
-    wget -r -nd --no-parent --no-remove-listing http://121.36.84.172/dailybuild/EBS-openEuler-22.03-LTS-SP2/rc3_openeuler-2023-06-04-00-51-42/everything/${ARCH}/Packages/ -l1 -A rust*.rpm; \
-    wget -r -nd --no-parent --no-remove-listing http://121.36.84.172/dailybuild/EBS-openEuler-22.03-LTS-SP2/rc3_openeuler-2023-06-04-00-51-42/everything/${ARCH}/Packages/ -l1 -A cargo-*.rpm; \
-    wget -r -nd --no-parent --no-remove-listing http://121.36.84.172/dailybuild/EBS-openEuler-22.03-LTS-SP2/rc3_openeuler-2023-06-04-00-51-42/everything/${ARCH}/Packages/ -l1 -A clippy-*.rpm; \
+    wget -r -nd --no-parent --no-remove-listing http://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP2/everything/${ARCH}/Packages/ -l1 -A rust*.rpm; \
+    wget -r -nd --no-parent --no-remove-listing http://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP2/everything/${ARCH}/Packages/ -l1 -A cargo-*.rpm; \
+    wget -r -nd --no-parent --no-remove-listing http://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP2/everything/${ARCH}/Packages/ -l1 -A clippy-*.rpm; \
     rm rust-gdb-*; \
     rm rust-lldb-*; \
     rm rust-packaging-*; \
@@ -52,5 +52,6 @@ VOLUME /home/${user}/.jenkins
 VOLUME ${AGENT_WORKDIR}
 WORKDIR ${AGENT_WORKDIR}
 
+RUN cargo install typos-cli --locked --version 1.16.5 --index https://github.com/rust-lang/crates.io-index
 
 ENTRYPOINT ["jenkins-agent"]
