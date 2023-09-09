@@ -52,6 +52,12 @@ VOLUME /home/${user}/.jenkins
 VOLUME ${AGENT_WORKDIR}
 WORKDIR ${AGENT_WORKDIR}
 
-RUN cargo install typos-cli --locked --version 1.16.5 --index https://github.com/rust-lang/crates.io-index
+RUN mkdir -p /home/jenkins/.cargo; \
+    echo "[source.crates-io]" > /home/jenkins/.cargo/config; \
+    echo "registry = 'https://github.com/rust-lang/crates.io-index'" >> /home/jenkins/.cargo/config; \
+    echo "replace-with = 'ustc'" >> /home/jenkins/.cargo/config; \
+    echo "[source.ustc]" >> /home/jenkins/.cargo/config; \
+    echo "registry = 'http://mirrors.ustc.edu.cn/crates.io-index'" >> /home/jenkins/.cargo/config
+RUN cargo install typos-cli --locked --version 1.16.5
 
 ENTRYPOINT ["jenkins-agent"]
