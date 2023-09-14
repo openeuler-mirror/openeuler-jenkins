@@ -135,6 +135,7 @@ function get_patch(){
             for patch in ${patch_list[@]}
             do
                 if [[ ! `echo $changed_patch | grep $patch` ]]; then
+                    comment_error_src_pr "补丁文件：${patch}不存在"
                     log_error "补丁文件：${patch}不存在"
                 fi
             done
