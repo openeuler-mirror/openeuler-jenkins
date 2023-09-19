@@ -23,6 +23,20 @@ function print_job(){
     curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${giteeRepoName}'/pulls/'${giteePullRequestIid}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
+function error_info(){
+    body_str="makehotpatch命令格式错误，请参考如下格式：\n\
+\`\`\`text\n\
+/makehotpatch <version> <mode> <patch_name> <patch_type> <issue_id> <os_branch>\n\
+version:    源码包版本号，必填\n\
+mode:       热补丁包演进方式<ACC/SGL>， 必填\n\
+patch_name: 冷补丁包名，支持多个patch包，按顺序传入，以逗号隔开，src-openeuler下的仓库必填；kernel仓库不用填，门禁会自动打包patch文件\n\
+patch_type: 修复的问题类型<cve/bugfix/feature>，必填\n\
+issue_id:   修复问题的issue id，必填\n\
+os_branch:  本次热补丁基于哪个分支做，必填\n\`\`\`"
+    comment_error_src_pr ${body_str}
+    log_error "makehotpatch命令格式错误，请参考如下格式：/makehotpatch <version> <mode> <patch_name> <patch_type> <cve_issue_id> <os_branch>"
+}
+
 function ver_comment(){
     comment_array=(${comment})
     if [[ ${#comment_array[@]} -eq 7 || ${#comment_array[@]} -eq 6 ]]; then
@@ -36,18 +50,12 @@ function ver_comment(){
             cve_issue=${comment_array[4]}
             commet_branch=${comment_array[5]}
         fi
+
+        if [[ $mode != "SGL" && $mode != "ACC" ]]; then
+            error_info
+        fi
     else
-        body_str="makehotpatch命令格式错误，请参考如下格式：\n\
-  \`\`\`text
-  /makehotpatch <version> <mode> <patch_name> <patch_type> <issue_id> <os_branch>\n
-  version:    源码包版本号，必填\n\
-  mode:       热补丁包演进方式<ACC/SGL>， 必填\n\
-  patch_name: 冷补丁包名，支持多个patch包，按顺序传入，以逗号隔开，src-openeuler下的仓库必填；kernel仓库不用填，门禁会自动打包patch文件\n\
-  patch_type: 修复的问题类型<cve/bugfix/feature>，必填\n\
-  issue_id:   修复问题的issue id，必填\n\
-  os_branch:  本次热补丁基于哪个分支做，必填\n\`\`\`"
-        comment_error_src_pr ${body_str}
-        log_error "makehotpatch命令格式错误，请参考如下格式：/makehotpatch <version> <mode> <patch_name> <patch_type> <cve_issue_id> <os_branch>"
+        error_info
     fi
     echo ${cve_issue}
     echo ${mode}
@@ -307,7 +315,7 @@ function comment_src_pr(){
 
 function comment_error_src_pr(){
     log_info "**********comment hotmetadata pr link to source pr********"
-    body_str="In response to this:\n > ${comment}  \n\n命令执行结果：\n $1 "
+    body_str="In response to this:\n > ${comment}  \n\n命令执行结果：\n $* "
     curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${giteeRepoName}'/pulls/'${giteePullRequestIid}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
     log_error $1
 }
