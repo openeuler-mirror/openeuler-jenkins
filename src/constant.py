@@ -130,8 +130,12 @@ class Constant(object):
                    "openEuler:Erlang", "openEuler:Golang", "openEuler:Java", "openEuler:KernelSpace", "openEuler:Lua",
                    "openEuler:Meson", "openEuler:MultiLanguage", "openEuler:Nodejs", "openEuler:Ocaml",
                    "openEuler:Perl", "openEuler:Python", "openEuler:Qt", "openEuler:Ruby", "openEuler:Factory"
+        ],
+        "Multi-Version_lustre_openEuler-22.03-LTS-Next": [
+            "openEuler:22.03:LTS:Next:Epol:Multi-Version:lustre",
+            "openEuler:22.03:LTS:Next", "openEuler:22.03:LTS:Next:Epol"
         ]
-        }
+    }
 
     COMPARE_PACKAGE_BLACKLIST = [
         r'^/etc/ima/digest_lists/0-metadata_list-compact*',
