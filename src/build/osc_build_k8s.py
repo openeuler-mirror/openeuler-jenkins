@@ -192,6 +192,11 @@ class SinglePackageBuild(object):
         if self._branch.lower() in Constant.STOPPED_MAINTENANCE_BRANCH:
             logger.error("branch \"%s\" is no longer maintained!", self._branch)
             return 1
+        if self._branch.lower() in Constant.PLAN_STOP_MAINTENANCE_BRANCH:
+            logger.error("%s planned EOL: 2024/03, we will first close the access control project for release. If you "
+                         "need to contribute the necessary PR, you can contact CICD sig to open it after obtaining the "
+                         "consent of release sig.", self._branch)
+            return 1
         if self._branch not in Constant.GITEE_BRANCH_PROJECT_MAPPING:
             logger.error("branch \"%s\" not support yet", self._branch)
             return 1
