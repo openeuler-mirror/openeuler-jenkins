@@ -120,7 +120,13 @@ class AC(object):
         :return:
         """
         target_branch = kwargs.get("tbranch")
-        if target_branch.lower() in Constant.STOPPED_MAINTENANCE_BRANCH:
+        if target_branch.lower() in Constant.PLAN_STOP_MAINTENANCE_BRANCH:
+            logger.error("%s planned EOL: 2024/03, we will first close the access control project for release. If you "
+                         "need to contribute the necessary PR, you can contact CICD sig to open it after obtaining the "
+                         "consent of release sig.", target_branch)
+            self._ac_check_result.append({"name": "Branch is not maintained", "result": 2})
+            return
+        elif target_branch.lower() in Constant.STOPPED_MAINTENANCE_BRANCH:
             logger.error("%s is no longer maintained, and access control is no longer checked.", target_branch)
             self._ac_check_result.append({"name": "Branch is not maintained", "result": 2})
             return

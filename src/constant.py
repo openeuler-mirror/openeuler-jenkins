@@ -139,7 +139,9 @@ class Constant(object):
     ]
 
     STOPPED_MAINTENANCE_BRANCH = ["openeuler-20.03-lts-next", "openeuler-20.03-lts", "openeuler-20.03-lts-sp2",
-                                  "openeuler-21.03", "openeuler-21.09", "openeuler-23.03", "openeuler-23.09"]
+                                  "openeuler-21.03", "openeuler-21.09", "openeuler-23.03"]
+
+    PLAN_STOP_MAINTENANCE_BRANCH = ["openeuler-23.09"]
 
     ALARM_LTS_BRANCH = ["openeuler-20.03-lts-sp1", "openeuler-20.03-lts-sp3", "openeuler-22.03-lts"]
 
