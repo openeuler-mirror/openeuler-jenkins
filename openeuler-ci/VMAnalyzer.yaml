@@ -1,0 +1,8 @@
+repo_name: VMAnalyzer
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: dinglimin
+    name: dinglimin
+    email: dinglimin_yewu@cmss.chinamobile.com
+    gitee_id: taoziyaoyao
