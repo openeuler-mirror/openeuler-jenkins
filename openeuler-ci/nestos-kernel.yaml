@@ -1,0 +1,8 @@
+repo_name: nestos-kernel
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: chendexi
+    name: chendexi
+    email: chendexi@kylinos.cn
+    gitee_id: ccdxx
