@@ -56,10 +56,10 @@ class Comment(object):
     @staticmethod
     def _get_rpm_name(rpm):
         """
-       返回rpm包名称
-       :param rpm:
-       :return:
-       """
+        返回rpm包名称
+        :param rpm:
+        :return:
+        """
         rpm_name = re.match(r"^(.+)-.+-.+", rpm)
 
         if rpm_name:
@@ -305,11 +305,13 @@ class Comment(object):
                 if arches:
                     if arch in arches.keys() and not arches.get(arch):
                         continue
+            json_data, yaml_data = None, None
             for check_item_comment_file in self._check_item_comment_files:
+                logger.info(f"check_item_comment_file:{check_item_comment_file}")
                 if not os.path.exists(check_item_comment_file):
                     logger.info("%s not exists", check_item_comment_file)
                     continue
-                if match(name, check_item_comment_file):
+                if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
                     with open(check_item_comment_file, "r") as data:
                         try:
                             json_data = json.load(data)
@@ -324,11 +326,12 @@ class Comment(object):
                                                  os.path.basename(check_item_comment_file))
                         else:
                             yaml_data = None
-                comment = self._comment_of_combine_item(json_data, yaml_data, arch, build, ac_result)
-                comments.extend(comment)
+                    break
+            comment = self._comment_of_combine_item(arch, build, ac_result, json_data=json_data, yaml_data=yaml_data)
+            comments.extend(comment)
         return comments
 
-    def _comment_of_combine_item(self, json_data, yaml_data, arch, build, ac_result):
+    def _comment_of_combine_item(self, arch, build, ac_result, json_data=None, yaml_data=None):
         """
         check item combine comment
         :param json_data:
@@ -341,10 +344,12 @@ class Comment(object):
         arch_dict = {}
         check_item_info = {}
         if json_data:
+            logger.info(f"JSON DATA:{json_data}")
             single_build_result = self._get_dict(["single_build_check", "current_result"], json_data)
             check_item_info["check_install"] = self._get_dict(["single_install_check",
-                                                               "current_result"], json_data)
+                                                                "current_result"], json_data)
         elif yaml_data:
+            logger.info(f"YAML DATA:{yaml_data}")
             single_build_result = build["result"]
             check_item_info["check_install"] = yaml_data[0]["result"]
         else:
