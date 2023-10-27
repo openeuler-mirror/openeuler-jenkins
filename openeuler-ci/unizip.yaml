@@ -1,0 +1,8 @@
+repo_name: unizip
+container_level: l1
+init_shell: "echo Hello unizip\necho $?"
+users:
+  - login_name: huangduirong
+    name: huangduirong
+    email: huangduirong@huawei.com
+    gitee_id: huangduirong
