@@ -311,7 +311,7 @@ class Comment(object):
                 if not os.path.exists(check_item_comment_file):
                     logger.info("%s not exists", check_item_comment_file)
                     continue
-                if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
+                if match(name, check_item_comment_file):  # 保证build状态成功
                     with open(check_item_comment_file, "r") as data:
                         try:
                             json_data = json.load(data)
@@ -346,8 +346,8 @@ class Comment(object):
         if json_data:
             logger.info(f"JSON DATA:{json_data}")
             single_build_result = self._get_dict(["single_build_check", "current_result"], json_data)
-            check_item_info["check_install"] = self._get_dict(["single_install_check",
-                                                                "current_result"], json_data)
+            check_install_result = self._get_dict(["single_install_check", "current_result"], json_data)
+            check_item_info["check_install"] = check_install_result if check_install_result else "failed"
         elif yaml_data:
             logger.info(f"YAML DATA:{yaml_data}")
             single_build_result = build["result"]
