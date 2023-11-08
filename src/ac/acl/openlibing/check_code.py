@@ -18,7 +18,7 @@ import logging
 import time
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, SUCCESS
 from src.proxy.requests_proxy import do_requests
 
 logger = logging.getLogger("ac")
