@@ -311,7 +311,7 @@ class Comment(object):
                 if not os.path.exists(check_item_comment_file):
                     logger.info("%s not exists", check_item_comment_file)
                     continue
-                if match(name, check_item_comment_file):  # 保证build状态成功
+                if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
                     with open(check_item_comment_file, "r") as data:
                         try:
                             json_data = json.load(data)
