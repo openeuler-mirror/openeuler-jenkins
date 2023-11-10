@@ -145,6 +145,8 @@ class OemakerAnalyse(object):
             if ret:
                 logger.error("delete oemaker failed, %s\n%s", ret, out)
                 raise IOError("delete old oemaker project error")
+        if branch.startswith("Multi-Version"):
+            branch = "openEuler" + branch.split("openEuler")[-1]
 
         fetch_cmd = 'git clone -b {} --depth 1 https://{}@gitee.com/src-openeuler/oemaker'.format(branch, gitee_token)
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
