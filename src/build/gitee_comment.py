@@ -53,6 +53,7 @@ class Comment(object):
         self.ac_result = {}
         self.compare_package_result = {}
         self.check_item_result = {}
+        self._issue_flag = "__cmp_pkg_issue__"
 
     @staticmethod
     def _get_rpm_name(rpm):
@@ -69,7 +70,8 @@ class Comment(object):
             logger.error(f"Prase rpm name error: {rpm}")
             return rpm
 
-    def _get_dict(self, key_list, data):
+    @staticmethod
+    def _get_dict(key_list, data):
         """
         获取字典value
         :param key_list: key列表
@@ -83,6 +85,89 @@ class Comment(object):
             else:
                 return None
         return value
+
+    @staticmethod
+    def _match(name, comment_file):
+        if "aarch64" in name and "aarch64" in comment_file:
+            return True, "aarch64"
+        if "x86-64" in name and "x86_64" in comment_file:
+            return True, "x86_64"
+        return False, ""
+
+    @staticmethod
+    def _filter_focus_on_rpms(content):
+        filter_result = {}
+        map_rpm_level = content.get("rpm level")
+        focus_on_rpm_level = ["level0", "level1", "level2"]
+        for cmp_type, details in content.get("compare_details", {}).items():
+            for detail in details:
+                if isinstance(detail, dict):
+                    if detail.get("RPM Level") not in focus_on_rpm_level:
+                        continue
+                    filter_result.setdefault(cmp_type, []).append(detail)
+                elif isinstance(detail, str):
+                    if map_rpm_level.get(detail) not in focus_on_rpm_level:
+                        continue
+                    filter_result.setdefault(cmp_type, []).append(detail)
+
+        return filter_result, map_rpm_level
+
+    @staticmethod
+    def _get_filter_cmp_details(summary_details, detail_content):
+        recomponent_detail = {}
+        compare_details = detail_content.get("compare_details")
+        for cmp_type, cmp_details in summary_details.items():
+            if cmp_type == "add_rpms":
+                recomponent_detail.setdefault("more_details", compare_details["more"].get("more_details"))
+            elif cmp_type == "delete_rpms":
+                recomponent_detail.setdefault("less_details", compare_details["less"].get("less_details"))
+            else:
+                recomponent_detail.setdefault("diff_details", {})
+                for rpm in cmp_details:
+                    recomponent_detail["diff_details"].setdefault(rpm, compare_details["diff"]["diff_details"].get(rpm))
+
+        return recomponent_detail
+
+    @staticmethod
+    def _combine_issue_html(comments, detail_comments, commit_id):
+        comments_html = ["请maintainer关注以下接口变更差异，check是否合理并解释评论：\n",
+                         "<table> <tr><th>Arch Name</th> <th>Check Items</th> <th>Rpm Name</th> <th>Rpm Level</th> "
+                         "<th>Check Result</th> </tr>",
+                         "</table>",
+                         f"\nCheck Diff Report Info(commit id: {commit_id}):\n"
+                         ]
+        details_title = ["<table> <tr><th>Arch</th> <th>接口变更报告</th> <th>Details</th> </tr>",
+                         "</table>",
+                         "\n#注：接口变更报告中仅展示部分差异详情,可点击下方......日志链接或details文件服务器链接中json报告查看"
+                         "完整差异信息"
+                         ]
+        if not comments:
+            return ""
+        comments_html.insert(2, "".join(comments))
+        if detail_comments:
+            details_title.insert(1, "".join(detail_comments))
+            comments_html.extend(details_title)
+        html_str = "".join(comments_html)
+
+        return html_str
+
+    @staticmethod
+    def get_target_milestone_id(gitee_proxy, branch):
+        """
+        获取pr提交分支对应的milestone id
+        @committer
+        :param gitee_proxy:
+        :param branch: pr branch名称
+        :return:
+        """
+        title = branch + '-whole'
+        milestones = gitee_proxy.get_milestone_id()
+        for milestone_info in milestones:
+            query_title = milestone_info['title']
+            if query_title == title:
+                return milestone_info['id']
+
+        return False
 
     def comment_build(self, gitee_proxy):
         """
@@ -109,6 +194,45 @@ class Comment(object):
 
         return "\n".join(comments)
 
+    def submit_compare_package_details_issue(self, gp, check_result_file, detail_result_file, detail_url, pr_id):
+        """
+        compare package结果提交issue
+
+        :param gp: gitee proxy object
+        :param check_result_file: prase check result files(aarch64, x86_64)
+        :param detail_result_file: json result of compare packages details(aarch64, x86_64)
+        :param detail_url: file server url
+        :param pr_id: pr id
+        :return:
+        """
+        details_files = detail_result_file.split(",")
+        pr_data, other_info = self.get_target_pr_data(gp, pr_id)
+        branch = other_info.get('branch', '')
+        milestone_id = self.get_target_milestone_id(gp, branch)
+        commit_id = other_info.get('commit_id', '')
+        if milestone_id:
+            pr_data.setdefault('milestone', milestone_id)
+            issue_num = self.get_target_issue_num(gp, pr_id)
+            comments = self._comment_of_compare_package_issue(check_result_file, details_files, detail_url, commit_id)
+            logger.info(f"Show issue data: {pr_data}, issue num: {issue_num}")
+            if not issue_num:
+                logger.info(f"the first time submit issue,comment: {comments}")
+                if comments:
+                    pr_data.setdefault("body", comments)
+                    cresp = gp.create_issue(gp._owner, pr_data)
+                    if not cresp:
+                        logger.error(f'Pr {pr_id} compare package diff create issue failed')
+            else:
+                if not comments:
+                    comments = "Update! Compare Package检测无差异, maintainer可以关闭此issue."
+                logger.info(f"update the issue {issue_num},comment: {comments}")
+                pr_data.setdefault("body", comments)
+                uresp = gp.update_issue(gp._owner, pr_data, issue_num)
+                if not uresp:
+                    logger.error(f'Pr {pr_id} compare package diff update issue {issue_num} failed')
+        else:
+            logger.info(f"Not found the branch {branch} related milestone")
+
     def comment_at(self, committer, gitee_proxy):
         """
         通知committer
@@ -118,6 +242,47 @@ class Comment(object):
         :return:
         """
         gitee_proxy.comment_pr(self._pr, "@{}".format(committer))
+
+    def get_target_pr_data(self, gp, pr_id):
+        """
+        组装issue data信息
+        @committer
+        :param gp:
+        :param pr_id: pr id
+        :return:
+        """
+        other_info = {}
+        issue_data = {
+            "access_token": gp._token,
+            "owner": gp._owner,
+            "repo": gp._repo,
+            "issue_type": "缺陷"
+        }
+        pr_data = gp.get_pr_info(pr_id)
+        if pr_data:
+            issue_data.setdefault("title", pr_data["title"] + self._issue_flag + str(pr_id))
+            issue_data.setdefault("assignee", pr_data["user"]["login"])
+            other_info.setdefault("branch", pr_data["base"]["label"])
+            other_info.setdefault("commit_id", pr_data["head"]["sha"][:6])
+
+        return issue_data, other_info
+
+    def get_target_issue_num(self, gt, pr_id):
+        """
+        判断是否该pr接口变更差异信息已提交issue
+        @committer
+        :param gt:
+        :param pr_id: pr id
+        :return: issue num
+        """
+        issues_info = gt.get_all_issues_data()
+        for issue in issues_info:
+            user_id = issue["user"]["id"]
+            issue_flag = self._issue_flag + str(pr_id)
+            if issue["title"].endswith(issue_flag) and user_id == 5329419:
+                return issue["number"]
+
+        return False
 
     def check_build_result(self):
         """
@@ -204,14 +369,7 @@ class Comment(object):
         comments = []
         comments_title = ["<table> <tr><th>Arch Name</th> <th>Check Items</th> <th>Rpm Name</th> <th>Check Result</th> "
                           "<th>Build Details</th></tr>"]
-
-        def match(name, comment_file):
-            if "aarch64" in name and "aarch64" in comment_file:
-                return True, "aarch64"
-            if "x86-64" in name and "x86_64" in comment_file:
-                return True, "x86_64"
-            return False, ""
-
+        logger.info("start get comment of compare package details.")
         for result_file in check_result_file.split(","):
             logger.info("check_result_file: %s", result_file)
             if not os.path.exists(result_file):
@@ -221,7 +379,7 @@ class Comment(object):
                 arch_cmp_result = "SUCCESS"
                 name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 logger.info("check build %s", name)
-                arch_result, arch_name = match(name, result_file)
+                arch_result, arch_name = self._match(name, result_file)
                 if not arch_result:  # 找到匹配的jenkins build
                     continue
                 logger.info("build \"%s\" match", name)
@@ -235,9 +393,10 @@ class Comment(object):
                             content = yaml.safe_load(f)
                         except YAMLError:  # yaml base exception
                             logger.exception("illegal yaml format of compare package comment file ")
-                logger.info("comment: %s", content)
-                for index, item in enumerate(content):
-                    rpm_name = content.get(item)
+                compare_details = content.get("compare_details")
+                logger.info("comment: %s", compare_details)
+                for index, item in enumerate(compare_details):
+                    rpm_name = compare_details.get(item, [])
                     check_item = item.replace(" ", "_")
                     result = "FAILED" if rpm_name else "SUCCESS"
                     if item == "delete_rpms" and rpm_name:
@@ -248,14 +407,16 @@ class Comment(object):
                             else:
                                 result = "FAILED"
                         rpm_name = [self._get_rpm_name(single.get('Name', '')) for single in rpm_name]
+                    elif item == "add_rpms" and rpm_name:
+                        rpm_name = [self._get_rpm_name(single.get('Name', '')) for single in rpm_name]
                     if result == "FAILED":
                         arch_cmp_result = "FAILED"
                     compare_result = ACResult.get_instance(result)
                     if index == 0:
                         comments.append("<tr><td rowspan={}>compare_package({})</td> <td>{}</td> <td>{}</td> "
                                         "<td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>"
-                                        .format(len(content), arch_name, check_item, "<br>".join(rpm_name),
-                                                compare_result.emoji, compare_result.hint, len(content),
+                                        .format(len(compare_details), arch_name, check_item, "<br>".join(rpm_name),
+                                                compare_result.emoji, compare_result.hint, len(compare_details),
                                                 "{}{}".format(build["url"], "console"), "#", build["number"]))
                     else:
                         comments.append("<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
@@ -267,6 +428,75 @@ class Comment(object):
         logger.info("compare package comment: %s", comments)
 
         return comments
+
+    def _comment_of_compare_package_issue(self, check_result_file, all_detail_files, url, commit_id):
+        """
+        compare package details
+        :param check_result_file:
+        :param all_detail_files:
+        :param url: details报告地址
+        :param commit_id: pr commit id
+        :return:
+        """
+        comments, detail_comments = [], []
+        logger.info("start get comment of compare package issue.")
+        for result_file in check_result_file.split(","):
+            if not os.path.exists(result_file):
+                logger.info("%s not exists", result_file)
+                continue
+            for build in self._up_builds:
+                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
+                # name: job path
+                logger.info("check build %s", name)
+                arch_result, arch_name = self._match(name, result_file)
+                if not arch_result:  # 找到匹配的jenkins build
+                    continue
+                logger.info("build \"%s\" match", name)
+                logger.info("build state: %s", build["result"])
+                content = {}
+                if ACResult.get_instance(build["result"]) == SUCCESS:  # 保证build状态成功
+                    with open(result_file, "r") as f:
+                        try:
+                            content = yaml.safe_load(f)
+                        except YAMLError:  # yaml base exception
+                            logger.exception("illegal yaml format of compare package comment file ")
+                summary_details, map_rpm_level = self._filter_focus_on_rpms(content)
+                logger.info("comment: %s, rpm level: %s", summary_details, map_rpm_level)
+                if not summary_details:
+                    break
+                for index, item in enumerate(summary_details):
+                    rpm_name = summary_details.get(item, [])
+                    result = "FAILED" if rpm_name else "SUCCESS"
+                    if item in ["delete_rpms", "add_rpms"] and rpm_name:
+                        rpm_name = [self._get_rpm_name(single.get('Name', '')) for single in rpm_name]
+                    compare_result = ACResult.get_instance(result)
+                    rpm_level = [map_rpm_level.get(rpm) for rpm in rpm_name]
+                    if index == 0:
+                        comments.append(
+                            "<tr><td rowspan={}>compare_package({})</td> <td>{}</td> <td>{}</td> <td>{}</td>"
+                            "<td>{}<strong>{}</strong></td> </tr>"
+                                .format(len(summary_details), arch_name, item, "<br>".join(rpm_name),
+                                        "<br>".join(rpm_level), compare_result.emoji, compare_result.hint))
+                    else:
+                        comments.append(
+                            "<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
+                                item, "<br>".join(rpm_name), "<br>".join(rpm_level), compare_result.emoji,
+                                compare_result.hint))
+                detail_result_path = all_detail_files[0] if arch_name == "x86_64" else all_detail_files[1]
+                with open(detail_result_path, "r") as df:
+                    detail_content = json.load(df)
+                recomponent_detail = self._get_filter_cmp_details(summary_details, detail_content)
+                split_details_content = json.dumps(recomponent_detail, indent=4)
+                file_content = "<br>".join(split_details_content.split("\n")[:20])
+                detail_comments.append(
+                    f"<tr><td>{arch_name}</td><td>{file_content}<br><a href={build['url']}/console>......</a></td>"
+                    f"<td><a href={url.replace('replace__arch', arch_name)}>#details-{arch_name}</a></td>")
+
+        logger.info(f"compare package comment: \n {comments}")
+
+        comment_results = self._combine_issue_html(comments, detail_comments, commit_id)
+
+        return comment_results
 
     def _comment_of_check_item(self, builds):
         """
@@ -503,6 +733,10 @@ def init_args():
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
     parser.add_argument("-f", type=str, dest="check_result_file", default="", help="compare package check item result")
+    parser.add_argument("-d", type=str, dest="detail_result_file", default="",
+                        help="compare package check detail result")
+    parser.add_argument("-l", type=str, dest="detail_analyse_url", default="",
+                        help="compare package detail analyse url")
     parser.add_argument("-a", type=str, dest="check_item_comment_files", nargs="*", help="check item comment files")
 
     parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
@@ -553,6 +787,8 @@ if "__main__" == __name__:
         dd.set_attr("comment.build.result", "successful")
         if args.check_result_file:
             comment.comment_compare_package_details(gp, args.check_result_file)
+            comment.submit_compare_package_details_issue(gp, args.check_result_file, args.detail_result_file,
+                                                         args.detail_analyse_url, args.pr)
     else:
         gp.delete_tag_of_pr(args.pr, "ci_successful")
         gp.create_tags_of_pr(args.pr, "ci_failed")

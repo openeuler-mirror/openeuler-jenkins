@@ -43,7 +43,7 @@ def do_requests(method, url, querystring=None, body=None, headers=None, auth=Non
         logger.debug("querystring: %s", querystring)
         logger.debug("body: %s", body)
 
-        if method.lower() not in ["get", "post", "put", "delete"]:
+        if method.lower() not in ["get", "post", "put", "delete", "patch"]:
             return -1
 
         if querystring:
@@ -75,7 +75,6 @@ def do_requests(method, url, querystring=None, body=None, headers=None, auth=Non
                     rs = func(url, timeout=timeout)
 
         logger.debug("status_code %s", rs.status_code)
-
         if rs.status_code not in [requests.codes.ok, requests.codes.created, requests.codes.no_content]:
             return 1
 

@@ -13,8 +13,8 @@
 # Create: 2020-09-23
 # Description: gitee api proxy
 # **********************************************************************************
-
 import logging
+
 import yaml
 
 from src.proxy.requests_proxy import do_requests
@@ -60,7 +60,7 @@ class GiteeProxy(object):
 
         logger.debug("create tags %s of pull request %s", tags, pr)
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
-                self._owner, self._repo, pr, self._token)
+            self._owner, self._repo, pr, self._token)
 
         rs = do_requests("post", pr_tag_url, body=list(tags), timeout=10)
 
@@ -83,7 +83,7 @@ class GiteeProxy(object):
 
         logger.debug("replace all tags with %s of pull request %s", tags, pr)
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
-                self._owner, self._repo, pr, self._token)
+            self._owner, self._repo, pr, self._token)
 
         rs = do_requests("put", pr_tag_url, body=list(tags), timeout=10)
         if rs != 0:
@@ -101,7 +101,7 @@ class GiteeProxy(object):
         """
         logger.debug("delete tag %s of pull request %s", tag, pr)
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels/{}?access_token={}".format(
-                self._owner, self._repo, pr, tag, self._token)
+            self._owner, self._repo, pr, tag, self._token)
 
         rs = do_requests("delete", pr_tag_url, timeout=10)
 
@@ -119,7 +119,7 @@ class GiteeProxy(object):
         :return:
         """
         repos = {}
-        
+
         def analysis(response):
             """
             requests回调
@@ -129,11 +129,11 @@ class GiteeProxy(object):
             handler = yaml.safe_load(response.text)
             repos.update({item["name"]: item["type"] for item in handler["repositories"]})
             logger.info("repos from community: %s", len(repos))
-        
+
         community_repo_url = "https://gitee.com/openeuler/community/raw/master/repository/src-openeuler.yaml"
         logger.info("requests repos from community, this will take multi seconds")
         do_requests("get", url=community_repo_url, timeout=timeout, obj=analysis)
-        
+
         return repos
 
     def get_last_pr_committer(self, branch, state="merged"):
@@ -175,10 +175,10 @@ class GiteeProxy(object):
     def get_issue(self, cve_issue, enterprises="open_euler"):
         resp = {}
         issue_url = "https://gitee.com/api/v5/enterprises/{}/issues/{}?access_token={}".format(
-           enterprises, cve_issue, self._token)
+            enterprises, cve_issue, self._token)
         logging.info(issue_url)
         rs = do_requests("get", issue_url, timeout=10, obj=resp)
-    
+
         if rs != 0:
             logging.warning("get issue failed")
         return resp
@@ -187,7 +187,7 @@ class GiteeProxy(object):
     def create_issue(owner, data):
         resp = {}
         issue_url = "https://gitee.com/api/v5/repos/{}/issues".format(owner)
-    
+
         rs = do_requests("post", issue_url, body=data, timeout=10, obj=resp)
         if rs != 0:
             logging.warning("create issue failed")
@@ -203,3 +203,45 @@ class GiteeProxy(object):
             logging.warning("update issue failed")
         return resp
 
+    def get_pr_info(self, pr_id):
+        """
+        获取指定pr的提交分支及其它信息
+        :param pr_id: pr id
+        :return: response dict.
+        """
+        logger.debug("get pull request branch and assignee, pr_id: %s", pr_id)
+        pr_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}?access_token={}".format(self._owner, self._repo, pr_id,
+                                                                                        self._token)
+        pr_info = {}
+        rs = do_requests("get", pr_url, timeout=10, obj=pr_info)
+        if rs != 0:
+            logger.warning(f"get pr info {self._repo} {pr_id} failed")
+
+        return pr_info
+
+    def get_all_issues_data(self):
+        """
+        获取仓库下所有issue信息
+        :return: issues response list
+        """
+        pr_url = f"https://gitee.com/api/v5/repos/{self._owner}/{self._repo}/issues?access_token={self._token}"
+        issues_info = []
+
+        rs = do_requests("get", pr_url, timeout=10, obj=issues_info)
+        if rs != 0:
+            logger.warning("get issue num info failed")
+
+        return issues_info
+
+    def get_milestone_id(self):
+        """
+        查询仓库对应分支的里程碑id
+        :return: milestone id info list
+        """
+        pr_url = f"https://gitee.com/api/v5/repos/{self._owner}/{self._repo}/milestones"
+        milestones_info = []
+        rs = do_requests("get", pr_url, timeout=10, obj=milestones_info)
+        if rs != 0:
+            logger.warning("get milestone id info failed")
+
+        return milestones_info
