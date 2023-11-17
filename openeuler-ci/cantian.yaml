@@ -1,0 +1,8 @@
+repo_name: cantian
+container_level: l1
+init_shell: "echo hello cantian\necho $?"
+users:
+  - login_name: solid-yang
+    name: yangkefan
+    email: yangkefan1@huawei.com
+    gitee_id: solid-yang
