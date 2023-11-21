@@ -251,13 +251,12 @@ def init_args():
     parser.add_argument("-z", type=str, dest="trigger_time", help="job trigger time")
     parser.add_argument("-l", type=str, dest="trigger_link", help="job trigger link")
 
-    # scanoss
-    parser.add_argument("--scanoss-output", type=str, dest="scanoss_output", 
-            default="scanoss_result", help="scanoss result output")
-
     parser.add_argument("--codecheck-api-key", type=str, dest="codecheck_api_key", help="codecheck api key")
     parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
                         default="https://majun.osinfra.cn:8384/api/openlibing/codecheck", help="codecheck api url")
+    # scanoss
+    parser.add_argument("--sca-app-id", type=str, dest="sca_app_id", help="sca app id")
+    parser.add_argument("--sca-api-key", type=str, dest="sca_api_key", help="sca api key")
 
     parser.add_argument("--jenkins-base-url", type=str, dest="jenkins_base_url",
                         default="https://openeulerjenkins.osinfra.cn/", help="jenkins base url")
@@ -338,10 +337,11 @@ if "__main__" == __name__:
     gitee_proxy_inst.create_tags_of_pr(args.pr, "ci_processing")
 
     # scanoss conf
-    scanoss = {"output": args.scanoss_output}
+    scanoss = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
+               "sca_app_id": args.sca_app_id, "sca_api_key": args.sca_api_key}
 
     codecheck = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
-        "pr_number": args.pr, "codecheck_api_url": args.codecheck_api_url, "codecheck_api_key": args.codecheck_api_key}
+                 "pr_number": args.pr, "codecheck_api_key": args.codecheck_api_key}
 
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
