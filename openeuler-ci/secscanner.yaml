@@ -1,0 +1,16 @@
+repo_name: secscanner
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: pengyuan-yewu
+    name: pengyuan
+    email: pengyuan_yewu@cmss.chinamobile.com
+    gitee_id: pengyuan-yewu
+  - login_name: guoyayun
+    name: guoyayun
+    email: guoyayun_yewu@cmss.chinamobile.com
+    gitee_id: yyguo914
+  - login_name: 18261833960
+    name: wangweize
+    email: wangweize_yewu@cmss.chinamobile.com
+    gitee_id: wwz
