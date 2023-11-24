@@ -25,13 +25,14 @@ except ImportError:
 logger = logging.getLogger("common")
 
 
-def do_requests(method, url, querystring=None, body=None, auth=None, timeout=30, obj=None):
+def do_requests(method, url, querystring=None, body=None, headers=None, auth=None, timeout=30, obj=None):
     """
     http request
     :param method: http method
     :param url: http[s] schema
     :param querystring: dict
     :param body: json
+    :param headers: headers
     :param auth: dict, basic auth with user and password
     :param timeout: second
     :param obj: callback object, support list/dict/object
@@ -51,14 +52,27 @@ def do_requests(method, url, querystring=None, body=None, auth=None, timeout=30,
         func = getattr(requests, method.lower())
         if body:
             if auth:
-                rs = func(url, json=body, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]))
+                if headers:
+                    rs = func(url, json=body, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]),
+                              headers=headers)
+                else:
+                    rs = func(url, json=body, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]))
             else:
-                rs = func(url, json=body, timeout=timeout)
+                if headers:
+                    rs = func(url, json=body, timeout=timeout, headers=headers)
+                else:
+                    rs = func(url, json=body, timeout=timeout)
         else:
             if auth:
-                rs = func(url, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]))
+                if headers:
+                    rs = func(url, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]), headers=headers)
+                else:
+                    rs = func(url, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]))
             else:
-                rs = func(url, timeout=timeout)
+                if headers:
+                    rs = func(url, timeout=timeout, headers=headers)
+                else:
+                    rs = func(url, timeout=timeout)
 
         logger.debug("status_code %s", rs.status_code)
 
