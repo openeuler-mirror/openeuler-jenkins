@@ -5,14 +5,20 @@ check_item_comment_aarch64=""
 check_item_comment_x86=""
 compare_package_result_aarch64=""
 compare_package_result_x86=""
+repo_server_test_tail=""
+token=${giteetoken}
 #需要输入的参数
 jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
+
+if [[ $platform == "github" ]]; then
+    repo_server_test_tail="-github"
+    token=${GithubToken}
+fi
 
 # debug测试变量
 function config_debug_variable() {
   if [[ "${repo_owner}" == "" ]]; then
     repo_owner="src-openeuler"
-    repo_server_test_tail=""
   elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
     repo_server_test_tail="-test"
   fi
@@ -71,14 +77,14 @@ function scp_comment_file() {
 function exec_comment() {
   log_info "***** Start to exec comment *****"
   export PYTHONPATH=${shell_path}
-  python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${giteetoken}\
+  python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${token}\
    -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86}\
-    -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid}
+    -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid} --platform ${platform}
   log_info "***** End to exec comment *****"
   log_info "***** Start to exec comment to kafka*****"
   python3 ${shell_path}/src/build/comment_to_dashboard.py -r $repo -c $committer -m ${commentid} -g $jobtriggertime\
    -k "${prtitle}" -t $prcreatetime -b $tbranch -u $prurl -i $triggerbuildid -p $prid -o $repo_owner \
-   --gitee_token ${giteetoken}
+   --gitee_token ${token}
   log_info "***** End to exec comment to kafka*****"
 }
 

@@ -29,6 +29,7 @@ import yaml
 from yaml.error import YAMLError
 from src.ac.framework.ac_result import ACResult, SUCCESS
 from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.github_proxy import GithubProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.dist_dataset import DistDataset
@@ -505,6 +506,7 @@ def init_args():
     parser.add_argument("-a", type=str, dest="check_item_comment_files", nargs="*", help="check item comment files")
 
     parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
+    parser.add_argument("--platform", type=str, dest="platform", default="gitee", help="gitee/github")
 
     return parser.parse_args()
 
@@ -523,7 +525,10 @@ if "__main__" == __name__:
     dd.set_attr_stime("comment.job.stime")
 
     # gitee pr tag
-    gp = GiteeProxy(args.owner, args.repo, args.gitee_token)
+    if args.platform == "github":
+        gp = GithubProxy(args.owner, args.repo, args.gitee_token)
+    else:
+        gp = GiteeProxy(args.owner, args.repo, args.gitee_token)
     gp.delete_tag_of_pr(args.pr, "ci_processing")
 
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
