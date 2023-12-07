@@ -89,3 +89,18 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
             _ = no_fmt_logger.error(err) if verbose else no_fmt_logger.debug(err)
 
     return ret, out, err if cap_err else None
+
+
+def shell_cmd_unicode(cmd):
+    if isinstance(cmd, str):
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    else:
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    out, err = p.communicate()
+    logger.debug("iret: %s, rs: %s, err: %s", p.returncode, out, err)
+
+    if not isinstance(out, str):
+        out = str(out, errors='ignore')
+
+    return p.returncode, out
