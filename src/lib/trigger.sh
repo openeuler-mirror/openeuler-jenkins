@@ -3,12 +3,20 @@
 # 需要输入的参数
 jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
 support_arch_file=${giteeRepoName}_${giteePullRequestIid}_support_arch
+repo_server_test_tail=""
+token=${GiteeToken}
+user_passwd=${GiteeUserPassword}
+
+if [[ "${platform}" == "github" ]]; then
+    repo_server_test_tail="-github"
+    token=${GithubToken}
+    user_passwd=${GithubUserPassword}
+fi
 
 # debug测试变量
 function config_debug_variable() {
   if [[ "${repo_owner}" == "" ]]; then
     repo_owner="src-openeuler"
-    repo_server_test_tail=""
   elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
     repo_server_test_tail="-test"
   fi
@@ -46,12 +54,12 @@ function exec_check() {
   log_info "***** Start to exec static check *****"
   export PYTHONPATH=${shell_path}
   python3 ${shell_path}/src/ac/framework/ac.py \
-    -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${GiteeToken} \
-    -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${GiteeUserPassword} \
+    -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${token}\
+    -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${user_passwd}\
     -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" \
     -i ${commentID} -e ${giteeCommitter} --jenkins-base-url ${jenkins_api_host} \
     --jenkins-user ${jenkins_user} --jenkins-api-token ${jenkins_api_token} \
-    -c ${repo_owner}
+    -c ${repo_owner} --platform "${platform}"
   log_info "***** End to exec static check *****"
 }
 

@@ -32,6 +32,7 @@ from src.logger import logger
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.shell_cmd import shell_cmd_live
 
+SIG_EXCEPTION_LIST = ['sig-recycle', 'sig-template']
 
 class JenkinsJobs(object):
     """
@@ -40,7 +41,7 @@ class JenkinsJobs(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, template_jobs_dir, template_job, jenkins_proxy):
+    def __init__(self, template_jobs_dir, template_job, organization, platform, jenkins_proxy):
         """
         :param template_jobs_dir: 模板任务躲在的jenkins工程目录
         :param template_job: 考虑jenkins server的压力，客户端每次使用功能batch个协程发起请求
@@ -48,6 +49,8 @@ class JenkinsJobs(object):
         """
         self._template_job = template_job
         self._jenkins_proxy = jenkins_proxy
+        self._organization = organization
+        self._platform = platform
         self._template_job_config = jenkins_proxy.get_config(os.path.join(template_jobs_dir, template_job))
 
     def run(self, action, target_jobs_dir, jobs, exclude_jobs=None, concurrency=75, retry=3, interval=0):
@@ -64,9 +67,19 @@ class JenkinsJobs(object):
         """
         logger.info("%s jobs %s", action, jobs)
         exclude_jobs_list = exclude_jobs if exclude_jobs else []
-        real_jobs = self.get_real_target_jobs(target_jobs_dir, jobs, exclude_jobs_list, action)
-        real_jobs = [os.path.join(target_jobs_dir, item) for item in real_jobs]
-        logger.info("now %s %s jobs", action, len(real_jobs))
+        if action == "create" and self._organization == "src-openeuler":
+            jobs_in_gitee, jobs_in_github = self.get_real_target_jobs(target_jobs_dir, jobs, exclude_jobs_list, action)
+            logger.info("jobs_in_gitee: %s, job_in_github:%s", jobs_in_gitee, jobs_in_github)
+            if self._platform == "github":
+                real_jobs = [os.path.join(target_jobs_dir, item) for item in jobs_in_github]
+            else:
+                real_jobs = [os.path.join(target_jobs_dir, item) for item in jobs_in_gitee]
+            logger.info("real_jobs:%s", real_jobs)
+            logger.info("now %s %s jobs", action, len(real_jobs))
+        else:
+            real_jobs = self.get_real_target_jobs(target_jobs_dir, jobs, exclude_jobs_list, action)
+            real_jobs = [os.path.join(target_jobs_dir, item) for item in real_jobs]
+            logger.info("now %s %s jobs", action, len(real_jobs))
 
         def run_once(target_jobs):
             """
@@ -163,9 +176,10 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
     src-openEuler 仓库
     """
 
-    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, gitee_token):
-        super(SrcOpenEulerJenkinsJobs, self).__init__(template_jobs_dir, template_job, jenkins_proxy)
+    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, platform, gitee_token):
+        super(SrcOpenEulerJenkinsJobs, self).__init__(template_jobs_dir, template_job, organization, platform, jenkins_proxy)
 
+        self._platform = platform
         self._all_community_jobs = self.get_all_repos(organization, gitee_token)
         logger.info("%s exist %s jobs", organization, len(self._all_community_jobs))
         self._config_table = self.load_exclusive_soe_config(organization)
@@ -193,17 +207,43 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             logger.error("%s", out)
             return []
 
-        sig_exception_list = ['sig-recycle', 'sig-template']
         sig_path = os.path.join('community', 'sig')
         repositories = []
         for i in os.listdir(sig_path):
-            if i in sig_exception_list or os.path.isfile(os.path.join(sig_path, i)):
+            if i in SIG_EXCEPTION_LIST or os.path.isfile(os.path.join(sig_path, i)):
                 continue
             if organization in os.listdir(os.path.join(sig_path, i)):
                 for _, _, repos in os.walk(os.path.join(sig_path, i, organization)):
                     for repo in repos:
                         repositories.append(os.path.splitext(os.path.basename(repo))[0])
         return repositories
+
+    def get_github_real_target_jobs(self, create_list):
+        jobs_in_github = []
+        sig_path = os.path.join('community', 'sig')
+        for i in os.listdir(sig_path):
+            if i in SIG_EXCEPTION_LIST or os.path.isfile(os.path.join(sig_path, i)):
+                continue
+            sig_org_path =os.path.join(sig_path, i, "src-openeuler")
+            if not os.path.exists(sig_org_path):
+                continue
+            for root,dirs,repos in os.walk(sig_org_path):
+                for repo in repos:
+                    repo_name = os.path.splitext(os.path.basename(repo))[0]
+                    if repo_name in create_list:
+                        repo_path = os.path.join(root, repo)
+                        logger.info("repo_path: %s", repo_path)
+                        with open(repo_path, "r") as file:
+                            data = yaml.safe_load(file)
+                            platform = data.get("platform")
+                            logger.info("platform: %s", platform)
+                            if platform == "github":
+                                jobs_in_github.append(repo_name)
+                                continue
+
+        jobs_in_gitee = list(set(create_list).difference(set(jobs_in_github)))
+        logger.info("jobs_in_gitee: %s, job_in_github:%s", jobs_in_gitee, jobs_in_github)
+        return jobs_in_gitee, jobs_in_github
 
     def get_real_target_jobs(self, target_jobs_dir, jobs, exclude_jobs, action):
         """
@@ -216,6 +256,7 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         """
         exists_jobs_list = self._jenkins_proxy.get_jobs_list(target_jobs_dir)
         logger.info("%s exist %s jobs", target_jobs_dir, len(exists_jobs_list))
+
         exclude_jobs_with_skipped = set(exclude_jobs).union(
             set(self._config_table.get("skipped_repo")))
         if "all" in jobs:
@@ -228,7 +269,17 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
         if action == "update":
             return list(set(jobs_in_community).intersection(set(exists_jobs_list)))
         elif action == "create":
-            return list(set(jobs_in_community).difference(set(exists_jobs_list)))
+            to_create_list = list(set(jobs_in_community).difference(set(exists_jobs_list)))
+            if self._platform == "github":
+                target_jobs_dir2 = target_jobs_dir.replace("src-openeuler-github", "src-openeuler")
+            else:
+                target_jobs_dir2 = target_jobs_dir.replace("src-openeuler", "src-openeuler-github")
+
+            exists_jobs_list2 = self._jenkins_proxy.get_jobs_list(target_jobs_dir2)
+            logger.info("%s exist %s jobs", target_jobs_dir2, len(exists_jobs_list2))
+            to_create_list = list(set(to_create_list).difference(set(exists_jobs_list2)))
+            jobs_in_gitee, jobs_in_github = self.get_github_real_target_jobs(to_create_list)
+            return [jobs_in_gitee, jobs_in_github]
         else:
             logger.debug("illegal action: %s", action)
             return []
@@ -387,6 +438,7 @@ if "__main__" == __name__:
     args.add_argument("-s", type=str, dest="template_jobs_dir", help="jenkins dir of template job")
     args.add_argument("-j", type=str, dest="target_jobs", nargs="+", help="jobs to created")
     args.add_argument("-d", type=str, dest="target_jobs_dir", help="jenkins dir of target jobs")
+    args.add_argument("--platform", type=str, dest="platform", default="gitee", help="gitee/github")
 
     args = args.parse_args()
 
@@ -398,8 +450,8 @@ if "__main__" == __name__:
     elif any([args.organization == "src-openeuler", "trigger" in args.target_jobs_dir,
             "comment" in args.target_jobs_dir, args.action == "create"]):
         if args.organization == "src-openeuler":
-            jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir,
-                                                   args.template_job, jp, args.organization, args.gitee_token)
+            jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, 
+                    args.organization, args.platform, args.gitee_token)
         else:
             jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization,
                                                 args.gitee_token)

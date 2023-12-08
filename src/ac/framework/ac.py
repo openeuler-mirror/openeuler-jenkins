@@ -28,6 +28,7 @@ from yaml.error import YAMLError
 
 from src.proxy.git_proxy import GitProxy
 from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.github_proxy import GithubProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.utils.dist_dataset import DistDataset
@@ -240,8 +241,8 @@ def init_args():
     parser.add_argument("-b", type=str, dest="tbranch", help="branch merge to")
     parser.add_argument("-o", type=str, dest="output", help="output file to save result")
     parser.add_argument("-p", type=str, dest="pr", help="pull request number")
-    parser.add_argument("-t", type=str, dest="token", help="gitee api token")
-    parser.add_argument("-a", type=str, dest="account", help="gitee account")
+    parser.add_argument("-t", type=str, dest="token", help="gitee/github api token")
+    parser.add_argument("-a", type=str, dest="account", help="gitee/github account")
     
     # dataset
     parser.add_argument("-m", type=str, dest="comment", help="trigger comment")
@@ -262,6 +263,7 @@ def init_args():
                         default="https://openeulerjenkins.osinfra.cn/", help="jenkins base url")
     parser.add_argument("--jenkins-user", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("--jenkins-api-token", type=str, dest="jenkins_api_token", help="jenkins api token")
+    parser.add_argument("--platform", type=str, dest="platform", default="gitee", help="gitee/github")
 
     return parser.parse_args()
 
@@ -276,8 +278,15 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("ac")
 
+    if args.platform == "github":
+        code_url = "https://github.com"
+        ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%SZ")
+    else:
+        code_url = "https://gitee.com"
+        ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
+
     logger.info("using credential %s", args.account.split(":")[0])
-    logger.info("cloning repository https://gitee.com/%s/%s.git ", args.community, args.repo)
+    logger.info("cloning repository %s/%s/%s.git ", code_url, args.community, args.repo)
     logger.info("clone depth 4")
     logger.info("checking out pull request %s", args.pr)
 
@@ -293,7 +302,6 @@ if "__main__" == __name__:
     dd.set_attr("pull_request.ctime", args.pr_ctime)
     dd.set_attr("access_control.trigger.link", args.trigger_link)
     dd.set_attr("access_control.trigger.reason", args.comment)
-    ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
     dd.set_attr_ctime("access_control.job.ctime", ctime)
 
     # suppress python warning
@@ -306,7 +314,12 @@ if "__main__" == __name__:
     # download repo
     dd.set_attr_stime("access_control.scm.stime")
     git_proxy = GitProxy.init_repository(args.repo, work_dir=args.workspace)
-    repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.community, args.repo)
+    if args.platform == "github":
+        agent = "https://gh-proxy.test.osinfra.cn/"
+        repo_url = "{}/{}/{}/{}.git".format(agent, code_url, args.community, args.repo)
+    else:
+        repo_url = "{}/{}/{}.git".format(code_url, args.community, args.repo)
+
     if not git_proxy.fetch_pull_request(repo_url, args.pr, depth=4):
         dd.set_attr("access_control.scm.result", "failed")
         dd.set_attr_etime("access_control.scm.etime")
@@ -327,7 +340,10 @@ if "__main__" == __name__:
     dd.set_attr_stime("access_control.build.stime")
 
     # gitee comment jenkins url
-    gitee_proxy_inst = GiteeProxy(args.community, args.repo, args.token)
+    if args.platform == "github":
+        gitee_proxy_inst = GithubProxy(args.community, args.repo, args.token)
+    else:
+        gitee_proxy_inst = GiteeProxy(args.community, args.repo, args.token)
     if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
         jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
         AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
@@ -337,12 +353,11 @@ if "__main__" == __name__:
     gitee_proxy_inst.create_tags_of_pr(args.pr, "ci_processing")
 
     # scanoss conf
-    scanoss = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
+    scanoss = {"pr_url": "{}/{}/{}/pulls/{}".format(code_url, args.community, args.repo, args.pr),
                "sca_app_id": args.sca_app_id, "sca_api_key": args.sca_api_key}
-
-    codecheck = {"pr_url": "https://gitee.com/{}/{}/pulls/{}".format(args.community, args.repo, args.pr),
+     
+    codecheck = {"pr_url": "{}/{}/{}/pulls/{}".format(code_url, args.community, args.repo, args.pr),
                  "pr_number": args.pr, "codecheck_api_key": args.codecheck_api_key}
-
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
     ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss,

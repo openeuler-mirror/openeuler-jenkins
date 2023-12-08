@@ -66,7 +66,7 @@ class GitProxy(object):
         :param progress: 展示进度
         :return:
         """
-        fetch_cmd = "cd {}; git fetch {} --depth {} {} +refs/pull/{}/MERGE:refs/pull/{}/MERGE".format(
+        fetch_cmd = "cd {}; git fetch {} --depth {} {} +refs/pull/{}/head:refs/pull/{}/MERGE".format(
             self._repo_dir, "--progress" if progress else "", depth, url, pull_request, pull_request)
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
