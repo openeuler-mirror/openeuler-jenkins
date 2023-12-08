@@ -1,4 +1,9 @@
 src-openeuler:
+  patch_format:
+    hint: patch_format
+    module: patch_format.check_patch_format
+    entry: CheckPatchFormat
+    allow_list: ["kernel"]
   spec:
     hint: check_spec_file
     module: spec.check_spec
@@ -72,4 +77,6 @@ openeuler:
     entry: CheckCommitMsg
     allow_list: ["yocto-meta-openeuler"]
   source_consistency:
+    exclude: True
+  patch_format:
     exclude: True
