@@ -1,0 +1,8 @@
+repo_name: bishengjdk-21
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: wangzhongyi
+    name: wangzhongyi
+    email: wangzhongyi7@huawei.com
+    gitee_id: Autistic_boyya
