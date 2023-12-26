@@ -34,8 +34,8 @@ class ComparePackage(object):
     MIN_COLUMN_WIDTH = 16
     MAX_TABLE_WIDTH = 150
 
-    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config", "rpm service", "service detail",
-                      "rpm kconfig", "rpm provides", "rpm requires", "rpm files", "rpm cmd", "rpm header", "rpm lib", "ko"]
+    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config", "rpm service", "rpm kconfig",
+                      "rpm provides", "rpm requires", "rpm files", "rpm cmd", "rpm header", "rpm lib", "ko"]
 
     def __init__(self, logger):
         self.logger = logger
@@ -78,7 +78,7 @@ class ComparePackage(object):
         title = "Table of Changed Rpms"
         tb.field_names = ["added rpms", "deleted rpms", "changed rpms", "effected rpms"]
         diff_rpm = []
-
+        same_rpms = [self._rpm_name(same_rpm) for same_rpm in compare_details["same"]["same_details"].get("old", [])]
         for key in ["more", "less", "diff"]:
             key_list = [key, "%s_details" % key]
             details = self._get_dict(key_list, compare_details)
@@ -87,6 +87,8 @@ class ComparePackage(object):
                     diff_rpm_name = []
                     effect_rpms = []
                     for rpm in details:
+                        if rpm in same_rpms:
+                            continue
                         old_rpm_name = self._get_dict([rpm, "name", "old"], details)
                         effect_rpm = self._get_dict([rpm, "rpm symbol", "total_effect_other_rpm"], details)
                         diff_rpm_name.append(old_rpm_name)
@@ -112,32 +114,36 @@ class ComparePackage(object):
         self.logger.info(" %s\n%s", title, tb)
         tb.clear()
 
-    def _get_check_item_dict(self, all_item_dict, diff_details):
+    def _get_check_item_dict(self, all_item_dict, compare_details):
         """
         获取检查项详情字典
         :param all_item_dict:
-        :param diff_details:
+        :param compare_details:
         :return:
         """
+        diff_details = self._get_dict(["diff", "diff_details"], compare_details)
+        same_rpms = [self._rpm_name(rpm) for rpm in compare_details["same"]["same_details"].get("old", [])]
         rpm_name_list = diff_details.keys()
 
         for check_item in self.all_check_item:
             item_dict = all_item_dict.get(check_item) if all_item_dict.get(check_item) else {}
             for rpm_name in rpm_name_list:
+                if rpm_name in same_rpms:
+                    continue
                 result = self._get_dict([rpm_name, check_item], diff_details)
                 if result:
                     item_dict[rpm_name] = result
             if item_dict:
                 all_item_dict[check_item] = item_dict
 
-    def _show_diff_details(self, diff_details):
+    def _show_diff_details(self, compare_details):
         """
         显示有diff差异的rpm包的所有差异详情
-        :param diff_details:
+        :param compare_details:
         :return:
         """
         all_item_dict = {}
-        self._get_check_item_dict(all_item_dict, diff_details)
+        self._get_check_item_dict(all_item_dict, compare_details)
 
         for item in self.all_check_item:
             item_result = all_item_dict.get(item)
@@ -212,8 +218,8 @@ class ComparePackage(object):
         # 显示有变更的rpm包的具体差异详情
         diff_details = self._get_dict(["diff", "diff_details"], compare_details)
         if diff_details:
-            self._show_diff_details(diff_details)
-            self._show_each_rpm_effect_other_rpm_details(diff_details)
+            self._show_diff_details(compare_details)
+            self._show_each_rpm_effect_other_rpm_details(compare_details)
 
         if compare_result == "pass":
             return self.SUCCESS
@@ -330,18 +336,23 @@ class ComparePackage(object):
                 result += '\n'.join(new_lines)
         return result
 
-    def _get_check_item_result(self, details):
+    def _get_check_item_result(self, details, same_rpms):
         """
         获取compare package比较结果各子项的详细信息
         :param details:
+        :param same_rpms:
         :return:
         {
+        "add_rpms": [vala,xxx],
+        "delete_rpms": [vala,xxx],
+        "drive_kabi": [vala,xxx],
+        "kconfig": [vala,xxx],
         "rpm_files": [vala,xxx],
         "rpm_requires": [vala,xxx],
         "rpm_provides": [vala,xxx],
         "rpm_config": [vala,xxx],
-        "rpm": [],
         "rpm_abi": [vala,xxx],
+        "rpm_jabi": [vala,xxx],
         "rpm_cmd": [vala,xxx],
         "rpm_lib": [vala,xxx],
         "rpm_symbol": [111,222,333],
@@ -352,17 +363,22 @@ class ComparePackage(object):
             if not rpm_details and not isinstance(rpm_details, dict):
                 self.logger.error("compare result format error")
                 continue
+            elif rpm_name in same_rpms:
+                continue
             for check_item, item_details in rpm_details.items():
-                if check_item == "name":
+                if check_item in ["name", "RPM Level", "service detail"]:
                     continue
                 check_item = "_".join(check_item.split())
                 rpm_list = rpm_dict.get(check_item) if rpm_dict.get(check_item) else []
                 if item_details:
                     if check_item == "rpm_symbol":
-                        rpm_list.extend(item_details.get("total_effect_other_rpm", []))
-                    else:
-                        rpm_list.append(rpm_name)
+                        if not item_details.get("total_effect_other_rpm"):
+                            continue
+                    elif check_item == "rpm_files" and list(item_details.keys()) == ["more"]:
+                        continue
+                    rpm_list.append(rpm_name)
                 rpm_dict[check_item] = rpm_list
+
         return rpm_dict
 
     def _result_to_table(self, compare_details):
@@ -371,27 +387,31 @@ class ComparePackage(object):
         :param compare_details:
         :return:
         """
-        result_dict = {"add_rpms": [], "delete_rpms": []}
+        result_dict = {
+            "compare_details": {},
+            "rpm level": {}
+        }
+        same_rpms = [self._rpm_name(rpm) for rpm in compare_details["same"]["same_details"].get("old", [])]
         for compare_item in ["more", "less", "diff"]:
             key_list = [compare_item, "%s_details" % compare_item]
             details = self._get_dict(key_list, compare_details)
-            if details and isinstance(details, dict) and compare_item == "diff":
-                rpm_dict = self._get_check_item_result(details)
-                result_dict.update(rpm_dict)
-            elif details and compare_item == "less":
-                result_dict["delete_rpms"] = list(details.values())
-            elif details and isinstance(details, list):
-                rpm_list = []
-                for rpm in details:
-                    rpm_list.append(self._rpm_name(rpm))
-                if compare_item == "more":
-                    result_dict["add_rpms"] = rpm_list
+            if details and compare_item == "diff":
+                rpm_dict = self._get_check_item_result(details, same_rpms)
+                result_dict["compare_details"].update(rpm_dict)
+            else:
+                if compare_item == "less":
+                    result_dict["compare_details"].setdefault("delete_rpms", list(details.values()))
+                elif compare_item == "more":
+                    result_dict["compare_details"].setdefault("add_rpms", list(details.values()))
+            for rpm in details.keys():
+                result_dict["rpm level"].setdefault(rpm, details[rpm]["RPM Level"])
+
         return result_dict
 
-    def _show_each_rpm_effect_other_rpm_details(self, diff_details):
+    def _show_each_rpm_effect_other_rpm_details(self, compare_details):
         """
         显示每个rpm影响的其他软件包
-        :param diff_details:
+        :param compare_details:
         "diff": {
             "diff_details": {
                 "openssl": {
@@ -409,10 +429,14 @@ class ComparePackage(object):
         |     ...       |          ...                |
         +---------------+-----------------------------+
         """
+        diff_details = self._get_dict(["diff", "diff_details"], compare_details)
+        same_rpms = [self._rpm_name(rpm) for rpm in compare_details["same"]["same_details"].get("old", [])]
         title = "Table of Check rpm symbol Result"
         tb = pt.PrettyTable(hrules=True, min_width=self.MIN_COLUMN_WIDTH, max_table_width=self.MAX_TABLE_WIDTH)
         tb.field_names = ["rpm name", "effected_other_rpm"]
         for rpm in diff_details:
+            if rpm in same_rpms:
+                continue
             details = self._get_dict([rpm, "rpm symbol", "total_effect_other_rpm"], diff_details)
             value = "\n".join(details) if isinstance(details, list) else []
             tb.add_row([rpm, value]) if value else tb.add_row([rpm, ""])

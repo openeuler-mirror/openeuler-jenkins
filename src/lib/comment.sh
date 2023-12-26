@@ -5,6 +5,9 @@ check_item_comment_aarch64=""
 check_item_comment_x86=""
 compare_package_result_aarch64=""
 compare_package_result_x86=""
+detail_result_file_aarch64=""
+detail_result_file_x86_64=""
+
 repo_server_test_tail=""
 token=${giteetoken}
 #需要输入的参数
@@ -59,9 +62,13 @@ function clearn_env() {
 function scp_comment_file() {
   log_info "***** Start to scp comment file *****"
   fileserver_tmpfile_path="/repo/soe${repo_server_test_tail}/check_item"
+  detail_result_file_aarch64="${repo}_aarch64.json"
+  detail_result_file_x86_64="${repo}_x86_64.json"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64} . || log_info "file ${check_item_comment_aarch64} not exist"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_x86} . || log_info "file ${check_item_comment_x86} not exist"
   #ls $WORKSPACE/${comment}
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:"/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/aarch64/${prid}/${repo}_*.json" ${detail_result_file_aarch64} || log_info "file ${detail_result_file_aarch64} not exist"
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:"/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/x86_64/${prid}/${repo}_*.json" ${detail_result_file_x86_64} || log_info "file ${detail_result_file_x86_64} not exist"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${compare_package_result_aarch64} . || log_info "file ${compare_package_result_aarch64} not exist"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${compare_package_result_x86} . || log_info "file ${compare_package_result_x86} not exist"
   ls $WORKSPACE/${compare_result}
@@ -76,10 +83,12 @@ function scp_comment_file() {
 # 执行评论功能
 function exec_comment() {
   log_info "***** Start to exec comment *****"
+  url_files_server="http://${repo_server}/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/replace__arch/${prid}"
   export PYTHONPATH=${shell_path}
   python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${token}\
    -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86}\
-    -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid} --platform ${platform}
+    -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid} -l ${url_files_server} \
+    -d ${detail_result_file_x86_64},${detail_result_file_aarch64} --platform ${platform}
   log_info "***** End to exec comment *****"
   log_info "***** Start to exec comment to kafka*****"
   python3 ${shell_path}/src/build/comment_to_dashboard.py -r $repo -c $committer -m ${commentid} -g $jobtriggertime\
