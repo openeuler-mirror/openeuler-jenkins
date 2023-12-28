@@ -34,8 +34,9 @@ class ComparePackage(object):
     MIN_COLUMN_WIDTH = 16
     MAX_TABLE_WIDTH = 150
 
-    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "rpm jabi", "rpm config", "rpm service", "rpm kconfig",
-                      "rpm provides", "rpm requires", "rpm files", "rpm cmd", "rpm header", "rpm lib", "ko"]
+    all_check_item = ["rpm abi", "rpm kabi", "drive kabi", "drive kconfig", "rpm jabi", "rpm config", "rpm service",
+                      "rpm kconfig", "rpm provides", "rpm requires", "rpm files", "rpm cmd", "rpm header", "rpm lib",
+                      "ko"]
 
     def __init__(self, logger):
         self.logger = logger
@@ -336,17 +337,18 @@ class ComparePackage(object):
                 result += '\n'.join(new_lines)
         return result
 
-    def _get_check_item_result(self, details, same_rpms):
+    def _get_check_item_result(self, details):
         """
         获取compare package比较结果各子项的详细信息
         :param details:
-        :param same_rpms:
         :return:
         {
         "add_rpms": [vala,xxx],
         "delete_rpms": [vala,xxx],
+        "rpm_kabi": [vala,xxx],
         "drive_kabi": [vala,xxx],
         "kconfig": [vala,xxx],
+        "drive_kconfig": [vala,xxx],
         "rpm_files": [vala,xxx],
         "rpm_requires": [vala,xxx],
         "rpm_provides": [vala,xxx],
@@ -355,15 +357,16 @@ class ComparePackage(object):
         "rpm_jabi": [vala,xxx],
         "rpm_cmd": [vala,xxx],
         "rpm_lib": [vala,xxx],
-        "rpm_symbol": [111,222,333],
+        "rpm_header": [vala,xxx],
+        "rpm_service": [vala,xxx],
+        "ko": [vala,xxx],
+        "rpm_symbol": [111,222,333]
         }
         """
         rpm_dict = {}
         for rpm_name, rpm_details in details.items():
             if not rpm_details and not isinstance(rpm_details, dict):
                 self.logger.error("compare result format error")
-                continue
-            elif rpm_name in same_rpms:
                 continue
             for check_item, item_details in rpm_details.items():
                 if check_item in ["name", "RPM Level", "service detail"]:
@@ -391,12 +394,11 @@ class ComparePackage(object):
             "compare_details": {},
             "rpm level": {}
         }
-        same_rpms = [self._rpm_name(rpm) for rpm in compare_details["same"]["same_details"].get("old", [])]
         for compare_item in ["more", "less", "diff"]:
             key_list = [compare_item, "%s_details" % compare_item]
             details = self._get_dict(key_list, compare_details)
             if details and compare_item == "diff":
-                rpm_dict = self._get_check_item_result(details, same_rpms)
+                rpm_dict = self._get_check_item_result(details)
                 result_dict["compare_details"].update(rpm_dict)
             else:
                 if compare_item == "less":
