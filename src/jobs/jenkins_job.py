@@ -454,7 +454,7 @@ if "__main__" == __name__:
                     args.organization, args.platform, args.gitee_token)
         else:
             jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization,
-                                                args.gitee_token)
+                    args.platform, args.gitee_token)
         jenkins_jobs.run(args.action, args.target_jobs_dir, args.target_jobs, exclude_jobs=args.exclude_jobs,
                          concurrency=args.concurrency, retry=args.retry, interval=args.interval)
     else:
