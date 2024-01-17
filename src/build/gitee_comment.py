@@ -787,8 +787,8 @@ if "__main__" == __name__:
         dd.set_attr("comment.build.result", "successful")
         if args.check_result_file:
             comment.comment_compare_package_details(gp, args.check_result_file)
-            comment.submit_compare_package_details_issue(gp, args.check_result_file, args.detail_result_file,
-                                                         args.detail_analyse_url, args.pr)
+            # comment.submit_compare_package_details_issue(gp, args.check_result_file, args.detail_result_file,
+            #                                              args.detail_analyse_url, args.pr)
     else:
         gp.delete_tag_of_pr(args.pr, "ci_successful")
         gp.create_tags_of_pr(args.pr, "ci_failed")
