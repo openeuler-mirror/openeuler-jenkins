@@ -38,6 +38,8 @@ src-openeuler:
     hint: check_consistency
     module: source_consistency.check_consistency
     entry: CheckSourceConsistency
+  anti_poisoning:
+    exclude: True
 openeuler:
   spec:
     exclude: True
@@ -70,7 +72,7 @@ openeuler:
                  "eagle", "dcs", "astream", "QARobot", "oec-application", "gala-gopher", "gala-anteater",
                  "gala-spider", "gala-ragdoll", "aops-zeus", "aops-ceres", "aops-apollo", "aops-diana", "aops-hermes",
                  "aops-vulcanus", "Kmesh", "BiShengCLanguage", "ifm_nettle", "syscare", "dpu-utilities", "sysboost",
-                 "libgmem", "unizip", "cantian", "cantian-connector-mysql"]
+                 "libgmem", "unizip", "cantian", "cantian-connector-mysql", "openeuler-os-build", "openeuler-obs"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
@@ -80,3 +82,9 @@ openeuler:
     exclude: True
   patch_format:
     exclude: True
+  anti_poisoning:
+    hint: check_anti_poisoning
+    module: anti_poisoning.check_anti_poisoning
+    entry: CheckAntiPoisoning
+    allow_list: ["aops-apollo", "iSulad",]
+

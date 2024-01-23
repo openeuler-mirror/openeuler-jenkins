@@ -259,6 +259,8 @@ def init_args():
     parser.add_argument("--sca-app-id", type=str, dest="sca_app_id", help="sca app id")
     parser.add_argument("--sca-api-key", type=str, dest="sca_api_key", help="sca api key")
 
+    parser.add_argument("--antipoison-api-token", type=str, dest="antipoison_api_token", help="antipoisoning api token")
+
     parser.add_argument("--jenkins-base-url", type=str, dest="jenkins_base_url",
                         default="https://openeulerjenkins.osinfra.cn/", help="jenkins base url")
     parser.add_argument("--jenkins-user", type=str, dest="jenkins_user", help="repo name")
@@ -358,10 +360,13 @@ if "__main__" == __name__:
      
     codecheck = {"pr_url": "{}/{}/{}/pulls/{}".format(code_url, args.community, args.repo, args.pr),
                  "pr_number": args.pr, "codecheck_api_key": args.codecheck_api_key}
+
+    antipoison = {"community": args.community, "pr_number": args.pr, "access_token": args.token,
+                  "antipoison_api_token": args.antipoison_api_token}
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
     ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss,
-                 codecheck=codecheck)
+                 codecheck=codecheck, antipoison=antipoison)
     dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
 
