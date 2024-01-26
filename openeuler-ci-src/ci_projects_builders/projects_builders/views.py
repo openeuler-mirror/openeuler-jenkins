@@ -126,6 +126,7 @@ def run(owner, repo, number):
             logger.error('ERROR! The field `users` must be a List Type, continue...')
             continue
         for user in users:
+            logger.info('user info:\n{}'.format(user))
             if not isinstance(user, dict):
                 logger.error('ERROR! The user must be a Dict Type, which content is :\n{}'.format(user))
                 continue
