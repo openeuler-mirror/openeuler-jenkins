@@ -280,13 +280,18 @@ class CheckSpec(BaseCheck):
         if exclusive_arch:
             obj_s = list(set(exclusive_arch).intersection(("x86_64", "aarch64", "noarch")))
             logger.info("support arch:%s", " ".join(obj_s))
+            
+            if obj_s and "noarch" in obj_s:
+                return
+            
+            content = ""
             if obj_s and "noarch" not in obj_s:
                 content = " ".join(obj_s)
-                try:
-                    with open("support_arch", "w") as f:
-                        f.write(content)
-                except IOError:
-                    logger.exception("save support arch exception")
+            try:
+                with open("support_arch", "w") as f:
+                    f.write(content)
+            except IOError:
+                logger.exception("save support arch exception")
 
     def _ex_pkgship(self, spec):
         """
