@@ -116,7 +116,8 @@ class CheckSourceConsistency(BaseCheck):
                            self.ask_warning)
             return WARNING
 
-        package_name = self.get_package_name(source_url)
+        base_name = os.path.basename(source_url)
+        package_name = base_name if base_name in os.listdir(self._work_dir) else self.get_package_name(source_url)
         if package_name not in os.listdir(self._work_dir):
             logger.warning("no source package file in the repo, the package name is " + package_name + ". " +
                            self.ask_warning)
