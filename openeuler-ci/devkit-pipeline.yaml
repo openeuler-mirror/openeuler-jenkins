@@ -1,0 +1,16 @@
+repo_name: devkit-pipeline
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: dz
+    name: daizheng
+    email: daizheng3@huawei.com
+    gitee_id: bdgl
+  - login_name: pll
+    name: panlonglong
+    email: panlonglong@huawei.com
+    gitee_id: kuoting
+  - login_name: zyh
+    name: zhangyuhan
+    email: zhangyuhan15@huawei.com
+    gitee_id: eggilu
