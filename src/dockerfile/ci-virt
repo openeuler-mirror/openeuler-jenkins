@@ -20,6 +20,21 @@ RUN set -eux; \
     rpm -Uvh *.rpm; \
     rm -rf /usr/src/rust-1.64.0;
 
+RUN set -eux; \
+    mkdir -p /usr/src/rust-1.72.0; \
+    cd  /usr/src/rust-1.72.0; \
+    ARCH=$(arch); \
+    wget https://cache-proxy.test.osinfra.cn/download/https://static.rust-lang.org/dist/rust-1.72.0-${ARCH}-unknown-linux-gnu.tar.gz; \
+    wget https://cache-proxy.test.osinfra.cn/download/https://static.rust-lang.org/dist/rust-1.72.0-${ARCH}-unknown-linux-musl.tar.gz; \
+    tar -xf rust-1.72.0-${ARCH}-unknown-linux-gnu.tar.gz; \
+    tar -xf rust-1.72.0-${ARCH}-unknown-linux-musl.tar.gz; \
+    cd rust-1.72.0-${ARCH}-unknown-linux-gnu; \
+    sh install.sh; \
+    cd ../rust-1.72.0-${ARCH}-unknown-linux-musl; \
+    sh install.sh; \
+    cd /root; \
+    rm -rf /usr/src/rust-1.72.0;
+
 ARG VERSION=4.3
 ARG user=jenkins
 ARG group=jenkins
@@ -58,6 +73,6 @@ RUN mkdir -p /home/jenkins/.cargo; \
     echo "replace-with = 'ustc'" >> /home/jenkins/.cargo/config; \
     echo "[source.ustc]" >> /home/jenkins/.cargo/config; \
     echo "registry = 'http://mirrors.ustc.edu.cn/crates.io-index'" >> /home/jenkins/.cargo/config
-RUN cargo install typos-cli --locked --version 1.16.5
+RUN cargo install typos-cli --locked --version 1.16.26
 
 ENTRYPOINT ["jenkins-agent"]
