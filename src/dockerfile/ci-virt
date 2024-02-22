@@ -28,9 +28,9 @@ RUN set -eux; \
     wget https://cache-proxy.test.osinfra.cn/download/https://static.rust-lang.org/dist/rust-1.72.0-${ARCH}-unknown-linux-musl.tar.gz; \
     tar -xf rust-1.72.0-${ARCH}-unknown-linux-gnu.tar.gz; \
     tar -xf rust-1.72.0-${ARCH}-unknown-linux-musl.tar.gz; \
-    cd rust-1.72.0-${ARCH}-unknown-linux-gnu; \
+    cd rust-1.72.0-${ARCH}-unknown-linux-musl; \
     sh install.sh; \
-    cd ../rust-1.72.0-${ARCH}-unknown-linux-musl; \
+    cd ../rust-1.72.0-${ARCH}-unknown-linux-gnu; \
     sh install.sh; \
     cd /root; \
     rm -rf /usr/src/rust-1.72.0;
