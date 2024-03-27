@@ -53,6 +53,7 @@ class Comment(object):
         self.ac_result = {}
         self.compare_package_result = {}
         self.check_item_result = {}
+        self.check_install_result = True
         self._issue_flag = "__cmp_pkg_issue__"
 
     @staticmethod
@@ -585,6 +586,8 @@ class Comment(object):
             check_item_info["check_install"] = yaml_data[0]["result"]
         else:
             single_build_result = build["result"]
+        if check_item_info.get("check_install") != "success":
+            self.check_install_result = False
         logger.info(f"single_build_result:{single_build_result}")
         logger.info(f"check_item_info:{check_item_info}")
         if os.path.exists("support_arch"):
@@ -780,7 +783,7 @@ if "__main__" == __name__:
     dd.set_attr_etime("comment.build.etime")
     dd.set_attr("comment.build.content.html", comment_content)
 
-    if comment.check_build_result() == SUCCESS:
+    if comment.check_build_result() == SUCCESS and comment.check_install_result:
         gp.delete_tag_of_pr(args.pr, "ci_failed")
         gp.create_tags_of_pr(args.pr, "ci_successful")
         dd.set_attr("comment.build.tags", ["ci_successful"])
