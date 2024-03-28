@@ -586,7 +586,7 @@ class Comment(object):
             check_item_info["check_install"] = yaml_data[0]["result"]
         else:
             single_build_result = build["result"]
-        if check_item_info and check_item_info.get("check_install") != "success":
+        if check_item_info and check_item_info.get("check_install").lower() != "success":
             self.check_install_result = False
         logger.info(f"single_build_result:{single_build_result}")
         logger.info(f"check_item_info:{check_item_info}")
