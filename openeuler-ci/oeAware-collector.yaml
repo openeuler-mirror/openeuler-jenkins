@@ -1,0 +1,16 @@
+repo_name: oeAware-collector
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: dch
+    name: daichenhuan
+    email: 13780064348@163.com
+    gitee_id: dchii
+  - login_name: glx
+    name: ganlixiong
+    email: ganli2012@gmail.com
+    gitee_id: GalaxyG
+  - login_name: yjy
+    name: yejunyi
+    email: 294572668@qq.com
+    gitee_id: junyiye
