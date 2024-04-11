@@ -72,7 +72,8 @@ openeuler:
                  "eagle", "dcs", "astream", "QARobot", "oec-application", "gala-gopher", "gala-anteater",
                  "gala-spider", "gala-ragdoll", "aops-zeus", "aops-ceres", "aops-apollo", "aops-diana", "aops-hermes",
                  "aops-vulcanus", "Kmesh", "BiShengCLanguage", "ifm_nettle", "syscare", "dpu-utilities", "sysboost",
-                 "libgmem", "unizip", "cantian", "cantian-connector-mysql", "openeuler-os-build", "openeuler-obs"]
+                 "libgmem", "unizip", "cantian", "cantian-connector-mysql", "openeuler-os-build", "openeuler-obs",
+                 "oeAware-collector"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
