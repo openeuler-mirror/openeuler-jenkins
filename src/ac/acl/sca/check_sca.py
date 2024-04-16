@@ -101,6 +101,18 @@ class CheckSCA(BaseCheck):
         except Exception as error:
             logger.error('create sca task failed exception:%s', error)
 
+    def get_headers(self):
+        """ get sca sign """
+        timestamp, sign = self.create_sign()
+
+        headers = {
+            'Content-Type': 'application/json',
+            'appId': self._sca_app_id,
+            'timestamp': timestamp,
+            'sign': sign
+        }
+        return headers
+
     def get_task_result(self):
         """
         # 返回结果 {
@@ -113,18 +125,8 @@ class CheckSCA(BaseCheck):
         }
 
         """
-        # get sca sign
-        timestamp, sign = self.create_sign()
-
-        headers = {
-            'Content-Type': 'application/json',
-            'appId': self._sca_app_id,
-            'timestamp': timestamp,
-            'sign': sign
-        }
-
         # create sca task
-        self.get_create_task(headers)
+        self.get_create_task(self.get_headers())
 
         status_url = f'{self._sca_ip}{self._sca_prefix}/result?scanId={self._scanId}'
         expire_time = 0
@@ -133,6 +135,7 @@ class CheckSCA(BaseCheck):
             time.sleep(10)
             response_content = {}
             # 检查sca任务的执行状态
+            headers = self.get_headers()
             rs = do_requests("get", status_url, headers=headers, obj=response_content)
             if rs == 0 and response_content.get('code') == 200:
                 data = response_content.get('data')
