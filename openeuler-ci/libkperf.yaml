@@ -1,0 +1,16 @@
+repo_name: libkperf
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: dch
+    name: daichenhuan
+    email: daichenhuan@huawei.com
+    gitee_id: dchii
+  - login_name: glx
+    name: ganlixiong
+    email: ganlixiong@huawei.com
+    gitee_id: GalaxyG
+  - login_name: yjy
+    name: yejunyi
+    email: yejunyi4@huawei-partners.com
+    gitee_id: junyiye
