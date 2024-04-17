@@ -1,0 +1,12 @@
+repo_name: oeAware-tune
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: zhoukaiqi
+    name: zhoukaiqi
+    email: zhoukaiqi@huawei.com
+    gitee_id: zhoukaiqi
+  - login_name: luoshengwei
+    name: luoshengwei
+    email: luoshengwei@huawei.com
+    gitee_id: Lostwayzxc
