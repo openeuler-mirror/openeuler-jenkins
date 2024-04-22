@@ -2,7 +2,7 @@ repo_name: llvm-project
 container_level: l2
 init_shell: "echo hello\necho $?"
 users:
-  - login_name: xin-yinglin
-    name: xin-yinglin
-    email: xinyinglin@huawei.com
-    gitee_id: xin-yinglin
+  - login_name: liyunfei33
+    name: liyunfei
+    email: liyunfei33@huawei.com
+    gitee_id: liyunfei33
