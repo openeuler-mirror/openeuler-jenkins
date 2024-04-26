@@ -68,35 +68,17 @@ class AC(object):
         :param pr: pr编号
         :return:
         """
-        comments = ["门禁正在运行， 您可以通过以下链接查看实时门禁检查结果."]
+        comments = ["门禁正在运行， 您可以通过以下链接查看实时门禁检查结果.\n"
+                    "若您对门禁结果含义不清晰或者遇到问题不知如何解决，可参考"
+                    "<a href=https://www.openeuler.org/zh/blog/zhengyaohui/2022-03-21-ci_guild.html>门禁指导手册</a>"]
 
         trigger_job_name = os.environ.get("JOB_NAME")
         trigger_build_id = os.environ.get("BUILD_ID")
         trigger_job_info = jp.get_job_info(trigger_job_name)
         trigger_job_url = trigger_job_info.get("url")
-        comments.append("门禁入口及编码规范检查: <a href={}>{}</a>, 当前构建号为 {}".format(
-            trigger_job_url, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
+        comments.append("门禁入口及编码规范检查: <a href={}/{}/console>{}/{}/console</a>".format(
+            trigger_job_url, trigger_build_id, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
 
-        down_projects = trigger_job_info.get("downstreamProjects", [])
-        build_job_name_list = []
-        build_job_link_list = []
-        for project in down_projects:
-            build_job_url = project.get("url", "")
-            if build_job_url:
-                build_job_name = jp.get_job_path_from_job_url(build_job_url)
-                build_job_name_list.append(build_job_name)
-                build_job_link_list.append("<a href={}>{}</a>".format(build_job_url, build_job_name))
-        comments.append("构建及构建后检查: {}".format(", ".join(build_job_link_list)))
-
-        if build_job_name_list:
-            build_job_info = jp.get_job_info(build_job_name_list[0])
-            down_down_projects = build_job_info.get("downstreamProjects", [])
-            for project in down_down_projects:
-                comment_job_url = project.get("url")
-                comments.append("门禁结果回显: <a href={}>{}</a>".format(
-                    comment_job_url, jp.get_job_path_from_job_url(comment_job_url)))
-        comments.append("若您对门禁结果含义不清晰或者遇到问题不知如何解决，可参考"
-                         "<a href=https://www.openeuler.org/zh/blog/zhengyaohui/2022-03-21-ci_guild.html>门禁指导手册</a>")
         gp.comment_pr(pr, "\n".join(comments))
 
     @staticmethod
