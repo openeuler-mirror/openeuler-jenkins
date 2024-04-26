@@ -331,8 +331,16 @@ EOF
   log_info "***** End to compare package diff *****"
 }
 
+function print_job(){
+    job_name=`echo $JOB_NAME|sed -e 's#/#/job/#g'`
+    job_path="https://openeulerjenkins.osinfra.cn/job/${job_name}/$BUILD_ID/console"
+    body_str="${arch}架构构建及构建后检查：<a href=${job_path}>${JOB_NAME}/${BUILD_ID}/console</a>"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/src-openeuler/'${repo}'/pulls/'${prid}'/comments' -d '{"access_token":"'"${GiteeToken}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+}
+
 # 执行入口
 function main() {
+  print_job
   config_osc
   config_ipv6
   config_maven
