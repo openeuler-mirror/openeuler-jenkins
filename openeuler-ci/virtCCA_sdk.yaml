@@ -1,0 +1,8 @@
+repo_name: virtCCA_sdk
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: houmingyong
+    name: houmingyong
+    email: houmingyong@huawei.com
+    gitee_id: houmingyong
