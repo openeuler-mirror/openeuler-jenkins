@@ -1,0 +1,8 @@
+repo_name: osinfor
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: trackers-love
+    name: trackers-love
+    email: bianguangze@uniontech.com
+    gitee_id: trackers-love
