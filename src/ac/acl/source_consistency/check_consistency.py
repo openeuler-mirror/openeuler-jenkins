@@ -257,6 +257,11 @@ class CheckSourceConsistency(BaseCheck):
         :param spec_file:spec文件名
         :return:
         """
+        ret0 = os.system(f"rpmspec -P {spec_file} > tmp_{spec_file}")
+        if ret0 != 0:
+            logger.info("cannot parse this spec file")
+        else:
+            os.system(f"mv tmp_{spec_file} {spec_file} -f")
         ret = subprocess.check_output(["/usr/bin/spectool", "-S", spec_file], shell=False)
         content = ret.decode('utf-8').strip()
         source_url = content.split(os.linesep)[0].strip() if os.linesep in content else content.strip()
@@ -317,7 +322,7 @@ class CheckSourceConsistency(BaseCheck):
         new_spec_file = os.path.join(self.rpmbuild_sources_path, "get_source.spec")
         res = os.system("rpmbuild -bp --nodeps {0} --define \"_topdir {1}\"".format(new_spec_file, self.rpmbuild_dir))
         if res != 0:
-            logger.error("do rpmbuild fail")
+            logger.info("tmp spec file is invalid")
         if not os.path.exists(self.temp_txt_path):
             return ""
         with open(self.temp_txt_path, "r") as f:
