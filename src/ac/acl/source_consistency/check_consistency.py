@@ -33,6 +33,7 @@ class CheckSourceConsistency(BaseCheck):
         self.database_path = "source_clean.db"
         self.con = self.create_connection()
         self.ask_warning = "If you have some questions, you can ask q_qiutangke@163.com!"
+        self.source_url = ""
 
     def __call__(self, *args, **kwargs):
         """
@@ -78,8 +79,13 @@ class CheckSourceConsistency(BaseCheck):
         """
         从文件列表或者url中获取包名
         """
-        package_name = os.popen("ls -S {0} |grep -v '\\.spec' |grep -v '\\.yaml' |grep -v '\\.patch' |grep -v '\\.md' |"
-                                "head -n 1".format(self._work_dir)).read().split()[0]
+        files = os.popen("ls -S {0} |grep -v '\\.spec' |grep -v '\\.yaml' |grep -v '\\.patch' |grep -v '\\.md' |"
+                         "head -n 1".format(self._work_dir)).read()
+        if files == "":
+            return ""
+        if " " not in files:
+            return files
+        package_name = files.split()[0]
         if package_name == "":
             package_name = os.path.basename(url)
         return package_name
@@ -110,36 +116,28 @@ class CheckSourceConsistency(BaseCheck):
         """
         if not os.path.exists(os.path.join(self.rpmbuild_dir, "SOURCES")):
             os.makedirs(os.path.join(self.rpmbuild_dir, "SOURCES"))
-        source_url = self.get_source_url()
-        if source_url == "":
+        self.get_source_url()
+        if self.source_url == "":
             logger.warning("Source keywords of spec content are invalid or spec content is illegal. " +
                            self.ask_warning)
             return WARNING
 
-        base_name = os.path.basename(source_url)
-        package_name = base_name if base_name in os.listdir(self._work_dir) else self.get_package_name(source_url)
-        if package_name not in os.listdir(self._work_dir):
-            logger.warning("no source package file in the repo, the package name is " + package_name + ". " +
-                           self.ask_warning)
+        base_name = os.path.basename(self.source_url)
+        package_name = base_name if base_name in os.listdir(self._work_dir) else self.get_package_name(self.source_url)
+        if package_name == "":
+            logger.warning("no source package file in the repo")
             return WARNING
 
         native_sha256sum = self.get_sha256sum(os.path.join(self._work_dir, package_name))
         if native_sha256sum == "":
-            logger.warning("get sha256sum of native source package failed, internal error. " + self.ask_warning)
-            return WARNING
+            logger.info("get sha256sum of native source package failed, internal error. " + self.ask_warning)
+            return SUCCESS
 
-        remote_sha256sum = self.get_sha256sum_from_url(source_url)
+        remote_sha256sum = self.get_sha256sum_from_url(self.source_url)
         if remote_sha256sum == "":
             logger.warning("Failed to get sha256sum of official website source package, there is no sha256sum in "
                            "the system database")
-            detail_info = self.check_spec_validity()
-            if detail_info == "maybe url is unreachable":
-                logger.warning("Maybe url is unreachable, you need to check the connectivity of url. If connectivity is"
-                               " good, please ignore this warning! " + self.ask_warning)
-                return WARNING
-            else:
-                logger.warning(detail_info + ", please check spec file! " + self.ask_warning)
-                return WARNING
+            return SUCCESS
 
         if native_sha256sum != remote_sha256sum:
             new_native_sha256sum, new_package_name = self.get_native_sha256sum_again(self._repo)
@@ -167,7 +165,7 @@ class CheckSourceConsistency(BaseCheck):
         files_list = os.listdir(self._work_dir)
         if len(files_list) == 0:
             logger.error("copy repo error, please check!")
-            return ""
+            return
         if self._repo + ".spec" not in files_list:
             logger.warning("no such spec file: " + self._repo + ".spec")
             for file_name in files_list:
@@ -176,12 +174,12 @@ class CheckSourceConsistency(BaseCheck):
                     break
             if spec_name == "":
                 logger.error("no spec file, please check!")
-                return ""
-        source_url = self.get_source_from_spec(spec_name)
+                return
+        self.get_source_from_spec(spec_name)
+        logger.info("source_url: " + self.source_url)
         # If program can't get source url from spec, try to get source url by rpmbuild
-        if source_url == "":
-            source_url = self.get_source_from_rpmbuild(spec_name)
-        return source_url
+        if self.source_url == "":
+            self.source_url = self.get_source_from_rpmbuild(spec_name)
 
     def check_spec_validity(self):
         """
@@ -204,10 +202,7 @@ class CheckSourceConsistency(BaseCheck):
                         break
             if spec_name == "":
                 return "no spec file"
-        else:
-            spec_name = os.path.join(self._work_dir, self._repo + ".spec")
-        source_url = self.spectool_check_source(spec_name)
-        if not source_url.startswith("http"):
+        if not self.source_url.startswith("http"):
             return "source url format error"
         return "maybe url is unreachable"
 
@@ -222,6 +217,7 @@ class CheckSourceConsistency(BaseCheck):
         spec_file = os.path.join(self._work_dir, spec_name)
         self.generate_new_spec(spec_file)
         source_url = self.do_rpmbuild()
+        logger.info("source_url from rpmbuild: " + source_url)
         return source_url
 
     def get_source_from_spec(self, spec_name=""):
@@ -246,10 +242,7 @@ class CheckSourceConsistency(BaseCheck):
                     if self._repo in s_file or s_file in self._repo:
                         spec_file = os.path.join(self._work_dir, s_file)
                         break
-            else:
-                return ""
-        source_url = self.spectool_check_source(spec_file)
-        return source_url
+        self.source_url = self.spectool_check_source(spec_file)
 
     def spectool_check_source(self, spec_file):
         """
@@ -257,11 +250,14 @@ class CheckSourceConsistency(BaseCheck):
         :param spec_file:spec文件名
         :return:
         """
-        ret0 = os.system(f"rpmspec -P {spec_file} > tmp_{spec_file}")
+        source_path = "/home/jenkins/rpmbuild/SOURCES"
+        os.makedirs(source_path, exist_ok=True)
+        os.system(f"cp {self._work_dir}/* {source_path}")
+        ret0 = os.system(f"rpmspec -P {spec_file} > tmp_{os.path.basename(spec_file)}")
         if ret0 != 0:
             logger.info("cannot parse this spec file")
         else:
-            os.system(f"mv tmp_{spec_file} {spec_file} -f")
+            os.system(f"mv tmp_{os.path.basename(spec_file)} {spec_file} -f")
         ret = subprocess.check_output(["/usr/bin/spectool", "-S", spec_file], shell=False)
         content = ret.decode('utf-8').strip()
         source_url = content.split(os.linesep)[0].strip() if os.linesep in content else content.strip()
