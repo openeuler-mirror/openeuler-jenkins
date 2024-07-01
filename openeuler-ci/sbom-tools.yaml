@@ -1,0 +1,8 @@
+repo_name: sbom-tools
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: liuzhengjun
+    name: liuzhengjun
+    email: lzj96@foxmail.com
+    gitee_id: liu_zhengjun
