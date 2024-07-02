@@ -1,0 +1,8 @@
+repo_name: ssh-utils
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: wanglujun
+    name: wanglujun
+    email: wanglujun@uniontech.com
+    gitee_id: ut-wanglujun
