@@ -110,10 +110,10 @@ class CheckCode(BaseCheck):
         }
         status_url = f'{self._codecheck_ip}{self._codecheck_prefix}/task/status'
         current_time = 0
-        logger.info("codecheck probably need to 5min")
+        logger.info("codecheck probably need to 10min")
 
-        # 定时5min
-        while current_time < 300:
+        # 定时10min
+        while current_time < 600:
             time.sleep(10)
             response_content = {}
             # 检查codecheck任务的执行状态

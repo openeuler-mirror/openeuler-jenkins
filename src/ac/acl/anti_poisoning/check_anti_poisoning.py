@@ -102,7 +102,7 @@ class CheckAntiPoisoning(BaseCheck):
             # 检查auti_poisoning任务的执行状态
 
             rs = do_requests("post", status_url, body=data, obj=response_content)
-            if rs == 0 and response_content.get('code') == '200' and not response_content.get('result'):
+            if rs == 0 and response_content.get('code') == 200 and not response_content.get('result'):
                 current_time = current_time + 10
                 continue
             else:
