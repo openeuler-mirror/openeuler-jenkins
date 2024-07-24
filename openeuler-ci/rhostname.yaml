@@ -1,0 +1,8 @@
+repo_name: rhostname
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: binlingyu
+    name: binlingyu
+    email: binlingyu@uniontech.com
+    gitee_id: binlingyu
