@@ -88,7 +88,7 @@ function exec_comment() {
   python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${token}\
    -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86}\
     -f ${compare_package_result_x86},${compare_package_result_aarch64} -m ${commentid} -l ${url_files_server} \
-    -d ${detail_result_file_x86_64},${detail_result_file_aarch64} --platform ${platform}
+    -d ${detail_result_file_x86_64},${detail_result_file_aarch64} -tb ${tbranch} --platform ${platform}
   log_info "***** End to exec comment *****"
   log_info "***** Start to exec comment to kafka*****"
   python3 ${shell_path}/src/build/comment_to_dashboard.py -r $repo -c $committer -m ${commentid} -g $jobtriggertime\

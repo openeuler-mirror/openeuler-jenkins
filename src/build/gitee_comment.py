@@ -54,6 +54,7 @@ class Comment(object):
         self.compare_package_result = {}
         self.check_item_result = {}
         self.check_install_result = True
+        self.check_license_result = True
         self._issue_flag = "__cmp_pkg_issue__"
 
     @staticmethod
@@ -182,7 +183,7 @@ class Comment(object):
 
         return "\n".join(comments)
 
-    def comment_compare_package_details(self, gitee_proxy, check_result_file):
+    def comment_compare_package_details(self, gitee_proxy, check_result_file, tbranch):
         """
         compare package结果上报
 
@@ -190,7 +191,7 @@ class Comment(object):
         :param check_result_file:
         :return:
         """
-        comments = self._comment_of_compare_package_details(check_result_file)
+        comments = self._comment_of_compare_package_details(check_result_file, tbranch)
         gitee_proxy.comment_pr(self._pr, "\n".join(comments))
 
         return "\n".join(comments)
@@ -293,6 +294,36 @@ class Comment(object):
         build_result = sum([ACResult.get_instance(build["result"]) for build in self._up_builds], SUCCESS)
         return build_result
 
+    def check_ac_result(self):
+        """
+        ac result check
+        :return:
+        """
+        acl = self.get_acl()
+
+        for index, item in enumerate(acl):
+            if item["result"] == 2:
+                return False
+
+        return True
+
+    @staticmethod
+    def get_acl():
+        """
+        get_acl
+        :return:
+        """
+        acl = {}
+        if "ACL" not in os.environ:
+            logger.debug("no ac check")
+
+        try:
+            acl = json.loads(os.environ["ACL"])
+            logger.debug("ac result: %s", acl)
+        except ValueError:
+            logger.exception("invalid ac result format")
+        return acl
+
     def _get_upstream_builds(self, jenkins_proxy):
         """
         get upstream builds
@@ -333,18 +364,8 @@ class Comment(object):
         :param build: Jenkins Build object，门禁检查jenkins构建对象
         :return:
         """
-        if "ACL" not in os.environ:
-            logger.debug("no ac check")
-            return []
-
-        try:
-            acl = json.loads(os.environ["ACL"])
-            logger.debug("ac result: %s", acl)
-        except ValueError:
-            logger.exception("invalid ac result format")
-            return []
-
         comments = []
+        acl = self.get_acl()
 
         for index, item in enumerate(acl):
             ac_result = ACResult.get_instance(item["result"])
@@ -361,13 +382,14 @@ class Comment(object):
 
         return comments
 
-    def _comment_of_compare_package_details(self, check_result_file):
+    def _comment_of_compare_package_details(self, check_result_file, tbranch):
         """
         compare package details
         :param:
         :return:
         """
         comments = []
+        comments.append(f"如下为接口变更检查结果，目标分支为{tbranch}，请PR提交者check差异信息")
         comments_title = ["<table> <tr><th>Arch Name</th> <th>Check Items</th> <th>Rpm Name</th> <th>Check Result</th> "
                           "<th>Build Details</th></tr>"]
         logger.info("start get comment of compare package details.")
@@ -579,7 +601,9 @@ class Comment(object):
             logger.info(f"JSON DATA:{json_data}")
             single_build_result = self._get_dict(["single_build_check", "current_result"], json_data)
             check_install_result = self._get_dict(["single_install_check", "current_result"], json_data)
+            package_license_result = self._get_dict(["package_license_check", "current_result"], json_data)
             check_item_info["check_install"] = check_install_result if check_install_result else "failed"
+            check_item_info["check_license"] = package_license_result if package_license_result else "failed"
         elif yaml_data:
             logger.info(f"YAML DATA:{yaml_data}")
             single_build_result = build["result"]
@@ -588,13 +612,15 @@ class Comment(object):
             single_build_result = build["result"]
         if check_item_info and check_item_info.get("check_install").lower() != "success":
             self.check_install_result = False
+        if check_item_info and check_item_info.get("check_license").lower() != "success":
+            self.check_license_result = False
         logger.info(f"single_build_result:{single_build_result}")
         logger.info(f"check_item_info:{check_item_info}")
         if os.path.exists("support_arch"):
             with open("support_arch", "r") as s_file:
                 if arch not in s_file.readline():
                     ac_result = ACResult.get_instance("EXCLUDE")
-                    item_num = 2
+                    item_num = 3
                 else:
                     ac_result = ACResult.get_instance(single_build_result)
                     item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
@@ -611,7 +637,10 @@ class Comment(object):
         if ac_result.hint == "EXCLUDE":
             comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
                 "check_install", ac_result.emoji, ac_result.hint))
+            comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+                "check_license", ac_result.emoji, ac_result.hint))
             arch_dict["check_install"] = ac_result.hint
+            arch_dict["check_license"] = ac_result.hint
         else:
             for check_item, check_result in check_item_info.items():
                 if check_result:
@@ -741,6 +770,7 @@ def init_args():
     parser.add_argument("-l", type=str, dest="detail_analyse_url", default="",
                         help="compare package detail analyse url")
     parser.add_argument("-a", type=str, dest="check_item_comment_files", nargs="*", help="check item comment files")
+    parser.add_argument("-tb", type=str, dest="tbranch", help="target branch")
 
     parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
     parser.add_argument("--platform", type=str, dest="platform", default="gitee", help="gitee/github")
@@ -782,14 +812,14 @@ if "__main__" == __name__:
     comment_content = comment.comment_build(gp)
     dd.set_attr_etime("comment.build.etime")
     dd.set_attr("comment.build.content.html", comment_content)
-
-    if comment.check_build_result() == SUCCESS and comment.check_install_result:
+    result_list = [comment.check_ac_result(), comment.check_install_result, comment.check_license_result]
+    if comment.check_build_result() == SUCCESS and all(result_list):
         gp.delete_tag_of_pr(args.pr, "ci_failed")
         gp.create_tags_of_pr(args.pr, "ci_successful")
         dd.set_attr("comment.build.tags", ["ci_successful"])
         dd.set_attr("comment.build.result", "successful")
         if args.check_result_file:
-            comment.comment_compare_package_details(gp, args.check_result_file)
+            comment.comment_compare_package_details(gp, args.check_result_file, args.tbranch)
             # comment.submit_compare_package_details_issue(gp, args.check_result_file, args.detail_result_file,
             #                                              args.detail_analyse_url, args.pr)
     else:

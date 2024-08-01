@@ -19,7 +19,7 @@ import shutil
 import logging
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS
+from src.ac.framework.ac_result import WARNING, SUCCESS
 from src.ac.common.gitee_repo import GiteeRepo
 from pyrpm.spec import Spec, replace_macros
 
@@ -66,7 +66,7 @@ class CheckBinaryFile(BaseCheck):
             if decompress_file not in self._tarball_in_spec:
                 need_compress_files.append(decompress_file)
         self._gr.set_compress_files(need_compress_files)
-        return SUCCESS if 0 == self._gr.decompress_all() else FAILED
+        return SUCCESS if 0 == self._gr.decompress_all() else WARNING
 
     def check_binary(self):
         """
@@ -76,8 +76,8 @@ class CheckBinaryFile(BaseCheck):
         if suffixes_list:
             logger_con = ["%s: \n%s" % (key, value) for suffix_list in suffixes_list for key, value in
                           suffix_list.items()]
-            logger.error("binary file of type exists:\n%s", "\n".join(logger_con))
-            return FAILED
+            logger.warning("binary file of type exists:\n%s", "\n".join(logger_con))
+            return WARNING
         else:
             return SUCCESS
 

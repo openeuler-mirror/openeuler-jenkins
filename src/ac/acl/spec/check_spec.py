@@ -25,7 +25,7 @@ import yaml
 
 from src.proxy.git_proxy import GitProxy
 from src.proxy.requests_proxy import do_requests
-from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
+from src.ac.framework.ac_result import FAILED, SUCCESS
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.common.gitee_repo import GiteeRepo
@@ -134,9 +134,9 @@ class CheckSpec(BaseCheck):
                 logger.debug("revert commit")
                 return SUCCESS
 
-        logger.warning("current version: %s-r%s, last version: %s-r%s",
+        logger.error("current version: %s-r%s, last version: %s-r%s",
                        self._spec.version, self._spec.release, spec_o.version, spec_o.release)
-        return WARNING
+        return FAILED
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
         """
@@ -261,8 +261,8 @@ class CheckSpec(BaseCheck):
             logger.error("patch %s lost", patch)
             result = FAILED
         for patch in patches_file - patches_spec:
-            logger.warning("patch %s redundant", patch)
-            result = WARNING
+            logger.error("patch %s redundant", patch)
+            result = FAILED
         with open(os.path.join(self._work_dir, self._gr.spec_file), "r", encoding="utf-8") as fp:
             all_str = fp.read()
             adapter = Spec.from_string(all_str)

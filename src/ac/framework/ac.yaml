@@ -21,9 +21,7 @@ src-openeuler:
     entry: CheckPackageYaml
     ignored: ["fields"]
   package_license:
-    hint: check_package_license
-    module: package_license.check_license
-    entry: CheckLicense
+    exclude: True
   binary:
     hint: check_binary_file
     module: binary.check_binary_file
