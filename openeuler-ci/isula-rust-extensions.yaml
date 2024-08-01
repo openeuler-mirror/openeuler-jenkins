@@ -1,0 +1,8 @@
+repo_name: isula-rust-extensions
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: jikai
+    name: jikai
+    email: jikai11@huawei.com
+    gitee_id: jikai11
