@@ -2,22 +2,18 @@ repo_name: cantian
 container_level: l1
 init_shell: "echo hello cantian\necho $?"
 users:
-  - login_name: solid-yang
-    name: yangkefan
-    email: yangkefan1@huawei.com
-    gitee_id: solid-yang
-  - login_name: satisfy123
-    name: shangj
-    email: shangjingliang@huawei.com
-    gitee_id: satisfy123
-  - login_name: liang-ke
-    name: liangke
-    email: liangke15@huawei.com
-    gitee_id: liang-ke
-    login_name: CV03Saratoga
-    name: houtianquan
-    email: houtianquan@huawei.com
-    gitee_id: CV03Saratoga
+  - login_name: hewenxun
+    name:  hewenxun
+    email: hewenxun@huawei.com
+    gitee_id: wenxun888
+  - login_name: xichutian
+    name:  xichutian
+    email: xichutian@huawei.com
+    gitee_id: xicoding
+  - login_name: qiuyang
+    name:  qiuyang
+    email: qiuyang19@h-partners.com
+    gitee_id: qiuyang19960521
   - login_name: johnnyjiang1
     name: jiang_tiancheng
     email: jiangtiancheng2@huawei.com
