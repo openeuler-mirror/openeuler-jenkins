@@ -21,7 +21,7 @@ import hashlib
 import base64
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS
+from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 from src.proxy.requests_proxy import do_requests
 
 logger = logging.getLogger("ac")
@@ -167,6 +167,6 @@ class CheckSCA(BaseCheck):
             return FAILED
         if self._result == "no pass":
             logger.warning("click %s view sca check detail", self._report_url)
-            return FAILED
+            return WARNING
 
         return SUCCESS
