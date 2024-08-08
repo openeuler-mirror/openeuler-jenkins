@@ -389,7 +389,7 @@ class Comment(object):
         :return:
         """
         comments = []
-        comments.append(f"如下为接口变更检查结果，目标分支为{tbranch}，请PR提交者check差异信息")
+        message = [f"如下为接口变更检查结果，目标分支为{tbranch}，请PR提交者check差异信息"]
         comments_title = ["<table> <tr><th>Arch Name</th> <th>Check Items</th> <th>Rpm Name</th> <th>Check Result</th> "
                           "<th>Build Details</th></tr>"]
         logger.info("start get comment of compare package details.")
@@ -446,7 +446,7 @@ class Comment(object):
                             check_item, "<br>".join(rpm_name), compare_result.emoji, compare_result.hint))
                 self.compare_package_result[arch_name] = arch_cmp_result
         if comments:
-            comments = comments_title + comments
+            comments = message + comments_title + comments
             comments.append("</table>")
         logger.info("compare package comment: %s", comments)
 
@@ -813,11 +813,12 @@ if "__main__" == __name__:
     dd.set_attr_etime("comment.build.etime")
     dd.set_attr("comment.build.content.html", comment_content)
     result_list = [comment.check_ac_result(), comment.check_install_result, comment.check_license_result]
-    if comment.check_build_result() == SUCCESS and all(result_list):
-        gp.delete_tag_of_pr(args.pr, "ci_failed")
-        gp.create_tags_of_pr(args.pr, "ci_successful")
-        dd.set_attr("comment.build.tags", ["ci_successful"])
-        dd.set_attr("comment.build.result", "successful")
+    if comment.check_build_result() == SUCCESS and comment.check_install_result:
+        if comment.check_ac_result() and comment.check_license_result:
+            gp.delete_tag_of_pr(args.pr, "ci_failed")
+            gp.create_tags_of_pr(args.pr, "ci_successful")
+            dd.set_attr("comment.build.tags", ["ci_successful"])
+            dd.set_attr("comment.build.result", "successful")
         if args.check_result_file:
             comment.comment_compare_package_details(gp, args.check_result_file, args.tbranch)
             # comment.submit_compare_package_details_issue(gp, args.check_result_file, args.detail_result_file,
