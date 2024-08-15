@@ -235,7 +235,7 @@ class CheckSpec(BaseCheck):
             if not prep_obj:
                 logger.error("%prep part lost")
                 return False
-            prep_str = prep_obj.group().lower()
+            prep_str = prep_obj.group()
             if prep_str.find("autosetup") != -1 or \
                     prep_str.find("autopatch") != -1:
                 return True
@@ -250,10 +250,11 @@ class CheckSpec(BaseCheck):
                 logger.error(
                     "%patch is used to apply patches on top of the just unpacked pristine sources.Historically it \n"
                     "supported multiple strange syntaxes and buggy behaviors, which are no longer maintained. To apply\n"
-                    "patch number 1, the following are recognized:\n"
-                    "1 %patch 1 (since rpm >= 4.18)\n"
-                    "2 %patch -P1 (all rpm versions)\n"
-                    "3 %patch1 (deprecated, do not use)")
+                    "patch number 1 or 2, the following are recognized:\n"
+                    "1 %patch -P 1\n"
+                    "2 %patch 1 (since rpm >= 4.18)\n"
+                    "3 %patch -P1 (all rpm versions)\n"
+                    "4 %patch1 (deprecated, do not use)")
                 return False
             return True
 
