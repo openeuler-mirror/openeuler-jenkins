@@ -1,0 +1,8 @@
+repo_name: dim
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: luhuaxin 
+    name: luhuaxin
+    email: luhuaxin1@huawei.com
+    gitee_id: HuaxinLuGitee
