@@ -1,0 +1,8 @@
+repo_name: authHub
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: luxuexian
+    name: luxuexian
+    email: luxuexian@huawei.com
+    gitee_id: rearcher
