@@ -1,0 +1,16 @@
+repo_name: sysSentry
+container_level: l2
+init_shell: "echo hello sysSentry\necho $?"
+users:
+  - login_name: gaoruoshu
+    name: gaoruoshu
+    email: gaoruoshu@huawei.com
+    gitee_id: gaoruoshu
+  - login_name: Lv Ying
+    name: lvying
+    email: lvying6@huawei.com
+    gitee_id: lvying6
+  - login_name: HuBin95
+    name: hubin
+    email: hubin73@huawei.com
+    gitee_id: hubin95
