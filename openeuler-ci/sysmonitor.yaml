@@ -1,0 +1,8 @@
+repo_name: sysmonitor
+container_level: l1
+init_shell: "echo hello sysmonitor\necho $?"
+users:
+  - login_name: xietangxin
+    name: xietangxin
+    email: xietangxin@huawei.com
+    gitee_id: cp3yeye
