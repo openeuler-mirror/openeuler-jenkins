@@ -72,7 +72,7 @@ openeuler:
                  "aops-vulcanus", "Kmesh", "BiShengCLanguage", "ifm_nettle", "syscare", "dpu-utilities", "sysboost",
                  "libgmem", "unizip", "cantian", "cantian-connector-mysql", "openeuler-os-build", "openeuler-obs",
                  "oeAware-collector", "libkperf", "virtCCA_sdk", "virtCCA_driver", "dim", "dim_tools", "oeAware-manager",
-                 "authHub", "sysSentry", "sysmonitor"]
+                 "authHub", "sysSentry", "sysmonitor", "oeAware-scenario", "oeAware-tune"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
