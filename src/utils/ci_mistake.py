@@ -68,7 +68,7 @@ class CiMistake(object):
             try:
                 all_data = yaml.safe_load(data)
             except yaml.MarkedYAMLError:
-                logger.error("%s is not an illegal yaml file", os.path.basename(filepath))
+                logger.error("%s is an illegal yaml file", os.path.basename(filepath))
                 return []
 
         if isinstance(all_data, list):
@@ -192,7 +192,7 @@ class CiMistake(object):
             return
 
         if build_no not in build_no_list:
-            build_no_error_tips = "***{}*** is not an illegal build number. You should select one from " \
+            build_no_error_tips = "***{}*** is an illegal build number. You should select one from " \
                                   "***{}***.".format(build_no, ", ".join([str(item) for item in build_no_list]))
             logger.error(build_no_error_tips)
             self.comment_to_pr(build_no_error_tips)
@@ -203,7 +203,7 @@ class CiMistake(object):
         ci_mistake_others = list(set(ci_mistake_type_stage).difference(
             set(self.support_mistake_type)).difference(set(self.support_check_stage)))
         if ci_mistake_others:
-            mistake_type_stage_error_tips = "***{}*** is not an illegal mistake type or check item. " \
+            mistake_type_stage_error_tips = "***{}*** is an illegal mistake type or check item. " \
                                             "If you want to express mistake type, you can select one from ***{}***. " \
                                             "If you want to express check item, you can select one or more from " \
                                             "***{}***.".format(", ".join(ci_mistake_others),
