@@ -162,7 +162,7 @@ do
     release=$(awk '/^Release: /{print$2}' "$repo.spec")
     sed -i "s/^Release: .*/Release: $((release+1))/" "$repo.spec"
     prids=$(git show -s --format=%s "upstream/$tbranch..HEAD" | awk '/spec: Update patch and changelog with ![0-9]+/{print$NF}' | tac | xargs)
-    spec_message="spec: Update release version with $prids"$'\n\n'"increase release verison by one"
+    spec_message="spec: Update release version with $prids"$'\n\n'"increase release version by one"
     git commit --signoff --message="$spec_message" "$repo.spec"
 
     git push --force origin "$tbranch"

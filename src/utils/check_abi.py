@@ -24,7 +24,7 @@
 
 (3) Command parameters
     This script accept three kinds of command: compare_rpm or compare_so or compare_rpms
-    Run it without any paramter prints out help message.
+    Run it without any parameter prints out help message.
 """
 
 import argparse
