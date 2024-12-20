@@ -31,6 +31,7 @@ class CheckSourceConsistency(BaseCheck):
         self.rpmbuild_build_path = os.path.join(self.rpmbuild_dir, "BUILD")
         self.rpmbuild_sources_path = os.path.join(self.rpmbuild_dir, "SOURCES")
         self.database_path = "source_clean.db"
+        self.tarball_path = ""
         self.con = self.create_connection()
         self.ask_warning = "If you have some questions, you can ask q_qiutangke@163.com!"
         self.source_url = ""
@@ -52,17 +53,24 @@ class CheckSourceConsistency(BaseCheck):
                 self.con.close()
             self.clear_temp()
 
-    @staticmethod
-    def get_sha256sum(package):
+    def get_sha256sum(self):
         """
         计算文件的sha256sum值
-        :param package:包路径
         :return:
         """
         logger.info("getting sha256sum of native source package...")
         native_sha256sum = ""
         try:
-            with open(package, "rb") as f:
+            with open(self.tarball_path, "r") as f:
+                content = f.read()
+            if "version " in content and "oid sha256:" in content and "size" in content:
+                native_sha256sum = re.search("oid sha256:(.*)", content).group(1)
+                return native_sha256sum.strip()
+        except Exception as e:
+            logger.info("package type is base tarball")
+            logger.info(str(e))
+        try:
+            with open(self.tarball_path, "rb") as f:
                 sha256obj = hashlib.sha256()
                 sha256obj.update(f.read())
                 native_sha256sum = sha256obj.hexdigest()
@@ -70,7 +78,7 @@ class CheckSourceConsistency(BaseCheck):
             logger.warning(e)
         if native_sha256sum == "":
             try:
-                native_sha256sum = os.popen("sha256sum {0}".format(package)).read().split()[0]
+                native_sha256sum = os.popen("sha256sum {0}".format(self.tarball_path)).read().split()[0]
             except Exception as e:
                 logger.warning(e)
         return native_sha256sum.strip()
@@ -99,7 +107,8 @@ class CheckSourceConsistency(BaseCheck):
             return "", ""
         elif len(line_list) == 1:
             package_name = line_list[0].strip().rstrip(":")
-            return self.get_sha256sum(os.path.join(self._work_dir, package_name)), package_name
+            self.tarball_path = os.path.join(self._work_dir, package_name)
+            return self.get_sha256sum(), package_name
         else:
             file_dict = {}
             for line in line_list:
@@ -107,7 +116,8 @@ class CheckSourceConsistency(BaseCheck):
             sorted_file_dict = sorted(file_dict.items(), key=lambda x: x[1], reverse=True)
             converted_dict = dict(sorted_file_dict)
             package_name = next(iter(converted_dict))
-            return self.get_sha256sum(os.path.join(self._work_dir, package_name)), package_name
+            os.path.join(self._work_dir, package_name)
+            return self.get_sha256sum(), package_name
 
     def check_source_consistency(self):
         """
@@ -128,7 +138,8 @@ class CheckSourceConsistency(BaseCheck):
             logger.warning("no source package file in the repo")
             return WARNING
 
-        native_sha256sum = self.get_sha256sum(os.path.join(self._work_dir, package_name))
+        self.tarball_path = os.path.join(self._work_dir, package_name)
+        native_sha256sum = self.get_sha256sum()
         if native_sha256sum == "":
             logger.info("get sha256sum of native source package failed, internal error. " + self.ask_warning)
             return SUCCESS
@@ -331,6 +342,8 @@ class CheckSourceConsistency(BaseCheck):
         :return:
         """
         logger.info("getting connection with source_clean.db ...")
+        database_info = os.popen(f"ls {self.database_path} -l").read()
+        logger.info(database_info)
         try:
             if os.path.exists(self.database_path):
                 con = sqlite3.connect(self.database_path)
