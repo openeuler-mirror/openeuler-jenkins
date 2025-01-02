@@ -1,0 +1,28 @@
+repo_name: chatig
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: lishaoxiong
+    name: lishaoxiong
+    email: lisx189@chinaunicom.cn
+    gitee_id: otank
+  - login_name: songyanling
+    name: songyanling
+    email: songyl157@chinaunicom.cn
+    gitee_id: songyanling
+  - login_name: gezhixin
+    name: gezhixin
+    email: gezx8@chinaunicom.cn
+    gitee_id: xinzhige   
+  - login_name: yangwenbing
+    name: yangwenbing
+    email: yangwb255@chinaunicom.cn
+    gitee_id: innocenty 
+  - login_name: tongyuxiang
+    name: tongyuxiang
+    email: tongyx12@chinaunicom.cn
+    gitee_id: tongyx633 
+  - login_name: guosimeng
+    name: guosimeng
+    email: guosm36@chinaunicom.cn
+    gitee_id: guosm36
