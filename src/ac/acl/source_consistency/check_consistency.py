@@ -63,9 +63,9 @@ class CheckSourceConsistency(BaseCheck):
         try:
             with open(self.tarball_path, "r") as f:
                 content = f.read()
-            if "version " in content and "oid sha256:" in content and "size" in content:
-                native_sha256sum = re.search("oid sha256:(.*)", content).group(1)
-                return native_sha256sum.strip()
+            native_sha256sum = re.search("oid sha256:(.*)", content).group(1)
+            logger.info("tarball formatting is lfs, oid is " + native_sha256sum)
+            return native_sha256sum.strip()
         except Exception as e:
             logger.info("package type is base tarball")
             logger.info(str(e))
