@@ -202,11 +202,10 @@ class AC(object):
     def repo_in_maintain(self):
         """
         检查门禁项目中check_repo_in_maintain，分支是否在维护
-        :return:
+        :return: ac_results
         """
-        ac_result = {item['name']:item['result'] for item in self._ac_check_result}
-        if ac_result.get('check_repo_in_maintain', '') == 2:
-            return True
+        ac_results = {item['name']:item['result'] for item in self._ac_check_result}
+        return ac_results
 
 
 
@@ -363,7 +362,7 @@ if "__main__" == __name__:
     ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss,
                  codecheck=codecheck, antipoison=antipoison)
     ac_result = ac.repo_in_maintain()
-    if ac_result:
+    if ac_result.get('check_repo_in_maintain', '') == 2:
         gitee_proxy_inst.create_tags_of_pr(args.pr, "No-longer-maintained")
     dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
