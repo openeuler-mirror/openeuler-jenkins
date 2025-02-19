@@ -199,6 +199,17 @@ class AC(object):
                 else:
                     self._ac_check_elements[name] = elements[name]
 
+    def repo_in_maintain(self):
+        """
+        检查门禁项目中check_repo_in_maintain，分支是否在维护
+        :return:
+        """
+        ac_result = {item['name']:item['result'] for item in self._ac_check_result}
+        if ac_result.get('check_repo_in_maintain', '') == 2:
+            return True
+
+
+
     def save(self, ac_file):
         """
         save result
@@ -208,6 +219,7 @@ class AC(object):
         logger.debug("save ac result to file %s", ac_file)
         with open(ac_file, "w") as f:
             f.write("ACL={}".format(json.dumps(self._ac_check_result)))
+
 
 
 def init_args():
@@ -334,6 +346,7 @@ if "__main__" == __name__:
     # gitee pr tag
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_successful")
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_failed")
+    gitee_proxy_inst.delete_tag_of_pr(args.pr, "No-longer-maintained")
     gitee_proxy_inst.create_tags_of_pr(args.pr, "ci_processing")
 
     # scanoss conf
@@ -349,6 +362,9 @@ if "__main__" == __name__:
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
     ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss,
                  codecheck=codecheck, antipoison=antipoison)
+    ac_result = ac.repo_in_maintain()
+    if ac_result:
+        gitee_proxy_inst.create_tags_of_pr(args.pr, "No-longer-maintained")
     dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
 
