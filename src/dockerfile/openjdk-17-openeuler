@@ -1,0 +1,36 @@
+# replace VERSION before build
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openeuler:VERSION
+
+RUN set -eux;\
+    yum update -y && \
+    yum install -y wget tar gzip ca-certificates && \
+    yum clean all
+
+# Default to UTF-8 file.encoding
+ENV LANG C.UTF-8
+
+ENV JAVA_HOME /usr/local/openjdk-17
+ENV PATH $JAVA_HOME/bin:$PATH
+
+# Download and install OpenJDK 17
+RUN set -eux; \
+    arch="$(arch)"; \
+    case "$arch" in \
+        aarch64) JDK_URL="https://mirrors.huaweicloud.com/openjdk/17/openjdk-17_linux-aarch64_bin.tar.gz" ;; \
+        x86_64) JDK_URL="https://mirrors.huaweicloud.com/openjdk/17/openjdk-17_linux-x64_bin.tar.gz" ;; \
+        *) echo >&2 "error: unsupported architecture: '$arch'"; exit 1 ;; \
+    esac; \
+    \
+    wget -q ${JDK_URL} -O /tmp/jdk.tar.gz && \
+    mkdir -p /usr/local && \
+    tar -xzf /tmp/jdk.tar.gz -C /usr/local && \
+    rm /tmp/jdk.tar.gz
+
+RUN mv /usr/local/jdk-17 /usr/local/openjdk-17
+
+# Basic smoke test
+RUN javac --version && java --version;
+
+# Default command
+# CMD ["/bin/bash"]
+CMD ["jshell"]
