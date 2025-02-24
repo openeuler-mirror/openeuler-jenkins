@@ -36,6 +36,10 @@ src-openeuler:
     hint: check_consistency
     module: source_consistency.check_consistency
     entry: CheckSourceConsistency
+  repo_in_maintain:
+    hint: repo_in_maintain
+    module: repo_in_maintain.repo_in_maintain
+    entry: CheckRepoInMaintain
   anti_poisoning:
     exclude: True
 openeuler:
@@ -79,6 +83,8 @@ openeuler:
     entry: CheckCommitMsg
     allow_list: ["yocto-meta-openeuler"]
   source_consistency:
+    exclude: True
+  repo_in_maintain:
     exclude: True
   patch_format:
     exclude: True
