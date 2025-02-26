@@ -1,0 +1,16 @@
+repo_name: oeDeploy
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: dingjiahui
+    name: dingjiahui
+    email: dingjiahui4@huawei.com
+    gitee_id: dingjiahuichina
+  - login_name: liujiangbin
+    name: liujiangbin
+    email: jiangpancjy@163.com
+    gitee_id: liujiangbin11
+  - login_name: yuanlipeng
+    name: yuanlipeng
+    email: yuanlipeng2@huawei.com
+    gitee_id: randy1568
