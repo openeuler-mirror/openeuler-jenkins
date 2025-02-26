@@ -261,7 +261,7 @@ class CheckSpec(BaseCheck):
         for patch in patches_spec - patches_file:
             logger.error("patch %s lost", patch)
             result = FAILED
-        if self._repo in ["kernel", "grub2"]:
+        if self._repo in ["kernel", "grub2", "bazel"]:
             for patch in patches_file - patches_spec:
                 logger.warning("patch %s redundant", patch)
                 result = WARNING
