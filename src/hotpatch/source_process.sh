@@ -196,7 +196,7 @@ function get_pr_patch_file(){
 }
 
 function gen_hot_patch_metadata(){
-    log_info "************genarate hotpatch metadata**********"
+    log_info "************generate hotpatch metadata**********"
     # 生成远程临时分支，用来提交pr
     create_remote_branch
 
