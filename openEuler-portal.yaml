@@ -1,8 +1,0 @@
-repo_name: openEuler-portal
-container_level: l1
-init_shell: "echo hello openEuler-portal\necho $?"
-users:
-  - login_name: wangxing
-    name: wangxing
-    email: wangxing164@h-partners.com
-    gitee_id: haml
