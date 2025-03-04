@@ -1,0 +1,68 @@
+FROM hub.oepkgs.net/oedeploy/openeuler/openeuler-cann-8.0.0:2203sp4
+
+####################### tcmalloc #######################
+RUN yum install -y gperftools gperftools-devel
+ENV LD_PRELOAD="$LD_PRELOAD:/usr/lib64/libtcmalloc.so"
+
+####################### dev env #######################
+RUN pip install --no-cache-dir \
+    cmake>=3.26 \
+    decorator \
+    ray==2.42.1 \
+    tokenizers==0.15.0 \
+    protobuf==3.20.0 \
+    ml_dtypes \
+    wheel \
+    setuptools \
+    wrap \
+    deprecated \
+    packaging \
+    ninja \
+    "setuptools-scm>=8" \
+    numpy \
+    build
+
+WORKDIR /workspace
+
+# 1. 安装vllm
+ENV USE_TORCH="FALSE"
+ENV USE_TF="FALSE"
+RUN git clone -b v0.6.6.post1 https://gitee.com/mirrors/vllm.git /workspace/vllm && \
+    cd vllm && \
+    VLLM_TARGET_DEVICE=empty pip install --no-cache-dir . && \
+    rm -rf /workspace/vllm
+# 2. 安装msadapter
+RUN git clone https://openi.pcl.ac.cn/OpenI/MSAdapter.git /workspace/msadapter && \
+    cd /workspace/msadapter && \
+    pip uninstall torch torchvision torch-npu -y && \
+    bash scripts/build_and_reinstall.sh && \
+    rm -rf /workspace/msadapter
+# 3. 安装mindformers
+RUN git clone -b br_infer_deepseek_os https://gitee.com/mindspore/mindformers.git /workspace/mindformers && \
+    cd mindformers && \
+    bash build.sh && \
+    pip install --no-cache-dir /workspace/mindformers/output/*.whl && \
+    rm -rf /workspace/mindformers
+# 4. 安装mindspore
+RUN wget --no-check-certificate -O mindspore-2.5.0-cp311-cp311-linux_aarch64.whl \
+https://repo.mindspore.cn/mindspore/mindspore/version/202503/20250303/br_infer_deepseek_os_20250303004707_705727d59236c8c197b25ad0e464c4908434d42f_newest/unified/aarch64/mindspore-2.5.0-cp311-cp311-linux_aarch64.whl && \
+pip install --no-cache-dir mindspore-2.5.0-cp311-cp311-linux_aarch64.whl && \
+rm -f mindspore-2.5.0-cp311-cp311-linux_aarch64.whl
+# 5. 安装golden-stick
+RUN git clone https://gitee.com/mindspore/golden-stick.git /workspace/golden-stick && \
+    cd golden-stick && \
+    bash build.sh && \
+    pip install --no-cache-dir /workspace/golden-stick/output/*.whl && \
+    rm -rf /workspace/golden-stick
+# 6. 安装vllm插件
+RUN git clone https://gitee.com/mindspore/vllm-mindspore.git /workspace/tmp_vllm_mindspore && \
+	cd /workspace/tmp_vllm_mindspore && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install . && \
+    rm -rf /workspace/tmp_vllm_mindspore
+# 7.protobuf降版本
+RUN pip uninstall protobuf -y && \
+    pip install protobuf==3.20.0 -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn && \
+    pip install --no-cache-dir tokenizers==0.21.0
+
+CMD ["bash"]
