@@ -1,0 +1,16 @@
+repo_name: global-trust-authority
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: houmingyong
+    name: houmingyong
+    email: houmingyong@huawei.com
+    gitee_id: houmingyong
+  - login_name: yang8621
+    name: Huang Yang
+    email: huangyang79@huawei.com
+    gitee_id: yang8621
+  - login_name: magickli
+    name: liqiang
+    email: liqiang237@huawei.com
+    gitee_id: magickli
