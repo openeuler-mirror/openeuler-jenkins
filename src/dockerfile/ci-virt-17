@@ -1,0 +1,78 @@
+# replace VERSION before run
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG
+
+#RUN sed -i "s/repo.openeuler.org/repo.huaweicloud.com\/openeuler/g" /etc/yum.repos.d/openEuler.repo
+
+RUN set -eux; \
+    yum install -y cpio bsdtar expect openssh sudo shadow curl wget vim git strace audit-libs-devel augeas autoconf automake bash-completion bison bzip2-devel cargo checkpolicy chrpath cyrus-sasl-devel dbus-devel device-mapper-devel device-mapper-multipath-devel dnsmasq ebtables elfutils-libelf-devel firewalld-filesystem flex gawk gcc gettext gettext-devel glib2 glib2-devel gnutls-devel gtk3-devel iptables iscsi-initiator-utils kernel krb5-devel libacl-devel libaio-devel libattr-devel libblkid-devel libcap-devel libcap-ng-devel libcurl-devel libepoxy-devel libiscsi-devel libjpeg-devel libnl3-devel libpcap-devel libpciaccess-devel libpng-devel librados-devel librbd-devel libseccomp-devel libselinux-devel libssh2-devel libssh-devel libtasn1-devel libtirpc-devel libtool libudev-devel libunwind-devel libusbx-devel libwsman-devel libxml2-devel libxslt lvm2 lzo-devel module-init-tools ncurses-devel netcf-devel nfs-utils ninja-build numactl-devel numad pam-devel parted-devel perl-interpreter perl-podlators perl-Test-Harness pixman-devel polkit python3 python3-devel python3-docutils python3-pip python-sphinx qemu-img radvd rdma-core-devel readline-devel rpcgen rust rust-packaging sanlock-devel scrub selinux-policy-devel snappy-devel systemd systemd-devel systemd-units systemtap-sdt-devel texinfo usbredir-devel util-linux wireshark-devel xfsprogs-devel yajl-devel zlib-devel zstd-devel alsa-lib-devel clang;
+
+# update rust to 1.64.0
+RUN set -eux; \
+    mkdir -p /usr/src/rust-1.64.0; \
+    cd /usr/src/rust-1.64.0; \
+    ARCH=$(arch); \
+    wget -r -nd --no-parent --no-remove-listing http://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP2/everything/${ARCH}/Packages/ -l1 -A rust*.rpm; \
+    wget -r -nd --no-parent --no-remove-listing http://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP2/everything/${ARCH}/Packages/ -l1 -A cargo-*.rpm; \
+    wget -r -nd --no-parent --no-remove-listing http://repo.huaweicloud.com/openeuler/openEuler-22.03-LTS-SP2/everything/${ARCH}/Packages/ -l1 -A clippy-*.rpm; \
+    rm rust-gdb-*; \
+    rm rust-lldb-*; \
+    rm rust-packaging-*; \
+    rpm -Uvh *.rpm; \
+    rm -rf /usr/src/rust-1.64.0;
+
+RUN set -eux; \
+    mkdir -p /usr/src/rust-1.72.0; \
+    cd  /usr/src/rust-1.72.0; \
+    ARCH=$(arch); \
+    wget https://static.rust-lang.org/dist/rust-1.72.0-${ARCH}-unknown-linux-gnu.tar.gz; \
+    wget https://static.rust-lang.org/dist/rust-1.72.0-${ARCH}-unknown-linux-musl.tar.gz; \
+    tar -xf rust-1.72.0-${ARCH}-unknown-linux-gnu.tar.gz; \
+    tar -xf rust-1.72.0-${ARCH}-unknown-linux-musl.tar.gz; \
+    cd rust-1.72.0-${ARCH}-unknown-linux-musl; \
+    sh install.sh; \
+    cd ../rust-1.72.0-${ARCH}-unknown-linux-gnu; \
+    sh install.sh; \
+    cd /root; \
+    rm -rf /usr/src/rust-1.72.0;
+
+ARG VERSION=3107.v665000b_51092
+ARG user=jenkins
+ARG group=jenkins
+ARG uid=1000
+ARG gid=1000
+ARG AGENT_WORKDIR=/home/${user}/agent
+
+RUN curl --create-dirs -fsSLo /usr/share/jenkins/agent.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar \
+    && chmod 755 /usr/share/jenkins \
+    && chmod 644 /usr/share/jenkins/agent.jar \
+    && ln -sf /usr/share/jenkins/agent.jar /usr/share/jenkins/slave.jar
+
+RUN curl --create-dirs -fsSLo /usr/local/bin/jenkins-agent http://121.36.53.23/AdoptOpenJDK/jenkins-agent
+#COPY jenkins-agent /usr/local/bin/jenkins-agent
+
+RUN chmod a+rx /usr/local/openjdk-17 \
+     && chmod a+rx /usr/local/bin/jenkins-agent \
+     && ln -s /usr/local/bin/jenkins-agent /usr/local/bin/jenkins-slave
+
+RUN groupadd -g ${gid} ${group}
+RUN useradd -c "Jenkins user" -d /home/${user} -u ${uid} -g ${gid} -m ${user}
+RUN echo "${user} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
+USER ${user}
+ENV AGENT_WORKDIR=${AGENT_WORKDIR}
+RUN mkdir /home/${user}/.jenkins && mkdir -p ${AGENT_WORKDIR}
+
+VOLUME /home/${user}/.jenkins
+VOLUME ${AGENT_WORKDIR}
+WORKDIR ${AGENT_WORKDIR}
+
+#RUN mkdir -p /home/jenkins/.cargo; \
+#    echo "[source.crates-io]" > /home/jenkins/.cargo/config; \
+#    echo "registry = 'https://mirrors.ustc.edu.cn/crates.io-index'" >> /home/jenkins/.cargo/config; \
+#    echo "replace-with = 'ustc'" >> /home/jenkins/.cargo/config; \
+#    echo "[source.ustc]" >> /home/jenkins/.cargo/config; \
+#    echo "registry = 'https://mirrors.ustc.edu.cn/crates.io-index'" >> /home/jenkins/.cargo/config
+RUN cargo install typos-cli --locked --version 1.16.26
+
+ENTRYPOINT ["jenkins-agent"]

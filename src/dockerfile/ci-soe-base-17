@@ -16,7 +16,7 @@ RUN yum install -y curl sudo cpio bsdtar expect openssh shadow vim git strace py
 	#yum install -y http://121.36.53.23/SP2/perl-XML-Structured-1.3-2.oe1.$arch.rpm
 
 #ARG VERSION=4.3
-ARG VERSION=3044.vb_940a_a_e4f72e
+ARG VERSION=3107.v665000b_51092
 ARG user=jenkins
 ARG group=jenkins
 ARG uid=1000
