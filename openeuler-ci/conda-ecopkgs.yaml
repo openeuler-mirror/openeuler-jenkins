@@ -1,0 +1,12 @@
+repo_name: conda-ecopkgs
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: baiguangjie
+    name: baiguangjie
+    email: baiguangjie1@huawei.com
+    gitee_id: baigj
+  - login_name: luweijun
+    name: luweijun
+    email: luweijun1@huawei.com
+    gitee_id: lu-wei-army
