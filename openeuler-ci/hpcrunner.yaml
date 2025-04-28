@@ -1,0 +1,13 @@
+repo_name: hpcrunner
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: luyao201
+    name: luyao201
+    email: qinluyao@huawei.com
+    gitee_id: luyao201
+
+  - login_name: chunlin
+    name: chunlin
+    email: fangchunlin@huawei.com
+    gitee_id: iotwins
