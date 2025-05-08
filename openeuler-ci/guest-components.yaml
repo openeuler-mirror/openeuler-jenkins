@@ -1,0 +1,12 @@
+repo_name: guest-components
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: houmingyong
+    name: houmingyong
+    email: houmingyong@huawei.com
+    gitee_id: houmingyong
+  - login_name: jiayi0118
+    name: chenjiayi
+    email: chenjiayi22@huawei.com
+    gitee_id: jiayi0118
