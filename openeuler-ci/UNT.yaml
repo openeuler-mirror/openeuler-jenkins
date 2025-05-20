@@ -1,0 +1,8 @@
+repo_name: UNT
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: caojiaju
+    name: caojiaju
+    email: caojiaju1@huawei.com
+    gitee_id: cao-jiaju
