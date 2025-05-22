@@ -1,0 +1,21 @@
+# replace VERSION before run
+FROM swr.cn-north-4.myhuaweicloud.com/openeuler/{arch}/ci/common:24.03-lts-sp1
+USER root
+RUN set -eux; \
+    arch="$(uname -m)";\
+    echo "[openEuler_iso]" > openEuler.repo_bak;\
+    echo -e "name=openEuler_iso" >> openEuler.repo_bak;\
+    if [ "$arch" == "x86_64" ]; then echo -e "baseurl=https://mirrors.huaweicloud.com/openeuler/openEuler-24.03-LTS-SP1/everything/x86_64/" >> openEuler.repo_bak;fi;\
+    if [ "$arch" == "aarch64" ]; then echo -e "baseurl=https://mirrors.huaweicloud.com/openeuler/openEuler-24.03-LTS-SP1/everything/aarch64/" >> openEuler.repo_bak;fi;\
+    echo -e "gpgcheck=0" >> openEuler.repo_bak;\
+    echo -e "enable=1" >> openEuler.repo_bak;\
+    mv /etc/yum.repos.d/openEuler.repo /etc/yum.repos.d/openEuler.repo.origin.bak;\
+    mv openEuler.repo_bak /etc/yum.repos.d/openEuler.repo;
+
+RUN set -eux; \
+    yum install -y alsa-lib-devel  cargo* clang clippy* gcc libcurl libgcc libssh2 libstdc++ llvm-libs openssl-libs pixman pixman-devel rust rust-packaging rust-src rust-std-static rustfmt zlib expect glib2* atk* cairo* gtk3-devel cyrus-sasl-devel pulseaudio-libs-devel libseccomp-devel
+
+RUN set -eux; \
+    cargo install typos-cli
+
+ENV PATH ${HOME}/.cargo/bin:$PATH
