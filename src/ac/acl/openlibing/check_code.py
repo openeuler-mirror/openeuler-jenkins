@@ -150,6 +150,10 @@ class CheckCode(BaseCheck):
             # 只有codecheck完成且codecheck检查的代码中存在bug，返回检查项失败的结果，以detail结尾，会显示具体的代码bug所在位置。
             if response_content.get("state") == "no pass":
                 return FAILED
+        elif response_content.get('code') == '500':
+            logger.error("response content detail : %s", response_content)
+            logger.error("Maybe an unpredictable error has occurred. Please contact the CI administrator.")
+            return FAILED
         else:
             logger.error("code check failed, info : %s", response_content.get('msg'))
 
