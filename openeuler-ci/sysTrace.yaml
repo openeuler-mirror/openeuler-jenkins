@@ -1,0 +1,12 @@
+repo_name: sysTrace
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: huangbin
+    name: huangbin
+    email: huangbin58@huawei.com
+    gitee_id: webankto
+  - login_name: wangshuyuan
+    name: wangshuyuan
+    email: wangshuyuan17@huawei.com
+    gitee_id: GS-Stephen_Curry
