@@ -1,0 +1,12 @@
+repo_name: jiuwen-deepsearch
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: mufangzhou
+    name: mufangzhou
+    email: mufangzhou@huawei.com
+    gitee_id: f4ngzhou
+  - login_name: luoxuewei
+    name: luoxuewei
+    email: luoxuewei@huawei.com
+    gitee_id: luoxuewei2024
