@@ -1,0 +1,8 @@
+repo_name: jiuwen-agentcore
+container_level: l2
+init_shell: "echo Hello agentcore\necho $?"
+users:
+  - login_name: tangfei
+    name: tangfei
+    email: tangfei45@h-partners.com
+    gitee_id: tangfei
