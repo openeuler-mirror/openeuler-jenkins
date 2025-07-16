@@ -77,7 +77,8 @@ openeuler:
                  "libgmem", "unizip", "cantian", "cantian-connector-mysql", "openeuler-os-build", "openeuler-obs",
                  "oeAware-collector", "libkperf", "virtCCA_sdk", "virtCCA_driver", "dim", "dim_tools", "oeAware-manager",
                  "authHub", "sysSentry", "sysmonitor", "oeAware-scenario", "oeAware-tune", "openEuler-portal",
-                 "opendesign-datastat", "quick-issue", "easy-software", "oeDeploy", "global-trust-authority", "UNT", "jiuwen-deepsearch"]
+                 "opendesign-datastat", "quick-issue", "easy-software", "oeDeploy", "global-trust-authority", "UNT", "jiuwen-deepsearch",
+                 "krun"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
