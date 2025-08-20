@@ -1,0 +1,12 @@
+repo_name: OmniOperator
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: muhuiqin
+    name: muhuiqin
+    email: muhuiqin@h-partners.com
+    gitee_id: mu-huiqin
+  - login_name: huangyuyang
+    name: huangyuyang
+    email: huangyuyang1@huawei.com
+    gitee_id: hyycyan_cyan

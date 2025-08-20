@@ -78,7 +78,7 @@ openeuler:
                  "oeAware-collector", "libkperf", "virtCCA_sdk", "virtCCA_driver", "dim", "dim_tools", "oeAware-manager",
                  "authHub", "sysSentry", "sysmonitor", "oeAware-scenario", "oeAware-tune", "openEuler-portal",
                  "opendesign-datastat", "quick-issue", "easy-software", "oeDeploy", "global-trust-authority", "UNT", "jiuwen-deepsearch",
-                 "krun","OmniStream"]
+                 "krun","OmniStream","Gluten","OmniOperator"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
@@ -94,5 +94,5 @@ openeuler:
     hint: check_anti_poisoning
     module: anti_poisoning.check_anti_poisoning
     entry: CheckAntiPoisoning
-    allow_list: ["aops-apollo", "iSulad","OmniStream"]
+    allow_list: ["aops-apollo", "iSulad","OmniStream","Gluten","OmniOperator"]
 
