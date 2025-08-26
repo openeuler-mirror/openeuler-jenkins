@@ -1,0 +1,4 @@
+repo_name: infrastructure
+container_level: l1
+init_shell: "echo Hello infrastructure\necho $?"
+users: []
