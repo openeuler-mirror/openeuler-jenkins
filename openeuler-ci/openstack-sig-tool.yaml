@@ -1,0 +1,16 @@
+repo_name: openstack-sig-tool
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: wangxiyuan
+    name: wangxiyuan
+    email: wangxiyuan@huawei.com
+    gitee_id: xiyuanwang
+  - login_name: HanGuangyu
+    name: HanGuangyu
+    email: hanguangyu@uniontech.com
+    gitee_id: han-guangyu
+  - login_name: tzing_t
+    name: tzing_t
+    email: zhengting13@huawei.com
+    gitee_id: tzing_t
