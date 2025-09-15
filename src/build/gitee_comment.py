@@ -94,6 +94,8 @@ class Comment(object):
             return True, "aarch64"
         if "x86-64" in name and "x86_64" in comment_file:
             return True, "x86_64"
+        if "riscv64" in name and "riscv64" in comment_file:
+            return True, "riscv64"
         return False, ""
 
     @staticmethod
@@ -534,6 +536,8 @@ class Comment(object):
                 return True
             if "x86-64" in name and "x86_64" in comment_file:
                 return True
+            if "riscv64" in name and "riscv64" in comment_file:
+                return True
             return False
 
         check_branches = None
@@ -552,6 +556,8 @@ class Comment(object):
                 arch = "x86_64"
             elif "aarch64" in name:
                 arch = "aarch64"
+            elif "riscv64" in name:
+                arch = "riscv64"
             else:
                 arch = name.split("/")[-2]
             if check_branches:

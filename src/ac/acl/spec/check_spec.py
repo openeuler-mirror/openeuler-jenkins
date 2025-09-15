@@ -285,7 +285,7 @@ class CheckSpec(BaseCheck):
         """
         exclusive_arch = self._spec.get_exclusivearch()
         if exclusive_arch:
-            obj_s = list(set(exclusive_arch).intersection(("x86_64", "aarch64", "noarch")))
+            obj_s = list(set(exclusive_arch).intersection(("x86_64", "aarch64", "riscv64", "noarch")))
             logger.info("support arch:%s", " ".join(obj_s))
             
             if obj_s and "noarch" in obj_s:
