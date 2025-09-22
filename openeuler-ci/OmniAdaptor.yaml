@@ -1,0 +1,8 @@
+repo_name: OmniAdaptor
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: muhuiqin
+    name: muhuiqin
+    email: muhuiqin@h-partners.com
+    gitee_id: mu-huiqin
