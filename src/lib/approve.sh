@@ -23,8 +23,10 @@ function save_build_result() {
   log_info "***** Start to save build result *****"
   committer_pr_x86_64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/x86_64/${giteePullRequestIid}/"
   committer_pr_aarch64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/aarch64/${giteePullRequestIid}/"
+  committer_pr_riscv64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/${giteeCommitter}/${giteeRepoName}/riscv64/${giteePullRequestIid}/"
   global_x86_64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/x86_64/"
   global_aarch64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/aarch64/"
+  global_riscv64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${giteeTargetBranch}/0X080480000XC0000000/${giteeRepoName}/riscv64/"
 
   log_info "***** Start to config remote shell *****"
   remote_place_cmd=$(
@@ -58,6 +60,21 @@ if [[ -d "$committer_pr_aarch64_dir" && ("\$(ls -A $committer_pr_aarch64_dir | g
 	fi
 	if [[ -d "$committer_pr_aarch64_dir" && "\$(ls -A $committer_pr_aarch64_dir | grep '\.json$')" ]]; then
 		cp $committer_pr_aarch64_dir/*.json $global_aarch64_dir/report/
+	fi
+fi
+if [[ -d "$committer_pr_riscv64_dir" && ("\$(ls -A $committer_pr_riscv64_dir | grep '\.rpm$')" || "\$(ls -A $committer_pr_riscv64_dir | grep '\.json$')") ]]; then
+	if [[ ! -d "$global_riscv64_dir/report" ]]; then
+		mkdir -p $global_riscv64_dir/report
+	fi
+	if [[ -d "$global_riscv64_dir" && "\$(ls -A $global_riscv64_dir | grep '\.rpm$')" ]]; then
+		rm $global_riscv64_dir/*.rpm
+	fi
+
+    if [[ -d "$committer_pr_riscv64_dir" && "\$(ls -A $committer_pr_riscv64_dir | grep '\.rpm$')" ]]; then
+		cp $committer_pr_riscv64_dir/*.rpm $global_riscv64_dir/
+	fi
+	if [[ -d "$committer_pr_riscv64_dir" && "\$(ls -A $committer_pr_riscv64_dir | grep '\.json$')" ]]; then
+		cp $committer_pr_riscv64_dir/*.json $global_riscv64_dir/report/
 	fi
 fi
 

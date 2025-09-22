@@ -106,12 +106,15 @@ def run(owner, repo, number):
         # 查看工程是否创建成功
         x86_project = 'multiarch/openeuler/x86-64/{}'.format(repo_name)
         aarch64_project = 'multiarch/openeuler/aarch64/{}'.format(repo_name)
+        riscv64_project = 'multiarch/openeuler/riscv64/{}'.format(repo_name)
         projects_created = False
         retest = 5
         while retest > 0:
             time.sleep(60)
-            if server.get_job_name(x86_project) == repo_name and server.get_job_name(aarch64_project) == repo_name:
-                logger.info('Notice projects x86-64 & aarch64 for {} had been created.'.format(repo_name))
+            if server.get_job_name(x86_project) == repo_name\
+                and server.get_job_name(aarch64_project) == repo_name\
+                and server.get_job_name(riscv64_project) == repo_name:
+                logger.info('Notice projects x86-64 & aarch64 & riscv64 for {} had been created.'.format(repo_name))
                 projects_created = True
                 break
             retest -= 1
@@ -153,18 +156,22 @@ def run(owner, repo, number):
         user_list = [user['login_name'] for user in users]
         add_user_permissions(server, user_list, x86_project)
         add_user_permissions(server, user_list, aarch64_project)
-        # 修改x86-64和aarch64的指定node
+        add_user_permissions(server, user_list, riscv64_project)
+        # 修改x86-64和aarch64,riscv64的指定node
         logger.info('Config container level')
         with open('utils/container_level_mapping.yaml', 'r') as f:
             container_level_mapping = yaml.safe_load(f)
         x86_node = container_level_mapping.get('x86').get(container_level)
         aarch64_node = container_level_mapping.get('aarch64').get(container_level)
+        riscv64_node = container_level_mapping.get('riscv64').get(container_level)
         config_image_level(server, x86_node, x86_project)
         config_image_level(server, aarch64_node, aarch64_project)
-        # 修改x86-64和aarch64的初始脚本
+        config_image_level(server, riscv64_node, riscv64_project)
+        # 修改x86-64和aarch64,riscv64的初始脚本
         logger.info('Config init shell')
         config_init_shell(server, init_shell, x86_project)
         config_init_shell(server, init_shell, aarch64_project)
+        config_init_shell(server, init_shell, riscv64_project)
     logger.info('Finish dealing with the Merge Hook, waiting next Merge Hook.')
 
 

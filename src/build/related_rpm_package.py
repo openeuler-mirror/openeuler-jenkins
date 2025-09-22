@@ -37,7 +37,7 @@ class RelatedRpms(object):
         :param repo: obs address
         :param obs_repo_url: obs repo
         :param project_name: project name
-        :param package_arch: aarch64/x86_64
+        :param package_arch: aarch64/x86_64/riscv64
         """
         self._obs_addr = obs_addr
         self._obs_repo_url = obs_repo_url
@@ -67,9 +67,12 @@ class RelatedRpms(object):
         if self._package_arch == "x86_64":
             self._arch_names["standard_x86_64/x86_64"] = os.path.join(temp_path, "x86_64.html")
             self._arch_names["standard_x86_64/noarch"] = os.path.join(temp_path, "x86_noarch.html")
-        else:
+        elif self._package_arch == "aarch64":
             self._arch_names["standard_aarch64/aarch64"] = os.path.join(temp_path, "aarch64.html")
             self._arch_names["standard_aarch64/noarch"] =  os.path.join(temp_path, "noarch.html")
+        elif self._package_arch == "riscv64":
+            self._arch_names["standard_riscv64/riscv64"] = os.path.join(temp_path, "riscv64.html")
+            self._arch_names["standard_riscv64/noarch"] = os.path.join(temp_path, "riscv64_noarch.html")
         download_project_name = self._project_name.replace(":", ":/")
         rpm_base_name = os.path.basename(rpm_name).rsplit("-", 2)[0]
         rpm_arch_name = os.path.basename(rpm_name).split(".oe1")[-1]
