@@ -1,0 +1,8 @@
+repo_name: yuanrong-runtime
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: linqingwen
+    name: linqingwen
+    email: linqingwen@huawei.com
+    gitee_id: linqingwen
