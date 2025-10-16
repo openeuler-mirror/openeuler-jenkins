@@ -633,6 +633,8 @@ class Comment(object):
         else:
             ac_result = ACResult.get_instance(single_build_result)
             item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
+        if arch in 'riscv64' and not single_build_result:
+            ac_result = ACResult.get_instance(1)
 
         comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
                         "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
