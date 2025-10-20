@@ -1,0 +1,8 @@
+repo_name: kspack-c
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: mszjaas
+    name: zhangjian
+    email: zhangjian496@huawei.com
+    gitee_id: mszjaas
