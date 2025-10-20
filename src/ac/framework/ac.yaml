@@ -78,7 +78,9 @@ openeuler:
                  "oeAware-collector", "libkperf", "virtCCA_sdk", "virtCCA_driver", "dim", "dim_tools", "oeAware-manager",
                  "authHub", "sysSentry", "sysmonitor", "oeAware-scenario", "oeAware-tune", "openEuler-portal",
                  "opendesign-datastat", "quick-issue", "easy-software", "oeDeploy", "global-trust-authority", "UNT", "jiuwen-deepsearch",
-                 "krun","OmniStream","Gluten","OmniOperator", "llvm-project","OmniStateStore","OmniAdaptor"]
+                 "krun","OmniStream","Gluten","OmniOperator", "llvm-project","OmniStateStore","OmniAdaptor", "kspack-c", 
+                 "kspack-go", "kspack-java", "kspack-rust", "memory-scan", "hbm-predictor", "hsak", "extfuse",
+                 "stortrace", "storprototrace", "nvme-snsd"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
