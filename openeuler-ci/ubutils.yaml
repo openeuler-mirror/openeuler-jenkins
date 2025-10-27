@@ -1,0 +1,8 @@
+repo_name: ubutils
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: Jianquan-Lin
+    name: Jianquan-Lin
+    emai: linjianquan2@huawei.com
+    gitee_id: jianquan-lin
