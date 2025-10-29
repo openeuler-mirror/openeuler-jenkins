@@ -1,0 +1,8 @@
+repo_name: cdma
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+    - login_name: Zhipeng-Lu
+          name: Zhipeng-Lu
+                emai: luzhipeng8@h-partners.com
+                      gitee_id: Zhipengs-path
