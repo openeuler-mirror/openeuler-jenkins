@@ -1,0 +1,8 @@
+repo_name: ummu
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: Liming-An
+    name: Liming-An
+    email: anliming1@h-partners.com
+    gitee_id: anliming-path
