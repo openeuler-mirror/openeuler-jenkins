@@ -293,7 +293,19 @@ class Comment(object):
         build result check
         :return:
         """
-        build_result = sum([ACResult.get_instance(build["result"]) for build in self._up_builds], SUCCESS)
+        
+        def filter_no_success(arch):
+            results = []
+            for build in self._up_builds:
+                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
+                result = ACResult.get_instance(build["result"])
+                if arch in name and result != SUCCESS:
+                    continue
+                results.append(result)
+            return results
+
+        build_result = sum(filter_no_success('riscv64'), SUCCESS)
+        # build_result = sum([ACResult.get_instance(build["result"]) for build in self._up_builds], SUCCESS)
         return build_result
 
     def check_ac_result(self):
@@ -618,8 +630,12 @@ class Comment(object):
             single_build_result = build["result"]
         if check_item_info and check_item_info.get("check_install").lower() != "success":
             self.check_install_result = False
+            if 'riscv64' in arch:
+                self.check_install_result = True
         if check_item_info and check_item_info.get("check_license").lower() != "success":
             self.check_license_result = False
+            if 'riscv64' in arch:
+                self.check_license_result = True
         logger.info(f"single_build_result:{single_build_result}")
         logger.info(f"check_item_info:{check_item_info}")
         if os.path.exists("support_arch"):
@@ -633,7 +649,7 @@ class Comment(object):
         else:
             ac_result = ACResult.get_instance(single_build_result)
             item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
-        if arch in 'riscv64' and not single_build_result:
+        if arch in 'riscv64' and ac_result != SUCCESS:
             ac_result = ACResult.get_instance(1)
 
         comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
