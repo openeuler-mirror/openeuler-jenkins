@@ -83,7 +83,7 @@ openeuler:
                  "stortrace", "storprototrace", "nvme-snsd",“rust_shyper","qemu","libvirt","libcareplus","capsule","vmtop","skylark",
                  "Virt-docs","edk2","libvirt-python","open-vm-tools","cloud-hypervisor","virglrenderer","vagrant-lxc","vagrant-libvirt",
                  "vagrant-hostmanager","vagrant","libvirt-dbus","libvirt-glib","llm_solution","secDetector","rubik",
-                 "security-tool","imageTailor"]
+                 "security-tool","imageTailor","obmm"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
@@ -99,5 +99,5 @@ openeuler:
     hint: check_anti_poisoning
     module: anti_poisoning.check_anti_poisoning
     entry: CheckAntiPoisoning
-    allow_list: ["aops-apollo", "iSulad","OmniStream","Gluten","OmniOperator","OmniStateStore","OmniAdaptor"]
+    allow_list: ["aops-apollo", "iSulad","OmniStream","Gluten","OmniOperator","OmniStateStore","OmniAdaptor","obmm"]
 
