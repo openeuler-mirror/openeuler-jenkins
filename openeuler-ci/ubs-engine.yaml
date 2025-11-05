@@ -1,0 +1,8 @@
+repo_name: ubs-engine
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: ubsengine
+    name: yuansicheng
+    email: yuansicheng@huawei.com
+    gitee_id: yuan-sicheng
