@@ -430,7 +430,7 @@ class Comment(object):
                             content = yaml.safe_load(f)
                         except YAMLError:  # yaml base exception
                             logger.exception("illegal yaml format of compare package comment file ")
-                compare_details = content.get("compare_details")
+                compare_details = content.get("compare_details", {})
                 logger.info("comment: %s", compare_details)
                 for index, item in enumerate(compare_details):
                     rpm_name = compare_details.get(item, [])
