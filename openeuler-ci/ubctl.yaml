@@ -1,0 +1,8 @@
+repo_name: ubctl
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+    - login_name: JiaqiCheng
+          name: JiaqiCheng
+                emai: chengjiaqi3@huawei.com
+                      gitee_id: cheng-jiaqi888

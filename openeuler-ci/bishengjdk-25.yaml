@@ -1,0 +1,8 @@
+repo_name: bishengjdk-25
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: wulongyao
+    name: wulongyao
+    email: wulongyao1@huawei.com
+    gitee_id: easywuly

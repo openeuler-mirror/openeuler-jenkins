@@ -1,0 +1,8 @@
+repo_name: ubturbo
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: ubturbo
+    name: wangsheng
+    email: wangsheng138@h-partners.com
+    gitee_id: wsheng999
