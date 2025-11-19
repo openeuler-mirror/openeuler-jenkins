@@ -78,7 +78,13 @@ openeuler:
                  "oeAware-collector", "libkperf", "virtCCA_sdk", "virtCCA_driver", "dim", "dim_tools", "oeAware-manager",
                  "authHub", "sysSentry", "sysmonitor", "oeAware-scenario", "oeAware-tune", "openEuler-portal",
                  "opendesign-datastat", "quick-issue", "easy-software", "oeDeploy", "global-trust-authority", "UNT", "jiuwen-deepsearch",
-                 "krun","OmniStream","Gluten","OmniOperator", "llvm-project","OmniStateStore","OmniAdaptor","golang"]
+                 "krun","OmniStream","Gluten","OmniOperator", "llvm-project","OmniStateStore","OmniAdaptor", "kspack-c", 
+                 "kspack-go", "kspack-java", "kspack-rust", "memory-scan", "hbm-predictor", "hsak", "extfuse",
+                 "stortrace", "storprototrace", "nvme-snsd",“rust_shyper","qemu","libvirt","libcareplus","capsule","vmtop","skylark",
+                 "Virt-docs","edk2","libvirt-python","open-vm-tools","cloud-hypervisor","virglrenderer","vagrant-lxc","vagrant-libvirt",
+                 "vagrant-hostmanager","vagrant","libvirt-dbus","libvirt-glib","llm_solution","secDetector","rubik",
+                 "security-tool","imageTailor","obmm","yuanrong-functionsystem","yuanrong-runtime","yuanrong-datasystem","ray-adapter",
+                 "ubs-engine","ubturbo","ubs-comm","knet","golang"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
@@ -94,5 +100,5 @@ openeuler:
     hint: check_anti_poisoning
     module: anti_poisoning.check_anti_poisoning
     entry: CheckAntiPoisoning
-    allow_list: ["aops-apollo", "iSulad","OmniStream","Gluten","OmniOperator","OmniStateStore","OmniAdaptor","golang"]
+    allow_list: ["aops-apollo", "iSulad","OmniStream","Gluten","OmniOperator","OmniStateStore","OmniAdaptor","obmm","golang"]
 
