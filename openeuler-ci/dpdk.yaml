@@ -1,0 +1,8 @@
+repo_name: dpdk
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: huangbingkang
+    name: huangbingkang
+    email: 1209365920@qq.com
+    gitee_id: huang_bing_kang
