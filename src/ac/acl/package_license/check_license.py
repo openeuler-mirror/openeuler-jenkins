@@ -21,7 +21,7 @@ import os
 import shutil
 
 from src.ac.acl.package_license.package_license import PkgLicense
-from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.common.gitcode_repo import GitcodeRepo
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
@@ -40,7 +40,7 @@ class CheckLicense(BaseCheck):
 
         self._gp = GitProxy(self._work_dir)
         self._work_tar_dir = os.path.join(workspace, "code")
-        self._gr = GiteeRepo(self._repo, self._work_dir, self._work_tar_dir)
+        self._gr = GitcodeRepo(self._repo, self._work_dir, self._work_tar_dir)
         if self._gr.spec_file:
             self._spec = RPMSpecAdapter(os.path.join(self._work_dir, self._gr.spec_file))
         else:
@@ -62,7 +62,7 @@ class CheckLicense(BaseCheck):
         if not os.path.exists(self._work_tar_dir):
             os.mkdir(self._work_tar_dir)
         self._gr.decompress_all()  # decompress all compressed file into work_tar_dir
-        codecheck = kwargs.get("codecheck", {})
+        codecheck = kwargs.get("common_args", {})
         pr_url = codecheck.get("pr_url", "")
         self.response_content = self._pkg_license.get_license_info(pr_url)
 

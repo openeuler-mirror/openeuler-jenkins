@@ -22,7 +22,7 @@ from src.proxy.git_proxy import GitProxy
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
 
-from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.common.gitcode_repo import GitcodeRepo
 from src.utils.shell_cmd import shell_cmd_unicode
 
 logger = logging.getLogger("ac")
@@ -79,7 +79,7 @@ class CheckPatchFormat(BaseCheck):
         diff_files = gp.diff_files_between_commits("HEAD~1", "HEAD~0")
         logger.info("diff files: %s", diff_files)
 
-        patch_list = [diff_file for diff_file in diff_files if GiteeRepo.is_patch_file(diff_file)]
+        patch_list = [diff_file for diff_file in diff_files if GitcodeRepo.is_patch_file(diff_file)]
         if not patch_list:
             return SUCCESS
 

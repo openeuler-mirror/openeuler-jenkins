@@ -173,7 +173,7 @@ class ExtraWork(object):
 
         # 2. prepare repo
         repo_source = OBSRepoSource()   # obs 实时构建repo地址
-        obs_branch_list = Constant.GITEE_BRANCH_PROJECT_MAPPING.get(config.branch_name, [])
+        obs_branch_list = Constant.GITCODE_BRANCH_PROJECT_MAPPING.get(config.branch_name, [])
         repo_config = repo_source.generate_repo_info(config.branch_name, obs_branch_list, config.arch, "check_install")
         logger.info("repo source config:\n%s", repo_config)
 
@@ -271,7 +271,7 @@ def getrelatedrpm(config, extrawork):
     :param extrawork:
     :return:
     """
-    for project in Constant.GITEE_BRANCH_PROJECT_MAPPING.get(config.branch_name):
+    for project in Constant.GITCODE_BRANCH_PROJECT_MAPPING.get(config.branch_name):
         logging.debug("find project %s, package: %s, aarch: %s", project, config.package, config.arch)
         result = OBSProxy.get_binaries(project, config.package, config.arch)
         if result:

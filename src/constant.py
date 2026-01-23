@@ -23,7 +23,7 @@ class Constant(object):
 
     SUPPORT_ARCH = ["x86_64", "aarch64", "riscv64"]
 
-    GITEE_BRANCH_PROJECT_MAPPING = {
+    GITCODE_BRANCH_PROJECT_MAPPING = {
         "master": ["openEuler:Extras", "openEuler:Mainline", "openEuler:Epol",
                    "openEuler:BaseTools", "openEuler:C", "openEuler:Common_Languages_Dependent_Tools",
                    "openEuler:Erlang", "openEuler:Golang", "openEuler:Java", "openEuler:KernelSpace", "openEuler:Lua",

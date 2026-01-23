@@ -17,15 +17,10 @@
 """
 
 import logging
-import os
-import shutil
 
 from src.ac.acl.package_license.package_license import PkgLicense
-from src.ac.common.gitee_repo import GiteeRepo
-from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
-from src.proxy.git_proxy import GitProxy
 
 logger = logging.getLogger("ac")
 
@@ -48,7 +43,7 @@ class CheckOpeneulerLicense(BaseCheck):
         :return:
         """
         logger.info("check %s license ...", self._repo)
-        codecheck = kwargs.get("codecheck", {})
+        codecheck = kwargs.get("common_args", {})
         pr_url = codecheck.get("pr_url", "")
         self.response_content = self._pkg_license.get_license_info(pr_url)
 

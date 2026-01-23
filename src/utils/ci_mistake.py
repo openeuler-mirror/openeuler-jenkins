@@ -22,7 +22,7 @@ import argparse
 import time
 import yaml
 
-from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.gitcode_proxy import GitcodeProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.logger import logger
 
@@ -36,18 +36,18 @@ class CiMistake(object):
 
     support_mistake_type = ["ci", "obs", "infra"]
 
-    def __init__(self, pr_url, gitee_token, committer, commit_at, comment_id):
+    def __init__(self, pr_url, gitcode_token, committer, commit_at, comment_id):
         """
         initial
         :param pr_url: pr link
-        :param gitee_token: gitee comment token
+        :param gitcode_token: gitcode comment token
         :param committer: ci mistake comment committer
         :param commit_at: ci mistake comment date
-        :param comment_id: gitee comment id
+        :param comment_id: gitcode comment id
         :return:
         """
         self.pr_url = pr_url
-        self.gitee_token = gitee_token
+        self.gitcode_token = gitcode_token
         self.committer = committer
         self.comment_id = comment_id
         self.commit_at = round(datetime.datetime.strptime(commit_at, "%Y-%m-%dT%H:%M:%S%z").timestamp(), 1)
@@ -90,10 +90,10 @@ class CiMistake(object):
         :param pr_url:
         :return:
         """
-        res = re.search(r"https://gitee.com/.*/.*/.*/.*", pr_url)
+        res = re.search(r"https://gitcode.com/.*/.*/.*/.*", pr_url)
         if not res:
             raise ValueError("{} format error".format(pr_url))
-        sp = re.sub("https://gitee.com/", "", pr_url).split("/")
+        sp = re.sub("https://gitcode.com/", "", pr_url).split("/")
         owner_index = 0
         repo_index = 1
         pr_id_index = 3
@@ -132,7 +132,7 @@ class CiMistake(object):
         :param comment_content: comment content
         :return:
         """
-        gp = GiteeProxy(self.owner, self.repo, self.gitee_token)
+        gp = GitcodeProxy(self.owner, self.repo, self.gitcode_token)
         gp.comment_pr(self.pr_id, comment_content)
 
     def send_ci_mistake_data(self, command, build_no, ci_mistake_type, ci_mistake_stage, description):
@@ -232,13 +232,13 @@ def init_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pr_url", type=str, dest="pr_url", help="pull request")
     parser.add_argument("--mistake_comment", type=str, dest="mistake_comment",
-                        help="gitee comment for mask ci mistake")
+                        help="gitcode comment for mask ci mistake")
     parser.add_argument("--committer", type=str, dest="committer", help="committer")
     parser.add_argument("--commit_at", type=str, dest="commit_at", help="commit time")
     parser.add_argument("--comment_id", type=str, dest="comment_id", help="comment id")
     parser.add_argument("--build_no_filepath", type=str, dest="build_no_filepath",
                         help="path of a file which record history build numbers")
-    parser.add_argument("--gitee_token", type=str, dest="gitee_token", help="gitee api token")
+    parser.add_argument("--gitcode_token", type=str, dest="gitcode_token", help="gitcode api token")
 
     return parser.parse_args()
 
@@ -246,6 +246,6 @@ def init_args():
 if "__main__" == __name__:
     args = init_args()
 
-    ci_mistake = CiMistake(args.pr_url, args.gitee_token, args.committer, args.commit_at, args.comment_id)
+    ci_mistake = CiMistake(args.pr_url, args.gitcode_token, args.committer, args.commit_at, args.comment_id)
     ci_mistake.process(args.mistake_comment, args.build_no_filepath)
 

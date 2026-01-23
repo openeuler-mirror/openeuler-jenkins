@@ -20,6 +20,7 @@ import time
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
 from src.proxy.requests_proxy import do_requests
+from src.proxy.openlibing_proxy import OpenlibingProxy
 
 logger = logging.getLogger("ac")
 
@@ -39,12 +40,13 @@ class CheckCode(BaseCheck):
         super(CheckCode, self).__init__(workspace, repo, conf)
 
         # wait to initial
+        self._community = None
         self._pr_url = None
-        self._pr_number = None
-        self._dynamic_token = None
-        self._static_key = None
-        self._codecheck_ip = 'https://majun.osinfra.cn'
-        self._codecheck_prefix = '/api/ci-backend/ci-portal/webhook/codecheck/v1'
+        self._accountid = None
+        self._secretKey = None
+        self._codecheck_ip = 'https://www.openlibing.com'
+        self._codecheck_prefix = '/gateway/openlibing-codecheck'
+        self.openlibing_proxy = None
 
     def __call__(self, *args, **kwargs):
         """
@@ -55,72 +57,58 @@ class CheckCode(BaseCheck):
         """
         logger.info("check %s code ...", self._repo)
         logger.debug("args: %s, kwargs: %s", args, kwargs)
-        codecheck_conf = kwargs.get("codecheck", {})
+        codecheck_conf = kwargs.get("common_args", {})
 
+        self._community = codecheck_conf.get("community", "")
         self._pr_url = codecheck_conf.get("pr_url", "")
-        self._pr_number = codecheck_conf.get("pr_number", "")
-        self._static_key = codecheck_conf.get('codecheck_api_key', "")
-
+        self._accountid = codecheck_conf.get("accountid", "")
+        self._secretKey = codecheck_conf.get("secretKey", "")
+        self.openlibing_proxy = OpenlibingProxy(self._accountid, self._secretKey)
+        if codecheck_conf.get("platform", "") == "gitcode":
+            self._pr_url = self._pr_url.replace("/pull/", "/merge_requests/")
         return self.start_check()
 
-    def _get_dynamic_token(self):
-        try:
-            response_content = {}
-            token_url = f'{self._codecheck_ip}{self._codecheck_prefix}/token'
-            post_data = {
-                "static_token": self._static_key
-            }
-            rs = do_requests("post", token_url, body=post_data, obj=response_content)
-            if rs == 0 and response_content.get('code', "") == "200":
-                self._dynamic_token = response_content.get('data', '')
-                logger.info('get dynamic token success')
-            else:
-                logger.error('get dynamic token failed: %s', response_content.get("msg"))
-        except Exception as error:
-            logger.error('get dynamic token failed exception:%s', error)
-
-    def get_codecheck_result(self, pr_url):
+    def get_codecheck_result(self):
         """
         通过api调用codecheck
         """
-        # get codecheck Api Token
-        self._get_dynamic_token()
-
         response_content = {}
         # 创建codecheck检查任务
-        task_url = f'{self._codecheck_ip}{self._codecheck_prefix}/task'
+        task_url = f'{self._codecheck_ip}{self._codecheck_prefix}/ci-portal/webhook/codecheck/v1/task'
+        headers = self.openlibing_proxy.get_openlibing_api_headers()
         post_data = {
-            "pr_url": pr_url,
-            "token": self._dynamic_token
+            "pr_url": self._pr_url,
+            "projectName": self._community
         }
-        rs = do_requests("post", task_url, body=post_data, obj=response_content)
+
+        rs = do_requests("post", task_url, body=post_data, headers=headers, obj=response_content)
         if rs != 0 or response_content.get('code', '') != '200':
-            if response_content.get('msg').find("There is no proper set of languages") != -1:
+            if response_content.get('msg') and response_content.get('msg').find("There is no proper set of languages") != -1:
                 response_content.update(code="200", msg="success", state="pass")
                 return 0, response_content
-            logger.error("create codecheck task failed; %s", response_content.get('msg', ''))
+            logger.error("create codecheck task failed:{}".format(response_content))
             return 'false', {}
 
         uuid = response_content.get('uuid')
         task_id = response_content.get('task_id')
+        headers = self.openlibing_proxy.get_openlibing_api_headers()
         data = {
             "uuid": uuid,
             "task_id": task_id,
-            "token": self._dynamic_token
         }
-        status_url = f'{self._codecheck_ip}{self._codecheck_prefix}/task/status'
+        status_url = f'{self._codecheck_ip}{self._codecheck_prefix}/ci-portal/webhook/codecheck/v1/task/status'
         current_time = 0
-        logger.info("codecheck probably need to 10min")
-
+        total_expire = 600
+        logger.info("codecheck probably need to {} seconds".format(total_expire))
+        time_interval = 10
         # 定时10min
-        while current_time < 600:
-            time.sleep(10)
+        while current_time < total_expire:
+            time.sleep(time_interval)
             response_content = {}
             # 检查codecheck任务的执行状态
-
-            rs = do_requests("post", status_url, body=data, obj=response_content)
+            rs = do_requests("post", status_url, body=data, headers=headers, obj=response_content)
             if rs == 0 and response_content.get('code') == '100':
-                current_time = current_time + 10
+                current_time = current_time + time_interval
                 continue
             else:
                 break
@@ -131,7 +119,7 @@ class CheckCode(BaseCheck):
         开始进行codecheck检查
         """
         # 等待计算结果
-        rs, response_content = self.get_codecheck_result(self._pr_url)
+        rs, response_content = self.get_codecheck_result()
 
         # 判断是否计算完成
         if rs != 0:

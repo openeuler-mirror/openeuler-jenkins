@@ -314,7 +314,7 @@ class ComparePackage(object):
     def _get_pr_changelog(self, pr_commit_json_file):
         """
         获取更新代码的changelog内容，应承载接口变更检查原因及影响
-        :param: pr_commit_json_file: gitee PR提交对应的变更文件信息, json格式
+        :param: pr_commit_json_file: gitcode PR提交对应的变更文件信息, json格式
         :return: 返回spec文件中新增的changelog内容
         """
         result = ""

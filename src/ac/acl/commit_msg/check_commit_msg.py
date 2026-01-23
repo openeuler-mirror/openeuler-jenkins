@@ -37,7 +37,7 @@ class CheckCommitMsg(BaseCheck):
         """
         logger.info("check %s commit msg ...", self._repo)
         logger.debug("args: %s, kwargs: %s", args, kwargs)
-        checkcommit = kwargs.get("codecheck", {})
+        checkcommit = kwargs.get("common_args", {})
 
         self._pr_number = checkcommit.get("pr_number", "")
         self._tbranch = kwargs.get("tbranch", None)

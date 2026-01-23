@@ -30,6 +30,7 @@ class GitProxy(object):
     """
     git 代理，实现常见的git操作
     """
+
     def __init__(self, repo_dir):
         """
         :param repo_dir: 仓库目录
@@ -55,9 +56,9 @@ class GitProxy(object):
 
         return cls(repo_dir)
 
-    @retrying.retry(retry_on_result=lambda result: result is False, 
-            stop_max_attempt_number=3, wait_fixed=2)
-    def fetch_pull_request(self, url, pull_request, depth=1, progress=False):
+    @retrying.retry(retry_on_result=lambda result: result is False,
+                    stop_max_attempt_number=3, wait_fixed=2)
+    def fetch_pull_request(self, url, pull_request, depth=1, platform="gitcode", progress=False):
         """
         fetch pr
         :param url: 仓库地址
@@ -66,16 +67,24 @@ class GitProxy(object):
         :param progress: 展示进度
         :return:
         """
-        fetch_cmd = "cd {}; git fetch {} --depth {} {} +refs/pull/{}/head:refs/pull/{}/MERGE".format(
-            self._repo_dir, "--progress" if progress else "", depth, url, pull_request, pull_request)
+        if platform == "gitcode":
+            head_prefix = "+refs/merge-requests/{}/head".format(pull_request)
+        else:
+            head_prefix = "+refs/pull/{}/head".format(pull_request)
+        fetch_cmd = "cd {}; git fetch {} --depth {} {} {}:refs/pull/{}/MERGE".format(
+            self._repo_dir, "--progress" if progress else "", depth, url, head_prefix, pull_request)
+        logger.info("the fetch cmd is:{}".format(fetch_cmd))
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
+        if ret:
+            fetch_cmd = fetch_cmd.replace("+refs/merge-requests/", "+refs/pull/")
+            ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
             logger.error("git fetch failed, %s", ret)
             logger.error("%s", out)
             return False
 
         return True
-      
+
     def get_content_of_file_with_commit(self, file_path, commit="HEAD~0"):
         """
         获取单个commit文件内容
@@ -137,7 +146,7 @@ class GitProxy(object):
         ret, _, _ = shell_cmd_live(apply_patch_cmd)
 
         if ret:
-            #logger.error("apply patch failed, %s", ret)
+            # logger.error("apply patch failed, %s", ret)
             return False
 
         return True
@@ -151,12 +160,12 @@ class GitProxy(object):
         :param leading: Remove &lt;n&gt; leading path components
         :return: boolean
         """
-        #apply_patch_cmd = "cd {}; patch -l -t -p{} < {}".format(patch_dir, leading, patch_path)
+        # apply_patch_cmd = "cd {}; patch -l -t -p{} < {}".format(patch_dir, leading, patch_path)
         apply_patch_cmd = "cd {}; git apply --ignore-whitespace -p{} {}".format(patch_dir, leading, patch_path)
         ret, _, _ = shell_cmd_live(apply_patch_cmd)
 
         if ret:
-            #logger.error("apply patch failed, %s", ret)
+            # logger.error("apply patch failed, %s", ret)
             return False
 
         return True

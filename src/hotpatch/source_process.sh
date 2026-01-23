@@ -1,4 +1,4 @@
-release_path=/repo/openeuler/${giteeTargetBranch}
+release_path=/repo/openeuler/${gitcodeTargetBranch}
 src_path=source/Packages
 update_src_path=update/source/Packages
 hotpatch_update_src_path=hotpatch_update/source/Packages
@@ -6,7 +6,7 @@ hotpatch_update_src_path=hotpatch_update/source/Packages
 
 function ver_maintainer(){
     if [[ ! ${trustlist} =~ ${comment_user} ]];then
-        check_result=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${giteeRepoName}'/collaborators?access_token='${token}'&page=1&per_page=100'`
+        check_result=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/collaborators?access_token='${token}'&page=1&per_page=100'`
         maintainer_list=`echo ${check_result}|jq -r '.[].login'`
         echo $maintainer_list
         if [[ ! ${maintainer_list[@]} =~ ${comment_user} ]]; then
@@ -18,9 +18,9 @@ function ver_maintainer(){
 
 function print_job(){
     job_name=`echo $JOB_NAME|sed -e 's#/#/job/#g'`
-    job_path="https://openeulerjenkins.osinfra.cn/job/${job_name}/$BUILD_ID/console"
+    job_path="https://ci.openeuler.openatom.cn/job/${job_name}/$BUILD_ID/console"
     body_str="热补丁制作流程已启动，正在创建热补丁issue和生成热补丁元数据并提交pr至hotpatch_meta仓库，请不要重复提交命令。\n点击链接查看工程进度：${job_path}\n热补丁issue及hotpatch_meta仓作用参考：https://gitee.com/openeuler/hotpatch_meta/blob/master/README.md"
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${giteeRepoName}'/pulls/'${giteePullRequestIid}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
 function error_info(){
@@ -70,7 +70,7 @@ function get_src_rpm(){
     # get src_url
     log_info "**********get source rpm in release**********"
     if [[ mode == "ACC" ]]; then
-        src_hotpatch_update_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no -o LogLevel=ERROR root@${release_ip} "cd ${release_path}/${hotpatch_update_src_path} && ls | grep ${giteeRepoName}-${version} | tail -n 1"`|| echo ""
+        src_hotpatch_update_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no -o LogLevel=ERROR root@${release_ip} "cd ${release_path}/${hotpatch_update_src_path} && ls | grep ${gitcodeRepoName}-${version} | tail -n 1"`|| echo ""
     else
         src_hotpatch_update_name=""
     fi
@@ -78,16 +78,16 @@ function get_src_rpm(){
     if [[ $src_hotpatch_update_name ]]; then
         src_url="https://repo.openeuler.org/${commet_branch}/${hotpatch_update_src_path}/${src_hotpatch_update_name}"
     else
-        src_update_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no -o LogLevel=ERROR root@${release_ip} "cd ${release_path}/${update_src_path} && ls | grep ${giteeRepoName}-${version}"`|| echo ""
+        src_update_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no -o LogLevel=ERROR root@${release_ip} "cd ${release_path}/${update_src_path} && ls | grep ${gitcodeRepoName}-${version}"`|| echo ""
         if [[ $src_update_name ]]; then
             src_url="https://repo.openeuler.org/${commet_branch}/${update_src_path}/${src_update_name}"
         else
-            src_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no root@${release_ip} "cd ${release_path}/${src_path} && ls | grep ${giteeRepoName}-${version}"`|| echo ""
+            src_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no root@${release_ip} "cd ${release_path}/${src_path} && ls | grep ${gitcodeRepoName}-${version}"`|| echo ""
             if [[ $src_name ]]; then
                 src_url="https://repo.openeuler.org/${commet_branch}/${src_path}/${src_name}"
             else
-                comment_error_src_pr "没有找到${giteeRepoName}包${version}版本源码包"
-                log_error "${giteeRepoName} not found ${version} source rpm"
+                comment_error_src_pr "没有找到${gitcodeRepoName}包${version}版本源码包"
+                log_error "${gitcodeRepoName} not found ${version} source rpm"
             fi
         fi
     fi
@@ -99,16 +99,16 @@ function get_debuginfo_url(){
     log_info "***********get ${arch} debuginfo rpm in release**********"
     debuginfo_path=debuginfo/${arch}/Packages
     update_debuginfo_path=update/${arch}/Packages
-    debug_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no root@${release_ip} "cd ${release_path}/${debuginfo_path} && ls | grep ${giteeRepoName}-debuginfo-${version}"`|| echo ""
+    debug_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no root@${release_ip} "cd ${release_path}/${debuginfo_path} && ls | grep ${gitcodeRepoName}-debuginfo-${version}"`|| echo ""
     if [[ $debug_name ]]; then
         debug_url="https://repo.openeuler.org/${commet_branch}/${debuginfo_path}/${debug_name}"
     else
-        debug_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no root@${release_ip} "cd ${release_path}/${update_debuginfo_path} && ls | grep ${giteeRepoName}-debuginfo-${version}"`|| echo ""
+        debug_name=`ssh -i ${update_key} -o StrictHostKeyChecking=no root@${release_ip} "cd ${release_path}/${update_debuginfo_path} && ls | grep ${gitcodeRepoName}-debuginfo-${version}"`|| echo ""
         if [[ $debug_name ]];then
              debug_url="https://repo.openeuler.org/${commet_branch}/${update_debuginfo_path}/${debug_name}"
         else
-            comment_error_src_pr "没有找到${giteeRepoName}包${version}版本${arch}架构debuginfo包"
-            log_error "${giteeRepoName} not found ${version} ${arch} debuginfo rpm"
+            comment_error_src_pr "没有找到${gitcodeRepoName}包${version}版本${arch}架构debuginfo包"
+            log_error "${gitcodeRepoName} not found ${version} ${arch} debuginfo rpm"
         fi
     fi
 }
@@ -125,18 +125,18 @@ function get_debuginfo_rpm(){
 }
 
 function get_patch(){
-    rm -rf $giteeRepoName
-    git clone -b $giteeTargetBranch --depth 1  https://gitee.com/$giteeTargetNamespace/$giteeRepoName
-    cd $giteeRepoName
-    if [[ ${openeuler_support} =~ ${giteeRepoName} ]]; then
+    rm -rf $gitcodeRepoName
+    git clone -b $gitcodeTargetBranch --depth 1  https://gitee.com/$giteeTargetNamespace/$gitcodeRepoName
+    cd $gitcodeRepoName
+    if [[ ${openeuler_support} =~ ${gitcodeRepoName} ]]; then
         log_info "***********get openeuler pr patch file*********"
-        wget https://gitee.com/$giteeTargetNamespace/kernel/pulls/$giteePullRequestIid.patch
-        patch_list="$giteePullRequestIid.patch"
+        wget https://gitcode.com/$giteeTargetNamespace/kernel/pull/$gitcodePullRequestId.patch
+        patch_list="$gitcodePullRequestId.patch"
     else
         echo
-        log_info "**********get src-openeuler ${giteeRepoName} patch file**********"
-        git fetch origin pull/$giteePullRequestIid/head:pr_$giteePullRequestIid
-        git checkout pr_$giteePullRequestIid
+        log_info "**********get src-openeuler ${gitcodeRepoName} patch file**********"
+        git fetch origin pull/$gitcodePullRequestId/head:pr_$gitcodePullRequestId
+        git checkout pr_$gitcodePullRequestId
         patch_list=`echo ${patch_name}|sed -e 's/,/ /g'`
         changed_patch=`git diff --name-status HEAD~1 HEAD~0 | grep ".patch" | awk -F ' ' '{print $2}'`
         if [[ $changed_patch ]]; then
@@ -202,7 +202,7 @@ function gen_hot_patch_metadata(){
 
     export PYTHONPATH=${shell_path}
     # 生成hotmetadata.xml文件
-    python3 ${shell_path}/src/hotpatch/gen_hotmetadata_xml.py -f ${func} -c ${giteeTargetNamespace} -t ${token} -p `echo ${patch_list}|sed -e 's/ /,/g'` -b ${commet_branch} -r ${giteeRepoName} -pr ${giteePullRequestIid} -o ${metadata_path} -i ${hotpatch_issue_file} -m "${comment}" -l  "${src_url},${x86_debug_url},${aarch64_debug_url}"
+    python3 ${shell_path}/src/hotpatch/gen_hotmetadata_xml.py -f ${func} -c ${giteeTargetNamespace} -t ${token} -p `echo ${patch_list}|sed -e 's/ /,/g'` -b ${commet_branch} -r ${gitcodeRepoName} -pr ${gitcodePullRequestId} -o ${metadata_path} -i ${hotpatch_issue_file} -m "${comment}" -l  "${src_url},${x86_debug_url},${aarch64_debug_url}"
     if [ $? -ne 0 ];then
         # 报错后删除临时分支
         if [[ $(git branch -a | grep ${branch_name}) && !${open_pr_result} ]]; then
@@ -223,10 +223,10 @@ function gen_hot_patch_metadata(){
         log_info "copy patch file to hotmetadata"
         for patch in ${patch_list[@]}
         do
-            cp ${patch_path}/${patch} ${metadata_path}/${commet_branch}/${giteeRepoName}/${version}/patch/
+            cp ${patch_path}/${patch} ${metadata_path}/${commet_branch}/${gitcodeRepoName}/${version}/patch/
         done
 
-        ls -l ${metadata_path}/${commet_branch}/${giteeRepoName}/${version}
+        ls -l ${metadata_path}/${commet_branch}/${gitcodeRepoName}/${version}
         cat ${hotmetadata_xml}
 
         set +e
@@ -242,7 +242,7 @@ function gen_hot_patch_metadata(){
 
 function create_remote_branch(){
     log_info "**********create remote branch for pr**********"
-    branch_name="hotpatch_${commet_branch}_${giteeRepoName}_${version}_${giteePullRequestIid}"
+    branch_name="hotpatch_${commet_branch}_${gitcodeRepoName}_${version}_${gitcodePullRequestId}"
     echo $branch_name
     branch_result=`curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/openeuler/hotpatch_meta/branches' -d '{"access_token":"'"${CicdToken}"'","refs":"master","branch_name":"'"${branch_name}"'"}'`
     if [[ `echo ${branch_result} | grep "分支名已存在"` ]]; then
@@ -276,9 +276,9 @@ function create_remote_branch(){
     # 判断上个版本的version是否已发布，未发布不能新增version
     metadata_path=`pwd`
     if [[ $mode == "SGL" ]]; then
-        hotmetadata_xml=${metadata_path}/${commet_branch}/${giteeRepoName}/${version}/hotmetadata_SGL.xml
+        hotmetadata_xml=${metadata_path}/${commet_branch}/${gitcodeRepoName}/${version}/hotmetadata_SGL.xml
     else
-        hotmetadata_xml=${metadata_path}/${commet_branch}/${giteeRepoName}/${version}/hotmetadata_ACC.xml
+        hotmetadata_xml=${metadata_path}/${commet_branch}/${gitcodeRepoName}/${version}/hotmetadata_ACC.xml
     fi
 
     if [[ -e $hotmetadata_xml && $mode == "ACC" ]];then
@@ -310,20 +310,20 @@ function comment_src_pr(){
     hotpatch_issue=`cat ${hotpatch_issue_file}`
     echo ${hotpatch_issue}
     body_str="In response to this:\n > ${comment}  \n\n命令执行结果：\n热补丁issue链接：${hotpatch_issue} \n后续热补丁流程请在hotpatch_meta仓库pr跟踪，链接如下: ${pr_link}"
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${giteeRepoName}'/pulls/'${giteePullRequestIid}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
 function comment_error_src_pr(){
     log_info "**********comment hotmetadata pr link to source pr********"
     body_str="In response to this:\n > ${comment}  \n\n命令执行结果：\n $* "
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${giteeRepoName}'/pulls/'${giteePullRequestIid}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
     log_error $1
 }
 
 function main(){
-    echo ${giteeRepoName}
+    echo ${gitcodeRepoName}
     echo ${giteeTargetNamespace}
-    echo ${giteeTargetBranch}
+    echo ${gitcodeTargetBranch}
     curr_path=`pwd`
     hotpatch_issue_file=$curr_path/hotpatch_issue
 

@@ -24,7 +24,7 @@ from datetime import datetime
 
 import yaml
 
-from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.gitcode_proxy import GitcodeProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.logger import logger
 
@@ -117,7 +117,7 @@ class CommentToDashboard(object):
         kp.send("openeuler_statewall_ci_result", key=args_list.comment_id, value=base_dict)
 
         comment_tips = "门禁常见失败问题及解决方案, 可参考" \
-                       "<a href=https://gitee.com/openeuler/openeuler-jenkins/blob/master/doc/门禁问题排查手册.md>" \
+                       "<a href=https://gitcode.com/openeuler/openeuler-jenkins/blob/master/doc/门禁问题排查手册.md>" \
                        "门禁问题排查手册</a>\n" \
                        "若门禁存在误报，您可以评论/ci_mistake {}进行误报标记，{}表示本次构建号\n" \
                        "也可带上误报的门禁检查项以及误报类型（ci、obs、infra），" \
@@ -126,7 +126,7 @@ class CommentToDashboard(object):
                        "也可在评论后加上一段文字描述，但请另起一行".format(
                         args_list.trigger_build_id, args_list.trigger_build_id,
                         args_list.trigger_build_id, args_list.trigger_build_id)
-        gp = GiteeProxy(args_list.owner, args_list.repo, args_list.gitee_token)
+        gp = GitcodeProxy(args_list.owner, args_list.repo, args_list.gitcode_token)
         gp.comment_pr(args_list.prid, comment_tips)
 
 
@@ -145,9 +145,9 @@ def init_args():
     parser.add_argument("-b", type=str, dest="tbranch", help="target branch")
     parser.add_argument("-u", type=str, dest="pr_url", help="pull request url")
     parser.add_argument("-p", type=str, dest="prid", help="pull request id")
-    parser.add_argument("-o", type=str, dest="owner", help="gitee owner")
+    parser.add_argument("-o", type=str, dest="owner", help="gitcode owner")
     parser.add_argument("-i", type=int, dest="trigger_build_id", help="trigger build id")
-    parser.add_argument("--gitee_token", type=str, dest="gitee_token", help="gitee api token")
+    parser.add_argument("--gitcode_token", type=str, dest="gitcode_token", help="gitcode api token")
 
     return parser.parse_args()
 

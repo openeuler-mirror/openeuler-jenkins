@@ -21,7 +21,7 @@ import logging
 from src.proxy.git_proxy import GitProxy
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
-from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.common.gitcode_repo import GitcodeRepo
 from src.ac.common.linter import LinterCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 
@@ -37,7 +37,7 @@ class CheckCodeStyle(BaseCheck):
 
         self._work_tar_dir = os.path.join(workspace, "code")    # 解压缩目标目录
 
-        self._gr = GiteeRepo(self._repo, self._work_dir, self._work_tar_dir)
+        self._gr = GitcodeRepo(self._repo, self._work_dir, self._work_tar_dir)
 
     def check_compressed_file(self):
         """
@@ -73,16 +73,16 @@ class CheckCodeStyle(BaseCheck):
         diff_code_files = []                # 仓库中变更的代码文件
         diff_patch_code_files = []          # patch内的代码文件
         for diff_file in diff_files:
-            if GiteeRepo.is_code_file(diff_file):
+            if GitcodeRepo.is_code_file(diff_file):
                 diff_code_files.append(diff_file)
-            elif GiteeRepo.is_patch_file(diff_file):
+            elif GitcodeRepo.is_patch_file(diff_file):
                 patch_dir = self._gr.patch_dir_mapping.get(diff_file)
                 logger.debug("diff patch %s apply at dir %s", diff_file, patch_dir)
                 if patch_dir is not None:
                     files_in_patch = gp.extract_files_path_of_patch(diff_file)
                     patch_code_files = [os.path.join(patch_dir, file_in_patch) 
                             for file_in_patch in files_in_patch 
-                            if GiteeRepo.is_code_file(file_in_patch)]
+                            if GitcodeRepo.is_code_file(file_in_patch)]
                     # care about deleted file in patch, filter with "git patch --summary" maybe better
                     diff_patch_code_files.extend([code_file 
                         for code_file in patch_code_files 
@@ -124,11 +124,11 @@ class CheckCodeStyle(BaseCheck):
         :param file_path:
         :return:
         """
-        if GiteeRepo.is_py_file(file_path):
+        if GitcodeRepo.is_py_file(file_path):
             rs = LinterCheck.check_python(file_path)
-        elif GiteeRepo.is_go_file(file_path):
+        elif GitcodeRepo.is_go_file(file_path):
             rs = LinterCheck.check_golang(file_path)
-        elif GiteeRepo.is_c_cplusplus_file(file_path):
+        elif GitcodeRepo.is_c_cplusplus_file(file_path):
             rs = LinterCheck.check_c_cplusplus(file_path)
         else:
             logger.error("error when arrive here, unsupport file %s", file_path)

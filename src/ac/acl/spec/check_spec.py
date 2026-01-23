@@ -28,7 +28,7 @@ from src.proxy.requests_proxy import do_requests
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
-from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.common.gitcode_repo import GitcodeRepo
 from pyrpm.spec import Spec
 from src.constant import Constant
 
@@ -44,7 +44,7 @@ class CheckSpec(BaseCheck):
         super(CheckSpec, self).__init__(workspace, repo, conf)
 
         self._gp = GitProxy(self._work_dir)
-        self._gr = GiteeRepo(self._repo, self._work_dir, None)  # don't care about decompress
+        self._gr = GitcodeRepo(self._repo, self._work_dir, None)  # don't care about decompress
         fp = self._gp.get_content_of_file_with_commit(self._gr.spec_file)
         self._spec = RPMSpecAdapter(fp)
         self._latest_commit = self._gp.commit_id_of_reverse_head_index(0)
@@ -93,7 +93,7 @@ class CheckSpec(BaseCheck):
 
         self._gp.checkout_to_commit_force("HEAD~1")
         try:
-            gr = GiteeRepo(self._repo, self._work_dir, None)  # don't care about decompress
+            gr = GitcodeRepo(self._repo, self._work_dir, None)  # don't care about decompress
             logger.info("gr.spec_file:%s", gr.spec_file)
             fp = self._gp.get_content_of_file_with_commit(gr.spec_file)
             if fp is None:

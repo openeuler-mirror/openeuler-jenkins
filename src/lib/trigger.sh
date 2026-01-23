@@ -1,11 +1,15 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
-jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
-support_arch_file=${giteeRepoName}_${giteePullRequestIid}_support_arch
+jenkins_api_host="https://ci.openeuler.openatom.cn/"
+support_arch_file=${gitcodeRepoName}_${gitcodePullRequestId}_support_arch
 repo_server_test_tail=""
-token=${GiteeToken}
-user_passwd=${GiteeUserPassword}
+token=${gitcodeToken}
+user_passwd=${gitcodeUserPassword}
+
+if [[ "${platform}" == "" ]]; then
+    platform="gitcode"
+fi
 
 if [[ "${platform}" == "github" ]]; then
     repo_server_test_tail="-github"
@@ -44,7 +48,7 @@ function download_kernel_repo() {
   if [ "x$repo" == "xkernel" ]; then
     kernel_tag=$(cat kernel/SOURCE)
     log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
-    git clone -b $kernel_tag --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/openeuler/kernel code/kernel
+    git clone -b $kernel_tag --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/openeuler/kernel code/kernel
   fi
   log_info "***** End to download kernel *****"
 }
@@ -54,12 +58,12 @@ function exec_check() {
   log_info "***** Start to exec static check *****"
   export PYTHONPATH=${shell_path}
   python3 ${shell_path}/src/ac/framework/ac.py \
-    -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${token}\
-    -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${user_passwd}\
+    -w ${WORKSPACE} -r ${gitcodeRepoName} -o ${acfile} -t ${token}\
+    -p ${gitcodePullRequestId} -b ${gitcodeTargetBranch} \
     -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" \
-    -i ${commentID} -e ${giteeCommitter} --jenkins-base-url ${jenkins_api_host} \
+    -i "${commentID}" -e ${gitcodeCommitter} --jenkins-base-url ${jenkins_api_host} \
     --jenkins-user ${jenkins_user} --jenkins-api-token ${jenkins_api_token} \
-    -c ${repo_owner} --platform "${platform}"
+    -c ${gitcodeTargetNamespace} --platform "${platform}"
   log_info "***** End to exec static check *****"
 }
 

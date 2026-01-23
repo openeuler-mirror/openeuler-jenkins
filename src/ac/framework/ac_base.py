@@ -91,6 +91,6 @@ class BaseCheck(object):
         """
         members = inspect.getmembers(self, inspect.ismethod)
         items = [member[0].replace("check_", "") for member in members if member[0].startswith("check_")]
-        logger.debug("check items: %s", items)
+        logger.info("check items: %s", items)
 
         return self.start_check_with_order(*items)

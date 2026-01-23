@@ -93,7 +93,7 @@ function download_kernel_repo_soe() {
   log_info "***** Start to download kernel of src-openeuler *****"
   git init kernel
   cd kernel
-  git fetch --depth 4 https://gitee.com/${repo_owner}/kernel +refs/pull/${prid}/MERGE:pr_${prid}
+  git fetch --depth 4 https://gitcode.com/${repo_owner}/kernel +refs/pull/${prid}/MERGE:pr_${prid}
   git checkout pr_${prid}
   cd ../
   log_info "***** End to download kernel of src-openeuler *****"
@@ -103,7 +103,7 @@ function download_kernel_repo_soe() {
 function download_kernel_repo_of_tag() {
     kernel_tag=$(cat kernel/SOURCE)
     log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
-    git clone -b $kernel_tag --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/openeuler/kernel code/kernel
+    git clone -b $kernel_tag --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/openeuler/kernel code/kernel
 }
 
 download_kernel_times=0 # 避免下载多次kernel
@@ -126,11 +126,11 @@ function download_kernel_repo() {
     download_kernel_repo_of_tag
   elif [ "x$1" == "xkernel" ]; then
     log_info "***** Start to download the branch ${tbranch} of kernel in src-openeuler *****"
-    git clone -b $tbranch --depth 1 https://gitee.com/${repo_owner}/kernel
+    git clone -b $tbranch --depth 1 https://gitcode.com/${repo_owner}/kernel
     download_kernel_repo_of_tag
   else
     log_info "now clone kernel source of branch ${tbranch}"
-    git clone -b $tbranch --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/openeuler/kernel code/kernel
+    git clone -b $tbranch --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/openeuler/kernel code/kernel
   fi
 
   # 处理 "Installed (but unpackaged) file" 异常
@@ -148,7 +148,7 @@ function download_buddy_repo() {
       download_kernel_repo $item
     elif [[ "x$item" != "x$repo" ]]; then
       log_info "clone ${item} of branch $tbranch"
-      git clone -b $tbranch --depth 1 https://${GiteeUserName}:${GiteePassword}@gitee.com/${repo_owner}/${item}
+      git clone -b $tbranch --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/${repo_owner}/${item}
     fi
   done
   log_info "***** End to download buddy rpm *****"
@@ -189,9 +189,9 @@ function build_packages() {
     log_debug "params are [$repo, $branch, $prid, $committer, $arch, $package, $buddy, $WORKSPACE]"
 
     if [[ "x${item}" == "xkernel" ]]; then
-      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword} --spec "kernel.spec"
+      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${gitcodeUserPassword} --spec "kernel.spec"
     else
-      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${GiteeUserPassword}
+      python3 ${SCRIPT_PATCH}/osc_build_k8s.py -o ${repo_owner} -p $item -a $arch -c $WORKSPACE -b $tbranch -r ${repo} -m ${commentid} --pr ${prid} -t ${gitcodeUserPassword}
     fi
 
     log_info "copy build package from root to home"
@@ -258,9 +258,9 @@ function compare_package() {
     cat $result_dir/report-$old_dir-$new_dir/osv.json 
   fi
 
-  pr_link='https://gitee.com/${repo_owner}/'${repo}'/pulls/'${prid}
+  pr_link='https://gitcode.com/${repo_owner}/'${repo}'/pull/'${prid}
   pr_commit_json_file="${WORKSPACE}/pr_commit_json_file"
-  curl https://gitee.com/api/v5/repos/${repo_owner}/${repo}/pulls/${prid}/files?access_token=$GiteeToken >$pr_commit_json_file
+  curl https://api.gitcode.com/api/v5/repos/${repo_owner}/${repo}/pulls/${prid}/files?access_token=$gitcodeToken >$pr_commit_json_file
   compare_result="${repo}_${prid}_${arch}_compare_result"
 
   if [[ ! "$(ls -A $old_dir | grep '.rpm')" || ! "$(ls -A $new_dir | grep '.rpm')" ]]; then
@@ -327,15 +327,15 @@ EOF
 
   python3 ${shell_path}/src/utils/oemaker_analyse.py --branch ${tbranch} --arch ${arch} \
 	--oecp_json_path "$result_dir/report-$old_dir-$new_dir/osv.json" --owner "src-openeuler" \
-	--repo ${repo} --gitee_token $GiteeToken --prid ${prid}
+	--repo ${repo} --gitcode_token $gitcodeToken --prid ${prid}
   log_info "***** End to compare package diff *****"
 }
 
 function print_job(){
     job_name=`echo $JOB_NAME|sed -e 's#/#/job/#g'`
-    job_path="https://openeulerjenkins.osinfra.cn/job/${job_name}/$BUILD_ID/console"
+    job_path="https://ci.openeuler.openatom.cn/job/${job_name}/$BUILD_ID/console"
     body_str="${arch}架构构建及构建后检查：<a href=${job_path}>${JOB_NAME}/${BUILD_ID}/console</a>"
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/src-openeuler/'${repo}'/pulls/'${prid}'/comments' -d '{"access_token":"'"${GiteeToken}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.gitcode.com/api/v5/repos/src-openeuler/'${repo}'/pulls/'${prid}'/comments' -d '{"access_token":"'"${gitcodeToken}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
 # 执行入口

@@ -228,7 +228,7 @@ class JenkinsProxy(object):
         cur_job_info = self.get_job_info(cur_job_path)
         upstream_jobs_path = JenkinsProxy._get_upstream_jobs_path(cur_job_info)
         for upstream_job_path in upstream_jobs_path:
-            logger.debug("%s", upstream_job_path)
+            logger.debug("the upstream job path is:%s", upstream_job_path)
             upstream_jobs_path = self.get_job_info(upstream_job_path)
             upstream_builds_no = [item["number"] for item in upstream_jobs_path.get("builds", [])]
             for upstream_build_no in upstream_builds_no:
