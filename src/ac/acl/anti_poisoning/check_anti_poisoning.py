@@ -15,11 +15,13 @@
 # **********************************************************************************
 
 import logging
+import sys
 import time
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
 from src.proxy.requests_proxy import do_requests
+from src.proxy.openlibing_proxy import OpenlibingProxy
 
 logger = logging.getLogger("ac")
 
@@ -40,12 +42,12 @@ class CheckAntiPoisoning(BaseCheck):
 
         # wait to initial
         self._community = None
-        self._repo = repo
-        self._access_token = None
-        self._pr_number = None
-        self._api_token = None
-        self._antipoison_ip = 'https://majun.osinfra.cn'
-        self._antipoison_prefix = '/api/http/majun-service-forwarding/ci-portal/poison/webhook'
+        self._pr_url = None
+        self._accountid = None
+        self._secretKey = None
+        self._antipoison_ip = 'https://www.openlibing.com'
+        self._antipoison_prefix = '/gateway/openlibing-anti-poison'
+        self.openlibing_proxy = None
 
     def __call__(self, *args, **kwargs):
         """
@@ -56,54 +58,54 @@ class CheckAntiPoisoning(BaseCheck):
         """
         logger.info("check %s antipoisoning ...", self._repo)
         logger.debug("args: %s, kwargs: %s", args, kwargs)
-        antipoisoning_conf = kwargs.get("antipoison", {})
+
+        antipoisoning_conf = kwargs.get("common_args", {})
 
         self._community = antipoisoning_conf.get("community", "")
-        self._pr_number = antipoisoning_conf.get("pr_number", "")
-        self._access_token = antipoisoning_conf.get("access_token", "")
-        self._api_token = antipoisoning_conf.get('antipoison_api_token', "")
+        self._pr_url = antipoisoning_conf.get("pr_url", "")
+        self._accountid = antipoisoning_conf.get("accountid", "")
+        self._secretKey = antipoisoning_conf.get("secretKey", "")
+        self.openlibing_proxy = OpenlibingProxy(self._accountid, self._secretKey)
 
         return self.start_check()
 
-    def get_poison_result(self):
-        """
-        通过api调用anti-poisoning
-        """
+    def create_poison_task(self):
         scan_response = {}
         # 创建anti-poisoning检查任务
-        task_url = f'{self._antipoison_ip}{self._antipoison_prefix}/pr-scan'
+        task_url = f'{self._antipoison_ip}{self._antipoison_prefix}/poison-pr/sca-pr'
+        headers = self.openlibing_proxy.get_openlibing_api_headers()
         post_data = {
-            "repoName": self._repo,
             "projectName": self._community,
-            "pullNumber": self._pr_number,
-            "accessToken": self._access_token,
-            "apiToken": self._api_token
+            "prUrl": self._pr_url,
         }
-        rs = do_requests("post", task_url, body=post_data, obj=scan_response)
-        if rs == 0 or scan_response.get('code', '') == '200':
-            logger.info('create anti_poison task success')
-        else:
+        rs = do_requests("post", task_url, headers=headers, body=post_data, obj=scan_response)
+        if rs != 0 or scan_response.get('code', '') != 200:
             logger.error('create anti_poison task failed: %s', scan_response.get("message"))
+            return None
+        else:
+            logger.info('create anti_poison task success')
+            return scan_response.get('result').get('scanId')
 
-        scanid = scan_response.get('result').get('scanId')
-
+    def get_poison_result(self):
+        scanid = self.create_poison_task()
+        if not scanid:
+            return FAILED, None
+        headers = self.openlibing_proxy.get_openlibing_api_headers()
         data = {
-            "scanId": scanid,
-            "apiToken": self._api_token
+            "scanId": scanid
         }
-        status_url = f'{self._antipoison_ip}{self._antipoison_prefix}/query-pr-results-status'
+        status_url = f'{self._antipoison_ip}{self._antipoison_prefix}/poison-pr/query-pr-results-status'
         current_time = 0
-        logger.info("anti_poisoning probably need to 2min")
-
-        # 定时2min
+        total_expire = 120
+        logger.info("codecheck probably need to {} seconds".format(total_expire))
+        time_interval = 10
         while current_time < 120:
-            time.sleep(10)
+            time.sleep(time_interval)
             response_content = {}
-            # 检查auti_poisoning任务的执行状态
-
-            rs = do_requests("post", status_url, body=data, obj=response_content)
+            # 检查anti_poisoning任务的执行状态
+            rs = do_requests("post", status_url, headers=headers, body=data, obj=response_content)
             if rs == 0 and response_content.get('code') == 200 and not response_content.get('result'):
-                current_time = current_time + 10
+                current_time = current_time + time_interval
                 continue
             else:
                 break
@@ -125,10 +127,10 @@ class CheckAntiPoisoning(BaseCheck):
             """
             # 返回结果 {
             "code": "200", 
-            "message": "", 
+            "message": "success", 
             "result"{
-            "isPass": "http://{ip}:{port}/increment/autipoisoning/{projectId}/openMajun/{repo}" 一个可以看到poison检查结果详情的地址
-            "url": "pass(通过)/no pass(不通过)"
+            "isPass": True
+            "url": "http://{ip}:{port}/increment/autipoisoning/{projectId}/openMajun/{repo}" 一个可以看到poison检查结果详情的地址
             }}
             """
             ispass = result.get('isPass')
@@ -139,6 +141,6 @@ class CheckAntiPoisoning(BaseCheck):
         else:
             logger.error("anti_poisoning check failed, info : %s", response_content.get('message'))
             return FAILED
-
+        logger.info("click %s view anti_poisoning check detail", result.get('url'))
         return SUCCESS
 

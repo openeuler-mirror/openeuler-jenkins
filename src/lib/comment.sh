@@ -12,9 +12,9 @@ detail_result_file_x86_64=""
 detail_result_file_riscv64=""
 
 repo_server_test_tail=""
-token=${giteetoken}
+token=${gitcodeToken}
 #需要输入的参数
-jenkins_api_host="https://openeulerjenkins.osinfra.cn/"
+jenkins_api_host="https://ci.openeuler.openatom.cn/"
 
 if [[ $platform == "github" ]]; then
     repo_server_test_tail="-github"
@@ -25,8 +25,6 @@ fi
 function config_debug_variable() {
   if [[ "${repo_owner}" == "" ]]; then
     repo_owner="src-openeuler"
-  elif [[ "${repo_owner}" != "src-openeuler" && "${repo_owner}" != "openeuler" ]]; then
-    repo_server_test_tail="-test"
   fi
 }
 config_debug_variable
@@ -105,11 +103,6 @@ function exec_comment() {
     -f ${compare_package_result_x86},${compare_package_result_aarch64},${compare_package_result_riscv64} -m ${commentid} -l ${url_files_server} \
     -d ${detail_result_file_x86_64},${detail_result_file_aarch64},${detail_result_file_riscv64} -tb ${tbranch} --platform ${platform}
   log_info "***** End to exec comment *****"
-  log_info "***** Start to exec comment to kafka*****"
-  python3 ${shell_path}/src/build/comment_to_dashboard.py -r $repo -c $committer -m ${commentid} -g $jobtriggertime\
-   -k "${prtitle}" -t $prcreatetime -b $tbranch -u $prurl -i $triggerbuildid -p $prid -o $repo_owner \
-   --gitee_token ${token}
-  log_info "***** End to exec comment to kafka*****"
 }
 
 # 执行入口

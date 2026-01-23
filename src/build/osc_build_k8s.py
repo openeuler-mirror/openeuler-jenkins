@@ -147,8 +147,8 @@ class SinglePackageBuild(object):
                             or "openEuler-20.09_kernel" in param.text:
                         param.text = "{}/{}".format(code_path, "code")  # kernel special logical
                     else:
-                        gitee_repo = re.sub(r"\.git", "", param.text.split("/")[-1])
-                        param.text = "{}/{}".format(code_path, gitee_repo)
+                        gitcode_repo = re.sub(r"\.git", "", param.text.split("/")[-1])
+                        param.text = "{}/{}".format(code_path, gitcode_repo)
 
         logger.info("after update meta------")
 
@@ -197,12 +197,12 @@ class SinglePackageBuild(object):
                          "need to contribute the necessary PR, you can contact CICD sig to open it after obtaining the "
                          "consent of release sig.", self._branch)
             return 1
-        if self._branch not in Constant.GITEE_BRANCH_PROJECT_MAPPING:
+        if self._branch not in Constant.GITCODE_BRANCH_PROJECT_MAPPING:
             logger.error("branch \"%s\" not support yet", self._branch)
             return 1
 
         has_any_repo_build = False
-        for project in Constant.GITEE_BRANCH_PROJECT_MAPPING.get(self._branch):
+        for project in Constant.GITCODE_BRANCH_PROJECT_MAPPING.get(self._branch):
             logger.debug("start build project %s", project)
 
             obs_repos = self.get_need_build_obs_repos(project)
@@ -249,9 +249,9 @@ def init_args():
     parser.add_argument("-m", type=str, dest="comment_id", help="uniq comment id")
     parser.add_argument("-r", type=str, dest="repo", help="repo")
     parser.add_argument("--pr", type=str, dest="pr", help="pull request")
-    parser.add_argument("-t", type=str, dest="account", help="gitee account")
+    parser.add_argument("-t", type=str, dest="account", help="gitcode account")
 
-    parser.add_argument("-o", type=str, dest="owner", default="src-openeuler", help="gitee owner")
+    parser.add_argument("-o", type=str, dest="owner", default="src-openeuler", help="gitcode owner")
     parser.add_argument("--spec", type=str, dest="spec", default="", help="spec files")
 
     return parser.parse_args()
@@ -266,7 +266,7 @@ if "__main__" == __name__:
     logger = logging.getLogger("build")
 
     logger.info("using credential %s", args.account.split(":")[0])
-    logger.info("cloning repository https://gitee.com/%s/%s.git ", args.owner, args.repo)
+    logger.info("cloning repository https://gitcode.com/%s/%s.git ", args.owner, args.repo)
     logger.info("clone depth 1")
     logger.info("checking out pull request %s", args.pr)
 
@@ -292,7 +292,7 @@ if "__main__" == __name__:
     # download repo
     dd.set_attr_stime("spb.scm.stime")
     gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
-    repo_url = "https://{}@gitee.com/{}/{}.git".format(args.account, args.owner, args.repo)
+    repo_url = "https://{}@gitcode.com/{}/{}.git".format(args.account, args.owner, args.repo)
     if not gp.fetch_pull_request(repo_url, args.pr, depth=1):
         logger.info("fetch finished -")
 

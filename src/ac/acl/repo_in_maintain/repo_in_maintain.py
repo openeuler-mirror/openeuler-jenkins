@@ -31,15 +31,15 @@ class CheckRepoInMaintain(BaseCheck):
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s branch whether in maintain...", self._repo)
-        antipoisoning_conf = kwargs.get("antipoison", {})
+        openlibing_conf = kwargs.get("common_args", {})
 
         self._branch = kwargs.get("tbranch")
-        self._token = antipoisoning_conf.get("access_token", "")
+        self._token = openlibing_conf.get("access_token", "")
 
         return self.start_check_with_order("repo_in_maintain")
 
     def load_yml(self):
-        base_url = "https://gitee.com/api/v5/repos/openeuler/release-management/raw"
+        base_url = "https://api.gitcode.com/api/v5/repos/openeuler/release-management/raw"
         url = f"{base_url}/{self._branch}/delete/pckg-mgmt.yaml?access_token={self._token}"
 
         response = requests.get(url)

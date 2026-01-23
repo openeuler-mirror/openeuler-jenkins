@@ -27,6 +27,7 @@ import yaml
 from yaml.error import YAMLError
 
 from src.proxy.git_proxy import GitProxy
+from src.proxy.gitcode_proxy import GitcodeProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
@@ -39,6 +40,7 @@ class AC(object):
     """
     ac entrypoint
     """
+
     def __init__(self, conf, community="src-openeuler"):
         """
 
@@ -46,16 +48,18 @@ class AC(object):
         :param community: src-openeuler or openeuler
         :return:
         """
-        self._ac_check_elements = {}       # 门禁项
-        self._ac_check_result = []         # 门禁结果结果
+        self._ac_check_elements = {}  # 门禁项
+        self._ac_check_result = []  # 门禁结果结果
 
         acl_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "../acl"))
         self._acl_package = "src.ac.acl"  # take attention about import module
         self.load_check_elements_from_acl_directory(acl_path)
         if community != "src-openeuler" and community != "openeuler":
-            self.load_check_elements_from_conf(conf, "src-openeuler")
-        else:
-            self.load_check_elements_from_conf(conf, community)
+            if community.endswith("-ci-test"):
+                community = community.rstrip("-ci-test")
+            else:
+                community = "src-openeuler"
+        self.load_check_elements_from_conf(conf, community)
 
         logger.debug("check list: %s", self._ac_check_elements)
 
@@ -63,7 +67,7 @@ class AC(object):
     def comment_jenkins_url(gp, jp, pr):
         """
         在pr评论中显示构建任务链接
-        :param gp: gitee接口
+        :param gp: gitee/gitcode/github接口
         :param jp: jenkins接口
         :param pr: pr编号
         :return:
@@ -118,7 +122,7 @@ class AC(object):
             check_element = self._ac_check_elements.get(element)
             logger.debug("check %s", element)
 
-            # show in gitee, must starts with "check_"
+            # show in gitee/gitcode, must starts with "check_"
             hint = check_element.get("hint", "check_{}".format(element))
             if not hint.startswith("check_"):
                 hint = "check_{}".format(hint)
@@ -128,7 +132,7 @@ class AC(object):
                 continue
 
             # import module
-            module_path = check_element.get("module", "{}.check_{}".format(element, element))   # eg: spec.check_spec
+            module_path = check_element.get("module", "{}.check_{}".format(element, element))  # eg: spec.check_spec
             try:
                 module = importlib.import_module("." + module_path, self._acl_package)
                 logger.debug("load module %s succeed", module_path)
@@ -147,9 +151,9 @@ class AC(object):
 
             # new a instance
             if isinstance(entry, type):  # class object
-                entry = entry(workspace, repo, check_element)       # new a instance
+                entry = entry(workspace, repo, check_element)  # new a instance
 
-            if not callable(entry):      # check callable
+            if not callable(entry):  # check callable
                 logger.warning("entry %s not callable", entry_name)
                 continue
 
@@ -170,7 +174,7 @@ class AC(object):
         """
         for filename in os.listdir(acl_dir):
             if filename != "__pycache__" and os.path.isdir(os.path.join(acl_dir, filename)):
-                self._ac_check_elements[filename] = {}     # don't worry, using default when checking
+                self._ac_check_elements[filename] = {}  # don't worry, using default when checking
 
     def load_check_elements_from_conf(self, conf_file, community):
         """
@@ -204,10 +208,8 @@ class AC(object):
         检查门禁项目中check_repo_in_maintain，分支是否在维护
         :return: ac_results
         """
-        ac_results = {item['name']:item['result'] for item in self._ac_check_result}
+        ac_results = {item['name']: item['result'] for item in self._ac_check_result}
         return ac_results
-
-
 
     def save(self, ac_file):
         """
@@ -215,10 +217,9 @@ class AC(object):
         :param ac_file:
         :return:
         """
-        logger.debug("save ac result to file %s", ac_file)
+        logger.info("save ac result to file %s", ac_file)
         with open(ac_file, "w") as f:
             f.write("ACL={}".format(json.dumps(self._ac_check_result)))
-
 
 
 def init_args():
@@ -236,7 +237,7 @@ def init_args():
     parser.add_argument("-p", type=str, dest="pr", help="pull request number")
     parser.add_argument("-t", type=str, dest="token", help="gitee/github api token")
     parser.add_argument("-a", type=str, dest="account", help="gitee/github account")
-    
+
     # dataset
     parser.add_argument("-m", type=str, dest="comment", help="trigger comment")
     parser.add_argument("-i", type=str, dest="comment_id", help="trigger comment id")
@@ -244,21 +245,14 @@ def init_args():
     parser.add_argument("-x", type=str, dest="pr_ctime", help="pr create time")
     parser.add_argument("-z", type=str, dest="trigger_time", help="job trigger time")
     parser.add_argument("-l", type=str, dest="trigger_link", help="job trigger link")
-
-    parser.add_argument("--codecheck-api-key", type=str, dest="codecheck_api_key", help="codecheck api key")
-    parser.add_argument("--codecheck-api-url", type=str, dest="codecheck_api_url",
-                        default="https://majun.osinfra.cn:8384/api/openlibing/codecheck", help="codecheck api url")
-    # scanoss
-    parser.add_argument("--sca-app-id", type=str, dest="sca_app_id", help="sca app id")
-    parser.add_argument("--sca-api-key", type=str, dest="sca_api_key", help="sca api key")
-
-    parser.add_argument("--antipoison-api-token", type=str, dest="antipoison_api_token", help="antipoisoning api token")
-
     parser.add_argument("--jenkins-base-url", type=str, dest="jenkins_base_url",
-                        default="https://openeulerjenkins.osinfra.cn/", help="jenkins base url")
+                        default="https://ci.openeuler.openatom.cn/", help="jenkins base url")
     parser.add_argument("--jenkins-user", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("--jenkins-api-token", type=str, dest="jenkins_api_token", help="jenkins api token")
-    parser.add_argument("--platform", type=str, dest="platform", default="gitee", help="gitee/github")
+    parser.add_argument("--platform", type=str, dest="platform", default="gitcode", help="/gitcode/gitee/github")
+
+    parser.add_argument('--accountId', type=str, dest="accountid", help='openlibing account id')
+    parser.add_argument('--secretKey', type=str, dest="secretKey", help='openlibing secret key')
 
     return parser.parse_args()
 
@@ -272,15 +266,26 @@ if "__main__" == __name__:
         os.path.dirname(os.path.realpath(__file__)), "../../conf/logger.conf"))
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("ac")
+    ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
 
-    if args.platform == "github":
-        code_url = "https://github.com"
-        ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%SZ")
-    else:
+    if args.platform == "gitcode":
+        code_url = "https://gitcode.com"
+        repo_url = "{}/{}/{}.git".format(code_url, args.community, args.repo)
+        gitee_proxy_inst = GitcodeProxy(args.community, args.repo, args.token)
+        pull_tag="pull"
+    elif args.platform == "gitee":
         code_url = "https://gitee.com"
-        ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
+        repo_url = "{}/{}/{}.git".format(code_url, args.community, args.repo)
+        gitee_proxy_inst = GiteeProxy(args.community, args.repo, args.token)
+        pull_tag = "pulls"
+    else:
+        code_url = "https://github.com"
+        agent = "https://gh-proxy.test.osinfra.cn/"
+        repo_url = "{}/{}/{}/{}.git".format(agent, code_url, args.community, args.repo)
+        gitee_proxy_inst = GithubProxy(args.community, args.repo, args.token)
+        ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%SZ")
+        pull_tag = "pull"
 
-    logger.info("using credential %s", args.account.split(":")[0])
     logger.info("cloning repository %s/%s/%s.git ", code_url, args.community, args.repo)
     logger.info("clone depth 4")
     logger.info("checking out pull request %s", args.pr)
@@ -309,11 +314,6 @@ if "__main__" == __name__:
     # download repo
     dd.set_attr_stime("access_control.scm.stime")
     git_proxy = GitProxy.init_repository(args.repo, work_dir=args.workspace)
-    if args.platform == "github":
-        agent = "https://gh-proxy.test.osinfra.cn/"
-        repo_url = "{}/{}/{}/{}.git".format(agent, code_url, args.community, args.repo)
-    else:
-        repo_url = "{}/{}/{}.git".format(code_url, args.community, args.repo)
 
     if not git_proxy.fetch_pull_request(repo_url, args.pr, depth=4):
         dd.set_attr("access_control.scm.result", "failed")
@@ -327,18 +327,13 @@ if "__main__" == __name__:
         git_proxy.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))
         logger.info("fetch finished +")
         dd.set_attr("access_control.scm.result", "successful")
-        dd.set_attr_etime("access_control.scm.etime") 
+        dd.set_attr_etime("access_control.scm.etime")
 
     logger.info("--------------------AC START---------------------")
 
     # build start
     dd.set_attr_stime("access_control.build.stime")
 
-    # gitee comment jenkins url
-    if args.platform == "github":
-        gitee_proxy_inst = GithubProxy(args.community, args.repo, args.token)
-    else:
-        gitee_proxy_inst = GiteeProxy(args.community, args.repo, args.token)
     if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
         jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
         AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
@@ -348,19 +343,15 @@ if "__main__" == __name__:
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "No-longer-maintained")
     gitee_proxy_inst.create_tags_of_pr(args.pr, "ci_processing")
 
-    # scanoss conf
-    scanoss = {"pr_url": "{}/{}/{}/pulls/{}".format(code_url, args.community, args.repo, args.pr),
-               "sca_app_id": args.sca_app_id, "sca_api_key": args.sca_api_key}
-     
-    codecheck = {"pr_url": "{}/{}/{}/pulls/{}".format(code_url, args.community, args.repo, args.pr),
-                 "pr_number": args.pr, "codecheck_api_key": args.codecheck_api_key}
+    common_args = {"pr_url": "{url}/{owner}/{repo}/{pull}/{pr}".format(url=code_url, owner=args.community,
+                                                                       repo=args.repo, pull=pull_tag, pr=args.pr),
+                          "community": args.community, "pr_num": args.pr, "accountid": args.accountid,
+                          "secretKey": args.secretKey, "access_token": args.token, "platform": args.platform}
 
-    antipoison = {"community": args.community, "pr_number": args.pr, "access_token": args.token,
-                  "antipoison_api_token": args.antipoison_api_token}
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)
-    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch, scanoss=scanoss,
-                 codecheck=codecheck, antipoison=antipoison)
+    ac.check_all(workspace=args.workspace, repo=args.repo, dataset=dd, tbranch=args.tbranch,
+                 common_args=common_args)
     ac_result = ac.repo_in_maintain()
     if ac_result.get('check_repo_in_maintain', '') == 2:
         gitee_proxy_inst.create_tags_of_pr(args.pr, "No-longer-maintained")
@@ -368,4 +359,3 @@ if "__main__" == __name__:
     ac.save(args.output)
 
     dd.set_attr_etime("access_control.job.etime")
-    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())

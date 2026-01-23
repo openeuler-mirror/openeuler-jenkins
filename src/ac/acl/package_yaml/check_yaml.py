@@ -21,10 +21,9 @@ import os
 import yaml
 
 from src.proxy.git_proxy import GitProxy
-from src.proxy.requests_proxy import do_requests
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
-from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.framework.ac_result import WARNING, SUCCESS
+from src.ac.common.gitcode_repo import GitcodeRepo
 from src.ac.acl.package_yaml.check_repo import ReleaseTagsFactory
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 
@@ -52,7 +51,7 @@ class CheckPackageYaml(BaseCheck):
         super(CheckPackageYaml, self).__init__(workspace, repo, conf)
 
         self._gp = GitProxy(self._work_dir)
-        self._gr = GiteeRepo(self._repo, self._work_dir, None)  # don't care about decompress
+        self._gr = GitcodeRepo(self._repo, self._work_dir, None)  # don't care about decompress
         if self._gr.spec_file:
             self._spec = RPMSpecAdapter(os.path.join(self._work_dir, self._gr.spec_file))
         else:

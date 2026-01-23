@@ -20,7 +20,7 @@ import logging
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import WARNING, SUCCESS
-from src.ac.common.gitee_repo import GiteeRepo
+from src.ac.common.gitcode_repo import GitcodeRepo
 from pyrpm.spec import Spec, replace_macros
 
 from src.utils.shell_cmd import shell_cmd
@@ -38,7 +38,7 @@ class CheckBinaryFile(BaseCheck):
     def __init__(self, workspace, repo, conf):
         super(CheckBinaryFile, self).__init__(workspace, repo, conf)
         self._work_tar_dir = os.path.join(workspace, "code")  # 解压缩目标目录
-        self._gr = GiteeRepo(self._repo, self._work_dir, self._work_tar_dir)
+        self._gr = GitcodeRepo(self._repo, self._work_dir, self._work_tar_dir)
         self._tarball_in_spec = set()
         self._upstream_community_tarball_in_spec()
 

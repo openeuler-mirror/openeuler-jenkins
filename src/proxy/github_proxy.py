@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 # Author: 
 # Create: 2020-09-23
-# Description: gitee api proxy
+# Description: github api proxy
 # **********************************************************************************
 
 import logging

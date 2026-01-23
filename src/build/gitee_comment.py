@@ -28,6 +28,7 @@ import yaml
 
 from yaml.error import YAMLError
 from src.ac.framework.ac_result import ACResult, SUCCESS
+from src.proxy.gitcode_proxy import GitcodeProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
 from src.proxy.kafka_proxy import KafkaProducerProxy
@@ -47,8 +48,9 @@ class Comment(object):
         """
         self._pr = pr
         self._check_item_comment_files = check_item_comment_files
-        self._up_builds = []
-        self._up_up_builds = []
+        self._compile_builds = []
+        self._get_compile_builds(jenkins_proxy)
+        self._trigger_builds = []
         self._get_upstream_builds(jenkins_proxy)
         self.ac_result = {}
         self.compare_package_result = {}
@@ -156,16 +158,16 @@ class Comment(object):
         return html_str
 
     @staticmethod
-    def get_target_milestone_id(gitee_proxy, branch):
+    def get_target_milestone_id(gitcode_proxy, branch):
         """
         获取pr提交分支对应的milestone id
         @committer
-        :param gitee_proxy:
+        :param gitcode_proxy:
         :param branch: pr branch名称
         :return:
         """
         title = branch + '-whole'
-        milestones = gitee_proxy.get_milestone_id()
+        milestones = gitcode_proxy.get_milestone_id()
         for milestone_info in milestones:
             query_title = milestone_info['title']
             if query_title == title:
@@ -173,28 +175,28 @@ class Comment(object):
 
         return False
 
-    def comment_build(self, gitee_proxy):
+    def comment_build(self, gitcode_proxy):
         """
         构建结果
         :param jenkins_proxy:
-        :param gitee_proxy:
+        :param gitcode_proxy:
         :return:
         """
         comments = self._comment_build_html_format()
-        gitee_proxy.comment_pr(self._pr, "\n".join(comments))
+        gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
 
         return "\n".join(comments)
 
-    def comment_compare_package_details(self, gitee_proxy, check_result_file, tbranch):
+    def comment_compare_package_details(self, gitcode_proxy, check_result_file, tbranch):
         """
         compare package结果上报
 
-        :param gitee_proxy:
+        :param gitcode_proxy:
         :param check_result_file:
         :return:
         """
         comments = self._comment_of_compare_package_details(check_result_file, tbranch)
-        gitee_proxy.comment_pr(self._pr, "\n".join(comments))
+        gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
 
         return "\n".join(comments)
 
@@ -202,7 +204,7 @@ class Comment(object):
         """
         compare package结果提交issue
 
-        :param gp: gitee proxy object
+        :param gp: gitee/gitcode/github proxy object
         :param check_result_file: prase check result files(aarch64, x86_64)
         :param detail_result_file: json result of compare packages details(aarch64, x86_64)
         :param detail_url: file server url
@@ -237,15 +239,15 @@ class Comment(object):
         else:
             logger.info(f"Not found the branch {branch} related milestone")
 
-    def comment_at(self, committer, gitee_proxy):
+    def comment_at(self, committer, gitcode_proxy):
         """
         通知committer
         @committer
         :param committer:
-        :param gitee_proxy:
+        :param gitcode_proxy:
         :return:
         """
-        gitee_proxy.comment_pr(self._pr, "@{}".format(committer))
+        gitcode_proxy.comment_pr(self._pr, "@{}".format(committer))
 
     def get_target_pr_data(self, gp, pr_id):
         """
@@ -296,7 +298,7 @@ class Comment(object):
         
         def filter_no_success(arch):
             results = []
-            for build in self._up_builds:
+            for build in self._compile_builds:
                 name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 result = ACResult.get_instance(build["result"])
                 if arch in name and result != SUCCESS:
@@ -305,7 +307,7 @@ class Comment(object):
             return results
 
         build_result = sum(filter_no_success('riscv64'), SUCCESS)
-        # build_result = sum([ACResult.get_instance(build["result"]) for build in self._up_builds], SUCCESS)
+        # build_result = sum([ACResult.get_instance(build["result"]) for build in self._compile_builds], SUCCESS)
         return build_result
 
     def check_ac_result(self):
@@ -338,6 +340,18 @@ class Comment(object):
             logger.exception("invalid ac result format")
         return acl
 
+    def _get_compile_builds(self, jenkins_proxy):
+        # 这个环境变量由comment的Jenkins工程传下来
+        if "ARCH_BUILD_INFO" in os.environ:
+            compile_builds_info = os.environ.get("ARCH_BUILD_INFO")
+            logger.info("get compile builds info: {}".format(compile_builds_info))
+            for info in compile_builds_info.split("\n"):
+                info = info.strip()
+                logger.info("get compile build info: {}".format(info))
+                compile_build = jenkins_proxy.get_build_info(info.split(",")[0], info.split(",")[1])
+                self._compile_builds.append(compile_build)
+            logger.info("self._compile_builds is: {}".format(self._compile_builds))
+
     def _get_upstream_builds(self, jenkins_proxy):
         """
         get upstream builds
@@ -347,13 +361,10 @@ class Comment(object):
         base_job_name = os.environ.get("JOB_NAME")
         base_build_id = os.environ.get("BUILD_ID")
         base_build_id = int(base_build_id)
-        logger.debug("base_job_name: %s, base_build_id: %s", base_job_name, base_build_id)
+        logger.info("base_job_name: %s, base_build_id: %s", base_job_name, base_build_id)
         base_build = jenkins_proxy.get_build_info(base_job_name, base_build_id)
-        logger.debug("get base build")
-        self._up_builds = jenkins_proxy.get_upstream_builds(base_build)
-        if self._up_builds:
-            logger.debug("get up_builds")
-            self._up_up_builds = jenkins_proxy.get_upstream_builds(self._up_builds[0])
+        self._trigger_builds = jenkins_proxy.get_upstream_builds(base_build)
+
 
     def _comment_build_html_format(self):
         """
@@ -363,11 +374,11 @@ class Comment(object):
         """
         comments = ["<table>", self.comment_html_table_th()]
 
-        if self._up_up_builds:
-            logger.debug("get up_up_builds")
-            comments.extend(self._comment_of_ac(self._up_up_builds[0]))
-        if self._up_builds:
-            comments.extend(self._comment_of_check_item(self._up_builds))
+        if self._trigger_builds:
+            logger.debug("get trigger_builds")
+            comments.extend(self._comment_of_ac(self._trigger_builds[0]))
+        if self._compile_builds:
+            comments.extend(self._comment_of_check_item(self._compile_builds))
 
         comments.append("</table>")
         return comments
@@ -412,7 +423,7 @@ class Comment(object):
             if not os.path.exists(result_file):
                 logger.info("%s not exists", result_file)
                 continue
-            for build in self._up_builds:
+            for build in self._compile_builds:
                 arch_cmp_result = "SUCCESS"
                 name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 logger.info("check build %s", name)
@@ -481,7 +492,7 @@ class Comment(object):
             if not os.path.exists(result_file):
                 logger.info("%s not exists", result_file)
                 continue
-            for build in self._up_builds:
+            for build in self._compile_builds:
                 name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 # name: job path
                 logger.info("check build %s", name)
@@ -706,10 +717,10 @@ class Comment(object):
         :param url:
         :return:
         """
-        build_urls = {"trigger": self._up_up_builds[0]["url"],
+        build_urls = {"trigger": self._trigger_builds[0]["url"],
                       "comment": os.path.join(comment_url, os.environ.get("BUILD_ID"))
                       }
-        for build in self._up_builds:
+        for build in self._compile_builds:
             arch = ""
             try:
                 arch_index = 3
@@ -780,11 +791,11 @@ def init_args():
     parser.add_argument("-p", type=int, dest="pr", help="pull request number")
     parser.add_argument("-m", type=str, dest="comment_id", help="uniq comment id")
     parser.add_argument("-c", type=str, dest="committer", help="commiter")
-    parser.add_argument("-o", type=str, dest="owner", help="gitee owner")
+    parser.add_argument("-o", type=str, dest="owner", help="gitcode owner")
     parser.add_argument("-r", type=str, dest="repo", help="repo name")
-    parser.add_argument("-t", type=str, dest="gitee_token", help="gitee api token")
+    parser.add_argument("-t", type=str, dest="gitcode_token", help="gitcode api token")
 
-    parser.add_argument("-b", type=str, dest="jenkins_base_url", default="https://openeulerjenkins.osinfra.cn/",
+    parser.add_argument("-b", type=str, dest="jenkins_base_url", default="https://ci.openeuler.openatom.cn/",
                         help="jenkins base url")
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
     parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
@@ -796,8 +807,8 @@ def init_args():
     parser.add_argument("-a", type=str, dest="check_item_comment_files", nargs="*", help="check item comment files")
     parser.add_argument("-tb", type=str, dest="tbranch", help="target branch")
 
-    parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitee switch")
-    parser.add_argument("--platform", type=str, dest="platform", default="gitee", help="gitee/github")
+    parser.add_argument("--disable", dest="enable", default=True, action="store_false", help="comment to gitcode switch")
+    parser.add_argument("--platform", type=str, dest="platform", default="gitcode", help="gitee/gitcode/github")
 
     return parser.parse_args()
 
@@ -817,9 +828,11 @@ if "__main__" == __name__:
 
     # gitee pr tag
     if args.platform == "github":
-        gp = GithubProxy(args.owner, args.repo, args.gitee_token)
+        gp = GithubProxy(args.owner, args.repo, args.gitcode_token)
+    elif args.platform == "gitee":
+        gp = GiteeProxy(args.owner, args.repo, args.gitcode_token)
     else:
-        gp = GiteeProxy(args.owner, args.repo, args.gitee_token)
+        gp =GitcodeProxy(args.owner, args.repo, args.gitcode_token)
     gp.delete_tag_of_pr(args.pr, "ci_processing")
 
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
