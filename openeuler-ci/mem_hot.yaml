@@ -1,0 +1,8 @@
+repo_name: mem_hot
+container_level: l1
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: yangyunyi
+    name: yangyunyi 
+    email: yangyunyi2@huawei.com
+    gitee_id: cloudyyy1234
