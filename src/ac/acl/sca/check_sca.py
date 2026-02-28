@@ -46,8 +46,8 @@ class CheckSCA(BaseCheck):
         self._secretKey = None
         self._report_url = None
         self._result = None
-        self._sca_ip = 'https://www.openlibing.com'
-        self._sca_prefix = '/gateway/openlibing-sca'
+        self._sca_ip = 'https://apig.openlibing.com'
+        self._sca_prefix = '/openlibing-sca'
         self.openlibing_proxy = None
         self._timeout = True
 
@@ -64,9 +64,10 @@ class CheckSCA(BaseCheck):
         scanoss_conf = kwargs.get("common_args", {})
         self._community = scanoss_conf.get("community", "")
         self._pr_url = scanoss_conf.get("pr_url", "")
-        self._accountid = scanoss_conf.get('accountid', "")
-        self._secretKey = scanoss_conf.get('secretKey', "")
-        self.openlibing_proxy = OpenlibingProxy(self._accountid, self._secretKey)
+        self.sca_create_ak = scanoss_conf.get('sca_create_ak', "")
+        self.sca_create_sk = scanoss_conf.get('sca_create_sk', "")
+        self.sca_result_ak = scanoss_conf.get('sca_result_ak', "")
+        self.sca_result_sk = scanoss_conf.get('sca_result_sk', "")
 
         return self.start_check()
 
@@ -74,12 +75,20 @@ class CheckSCA(BaseCheck):
         try:
             response_content = {}
             task_url = f'{self._sca_ip}{self._sca_prefix}/scan/pr'
-            headers = self.openlibing_proxy.get_openlibing_api_headers()
+            headers = {"Content-Type": "application/json"}
             post_data = {
                 "projectName": self._community,
-                "prUrl": self._pr_url,
+                "prUrl": self._pr_url
             }
-            rs = do_requests("post", task_url, headers=headers, body=post_data, obj=response_content)
+            method = "POST"
+            ol_proxy = OpenlibingProxy(self.sca_create_ak, self.sca_create_sk)
+            request = ol_proxy.create_openlibing_api_request(method, task_url, headers, json.dumps(post_data))
+            rs = do_requests(
+                request.method,
+                request.scheme + "://" + request.host + request.uri,
+                headers=request.headers,
+                body=json.loads(request.body),
+                obj=response_content)
             if rs == 0 and response_content.get('code', "") == 200:
                 logger.info('create sca task success')
                 return response_content.get('data', '')
@@ -103,11 +112,11 @@ class CheckSCA(BaseCheck):
         scan_id = self.get_create_task()
         if not scan_id:
             sys.exit(-1)
-        status_url = f'{self._sca_ip}{self._sca_prefix}/scan/result'
-        headers = self.openlibing_proxy.get_openlibing_api_headers()
-        params = {
-            "scanId": scan_id
-        }
+        status_url = f'{self._sca_ip}{self._sca_prefix}/scan/result?scanId=' + scan_id
+        method = "GET"
+        headers = {"host": "apig.openlibing.com"}
+        ol_proxy = OpenlibingProxy(self.sca_result_ak, self.sca_result_sk)
+        request = ol_proxy.create_openlibing_api_request(method, status_url, headers)
         expire_time = 0
         total_expire = 600
         logger.info("check sca probably need to {} seconds".format(total_expire))
@@ -115,7 +124,7 @@ class CheckSCA(BaseCheck):
         while expire_time < total_expire:
             time.sleep(query_interval)
             # 检查sca任务的执行状态
-            rs = requests.get(status_url, headers=headers, params=params)
+            rs = requests.request(method, status_url, headers=request.headers)
             response_content = rs.json()
             if response_content.get('code') == 200:
                 data = response_content.get('data')
