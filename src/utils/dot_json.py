@@ -28,9 +28,9 @@ class DotJson(object):
         初始化
         :param data: Mapping or Sequence
         """
-        if isinstance(data, collections.Mapping):
+        if isinstance(data, collections.abc.Mapping):
             self._data = dict(data)
-        elif isinstance(data, collections.MutableSequence):
+        elif isinstance(data, collections.abc.MutableSequence):
             self._data = list(data)
         elif data is None:
             self._data = dict()
@@ -72,7 +72,7 @@ class DotJson(object):
         :param item:
         :return:
         """
-        if isinstance(self._data, collections.MutableSequence) and item.isdigit():    # 嵌套属性中的数字分量
+        if isinstance(self._data, collections.abc.MutableSequence) and item.isdigit():    # 嵌套属性中的数字分量
             item = int(item)
 
         return self.__class__.build(self._data[item])
@@ -95,7 +95,7 @@ class DotJson(object):
         :param obj:
         :return:
         """
-        return cls(obj) if isinstance(obj, (collections.Mapping, collections.MutableSequence)) else obj
+        return cls(obj) if isinstance(obj, (collections.abc.Mapping, collections.abc.MutableSequence)) else obj
 
 
 class MutableDotJson(DotJson):
@@ -112,11 +112,11 @@ class MutableDotJson(DotJson):
         s = self._data
         attrs = key.split(".")
         for attr in attrs[:-1]:
-            if isinstance(s, collections.MutableMapping):
+            if isinstance(s, collections.abc.MutableMapping):
                 if attr not in s:
                     s[attr] = {}
                 s = s[attr]
-            elif isinstance(s, collections.MutableSequence):
+            elif isinstance(s, collections.abc.MutableSequence):
                 if attr.isdigit():
                     s = s[int(attr)]
                 else:

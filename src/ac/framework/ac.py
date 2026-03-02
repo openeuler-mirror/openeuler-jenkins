@@ -258,6 +258,7 @@ def init_args():
 
 
 if "__main__" == __name__:
+    print(int(time.time() * 1000))
     args = init_args()
 
     # init logging
@@ -309,7 +310,7 @@ if "__main__" == __name__:
     logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
-    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
+    # kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
     dd.set_attr_stime("access_control.scm.stime")
@@ -320,8 +321,8 @@ if "__main__" == __name__:
         dd.set_attr_etime("access_control.scm.etime")
 
         dd.set_attr_etime("access_control.job.etime")
-        kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
-        logger.info("fetch finished -")
+        # kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
+        logger.warning("fetch finished -")
         sys.exit(-1)
     else:
         git_proxy.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))

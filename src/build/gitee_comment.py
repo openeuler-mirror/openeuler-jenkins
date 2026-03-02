@@ -884,7 +884,7 @@ if "__main__" == __name__:
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
     # upload to es
-    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
+    # kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
     query = {"term": {"id": args.comment_id}}
     script = {"lang": "painless", "source": "ctx._source.comment = params.comment", "params": dd.to_dict()}
-    kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
+    # kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
