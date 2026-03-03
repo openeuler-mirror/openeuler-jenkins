@@ -15,41 +15,22 @@
 # **********************************************************************************
 
 import logging
-import time
-import hmac
-import hashlib
-import base64
+from src.apig_sdk import signer
 
 logger = logging.getLogger("common")
 
 
 class OpenlibingProxy(object):
-    def __init__(self, account_id, secret_key):
-        self.accountid = account_id
-        self.secretKey = secret_key
+    def __init__(self, access_key, secret_access_key):
+        self.ak = access_key
+        self.sk = secret_access_key
         self.timestamp = None
         self.sign = None
 
-    def create_openlibing_api_sign(self):
-        # generate a 13 bit timestamp as the timestamp
-        self.timestamp = str(int(time.time()*1000))
-
-        # combine the string for reception signature
-        data = self.accountid + self.timestamp
-
-        # calculate signatures using the HmacSHA256 algorithm
-        key = self.secretKey.encode()
-        msg = data.encode()
-        sign = hmac.new(key, msg, hashlib.sha256).digest()
-
-        # encode the signature using base64 encoding
-        self.sign = base64.b64encode(sign).decode()
-
-    def get_openlibing_api_headers(self):
-        self.create_openlibing_api_sign()
-        return {
-            'Content-Type': 'application/json',
-            'accountid': self.accountid,
-            'timestamp': self.timestamp,
-            'sign': self.sign
-        }
+    def create_openlibing_api_request(self, method, url, headers, body=""):
+        request = signer.HttpRequest(method, url, headers, body)
+        sig = signer.Signer()
+        sig.Key = self.ak
+        sig.Secret = self.sk
+        sig.Sign(request)
+        return request

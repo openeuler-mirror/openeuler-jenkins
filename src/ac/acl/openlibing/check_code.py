@@ -15,7 +15,9 @@
 # **********************************************************************************
 
 import logging
+import os
 import time
+import json
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
@@ -44,8 +46,8 @@ class CheckCode(BaseCheck):
         self._pr_url = None
         self._accountid = None
         self._secretKey = None
-        self._codecheck_ip = 'https://www.openlibing.com'
-        self._codecheck_prefix = '/gateway/openlibing-codecheck'
+        self._codecheck_ip = 'https://apig.openlibing.com'
+        self._codecheck_prefix = '/openlibing-codecheck'
         self.openlibing_proxy = None
 
     def __call__(self, *args, **kwargs):
@@ -61,11 +63,14 @@ class CheckCode(BaseCheck):
 
         self._community = codecheck_conf.get("community", "")
         self._pr_url = codecheck_conf.get("pr_url", "")
-        self._accountid = codecheck_conf.get("accountid", "")
-        self._secretKey = codecheck_conf.get("secretKey", "")
-        self.openlibing_proxy = OpenlibingProxy(self._accountid, self._secretKey)
+        self.code_create_ak = os.environ["code_create_ak"]
+        self.code_create_sk = os.environ["code_create_sk"]
+        self.code_result_ak = os.environ["code_result_ak"]
+        self.code_result_sk = os.environ["code_result_sk"]
+
         if codecheck_conf.get("platform", "") == "gitcode":
             self._pr_url = self._pr_url.replace("/pull/", "/merge_requests/")
+
         return self.start_check()
 
     def get_codecheck_result(self):
@@ -75,13 +80,20 @@ class CheckCode(BaseCheck):
         response_content = {}
         # 创建codecheck检查任务
         task_url = f'{self._codecheck_ip}{self._codecheck_prefix}/ci-portal/webhook/codecheck/v1/task'
-        headers = self.openlibing_proxy.get_openlibing_api_headers()
+        headers = {"Content-Type": "application/json"}
         post_data = {
             "pr_url": self._pr_url,
             "projectName": self._community
         }
-
-        rs = do_requests("post", task_url, body=post_data, headers=headers, obj=response_content)
+        method = 'POST'
+        ol_proxy = OpenlibingProxy(self.code_create_ak, self.code_create_sk)
+        request = ol_proxy.create_openlibing_api_request(method, task_url, headers, json.dumps(post_data))
+        rs = do_requests(
+            request.method,
+            request.scheme + "://" + request.host + request.uri,
+            headers=request.headers,
+            body=json.loads(request.body),
+            obj=response_content)
         if rs != 0 or response_content.get('code', '') != '200':
             if response_content.get('msg') and response_content.get('msg').find("There is no proper set of languages") != -1:
                 response_content.update(code="200", msg="success", state="pass")
@@ -91,12 +103,15 @@ class CheckCode(BaseCheck):
 
         uuid = response_content.get('uuid')
         task_id = response_content.get('task_id')
-        headers = self.openlibing_proxy.get_openlibing_api_headers()
+        status_url = f'{self._codecheck_ip}{self._codecheck_prefix}/ci-portal/webhook/codecheck/v1/task/status'
+        headers = {"Content-Type": "application/json"}
         data = {
             "uuid": uuid,
             "task_id": task_id,
         }
-        status_url = f'{self._codecheck_ip}{self._codecheck_prefix}/ci-portal/webhook/codecheck/v1/task/status'
+        method = 'POST'
+        ol_proxy = OpenlibingProxy(self.code_result_ak, self.code_result_sk)
+        request = ol_proxy.create_openlibing_api_request(method, status_url, headers, json.dumps(data))
         current_time = 0
         total_expire = 600
         logger.info("codecheck probably need to {} seconds".format(total_expire))
@@ -106,7 +121,12 @@ class CheckCode(BaseCheck):
             time.sleep(time_interval)
             response_content = {}
             # 检查codecheck任务的执行状态
-            rs = do_requests("post", status_url, body=data, headers=headers, obj=response_content)
+            rs = do_requests(
+                request.method,
+                request.scheme + "://" + request.host + request.uri,
+                headers=request.headers,
+                body=json.loads(request.body),
+                obj=response_content)
             if rs == 0 and response_content.get('code') == '100':
                 current_time = current_time + time_interval
                 continue
@@ -124,7 +144,6 @@ class CheckCode(BaseCheck):
         # 判断是否计算完成
         if rs != 0:
             return FAILED
-
         if response_content.get('msg') == 'success':
             """
             # 返回结果 {

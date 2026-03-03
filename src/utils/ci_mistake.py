@@ -163,8 +163,8 @@ class CiMistake(object):
             message["ci_mistake_status"] = False
         else:
             message["ci_mistake_status"] = True
-        kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
-        kp.send("openeuler_statewall_ci_mistake", key=self.comment_id, value=message)
+        # kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
+        # kp.send("openeuler_statewall_ci_mistake", key=self.comment_id, value=message)
         self.comment_to_pr("Thanks for your commit.")
         logger.info("ci mistake finished. kafka message: %s.", message)
 

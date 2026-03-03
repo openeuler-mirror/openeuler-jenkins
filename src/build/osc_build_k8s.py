@@ -287,7 +287,7 @@ if "__main__" == __name__:
     logging.getLogger("elasticsearch").setLevel(logging.WARNING)
     logging.getLogger("kafka").setLevel(logging.WARNING)
 
-    kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
+    # kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
 
     # download repo
     dd.set_attr_stime("spb.scm.stime")
@@ -305,7 +305,7 @@ if "__main__" == __name__:
         query = {"term": {"id": args.comment_id}}
         script = {"lang": "painless", "source": "ctx._source.spb_{}=params.spb".format(args.arch),
                 "params": dd.to_dict()}
-        kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
+        # kp.send("openeuler_statewall_ci_ac", key=args.comment_id, value=dd.to_dict())
         sys.exit(-1)
     else:
         gp.checkout_to_commit_force("pull/{}/MERGE".format(args.pr))

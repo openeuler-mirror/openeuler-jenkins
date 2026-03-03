@@ -15,8 +15,9 @@
 # **********************************************************************************
 
 import logging
-import sys
 import time
+import json
+import os
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
@@ -45,8 +46,8 @@ class CheckAntiPoisoning(BaseCheck):
         self._pr_url = None
         self._accountid = None
         self._secretKey = None
-        self._antipoison_ip = 'https://www.openlibing.com'
-        self._antipoison_prefix = '/gateway/openlibing-anti-poison'
+        self._antipoison_ip = 'https://apig.openlibing.com'
+        self._antipoison_prefix = '/openlibing-anti-poison'
         self.openlibing_proxy = None
 
     def __call__(self, *args, **kwargs):
@@ -63,38 +64,52 @@ class CheckAntiPoisoning(BaseCheck):
 
         self._community = antipoisoning_conf.get("community", "")
         self._pr_url = antipoisoning_conf.get("pr_url", "")
-        self._accountid = antipoisoning_conf.get("accountid", "")
-        self._secretKey = antipoisoning_conf.get("secretKey", "")
-        self.openlibing_proxy = OpenlibingProxy(self._accountid, self._secretKey)
+        self.anti_create_ak = os.environ['anti_create_ak']
+        self.anti_create_sk = os.environ['anti_create_sk']
+        self.anti_result_ak = os.environ['anti_result_ak']
+        self.anti_result_sk = os.environ['anti_result_sk']
 
         return self.start_check()
 
     def create_poison_task(self):
-        scan_response = {}
-        # 创建anti-poisoning检查任务
-        task_url = f'{self._antipoison_ip}{self._antipoison_prefix}/poison-pr/sca-pr'
-        headers = self.openlibing_proxy.get_openlibing_api_headers()
-        post_data = {
-            "projectName": self._community,
-            "prUrl": self._pr_url,
-        }
-        rs = do_requests("post", task_url, headers=headers, body=post_data, obj=scan_response)
-        if rs != 0 or scan_response.get('code', '') != 200:
-            logger.error('create anti_poison task failed: %s', scan_response.get("message"))
-            return None
-        else:
-            logger.info('create anti_poison task success')
-            return scan_response.get('result').get('scanId')
+        try:
+            scan_response = {}
+            # 创建anti-poisoning检查任务
+            task_url = f'{self._antipoison_ip}{self._antipoison_prefix}/poison-pr/sca-pr'
+            method = 'POST'
+            headers = {"Content-Type": "application/json"}
+            post_data = {
+                "projectName": self._community,
+                "prUrl": self._pr_url,
+            }
+            ol_proxy = OpenlibingProxy(self.anti_create_ak, self.anti_create_sk)
+            request = ol_proxy.create_openlibing_api_request(method, task_url, headers, json.dumps(post_data))
+            rs = do_requests(
+                request.method,
+                request.scheme + "://" + request.host + request.uri,
+                headers=request.headers,
+                body=json.loads(request.body),
+                obj=scan_response)
+            if rs != 0 or scan_response.get('code', '') != 200:
+                logger.error('create anti_poison task failed: %s', scan_response.get("message"))
+            else:
+                logger.info('create anti_poison task success')
+                return scan_response.get('result').get('scanId')
+        except Exception as error:
+            logger.error('create sca task failed exception:%s', error)
 
     def get_poison_result(self):
         scanid = self.create_poison_task()
         if not scanid:
             return FAILED, None
-        headers = self.openlibing_proxy.get_openlibing_api_headers()
+        status_url = f'{self._antipoison_ip}{self._antipoison_prefix}/poison-pr/query-pr-results-status'
         data = {
             "scanId": scanid
         }
-        status_url = f'{self._antipoison_ip}{self._antipoison_prefix}/poison-pr/query-pr-results-status'
+        method = "POST"
+        headers = {"Content-Type": "application/json"}
+        ol_proxy = OpenlibingProxy(self.anti_result_ak, self.anti_result_sk)
+        request = ol_proxy.create_openlibing_api_request(method, status_url, headers, json.dumps(data))
         current_time = 0
         total_expire = 120
         logger.info("codecheck probably need to {} seconds".format(total_expire))
@@ -103,7 +118,12 @@ class CheckAntiPoisoning(BaseCheck):
             time.sleep(time_interval)
             response_content = {}
             # 检查anti_poisoning任务的执行状态
-            rs = do_requests("post", status_url, headers=headers, body=data, obj=response_content)
+            rs = do_requests(
+                request.method,
+                request.scheme + "://" + request.host + request.uri,
+                headers=request.headers,
+                body=json.loads(request.body),
+                obj=response_content)
             if rs == 0 and response_content.get('code') == 200 and not response_content.get('result'):
                 current_time = current_time + time_interval
                 continue
