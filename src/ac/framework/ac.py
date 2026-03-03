@@ -258,7 +258,6 @@ def init_args():
 
 
 if "__main__" == __name__:
-    print(int(time.time() * 1000))
     args = init_args()
 
     # init logging
