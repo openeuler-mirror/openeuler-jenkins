@@ -15,6 +15,7 @@
 # **********************************************************************************
 
 import logging
+import os
 import time
 import json
 
@@ -62,10 +63,10 @@ class CheckCode(BaseCheck):
 
         self._community = codecheck_conf.get("community", "")
         self._pr_url = codecheck_conf.get("pr_url", "")
-        self.code_create_ak = codecheck_conf.get("code_create_ak", "")
-        self.code_create_sk = codecheck_conf.get("code_create_sk", "")
-        self.code_result_ak = codecheck_conf.get("code_result_ak", "")
-        self.code_result_sk = codecheck_conf.get("code_result_sk", "")
+        self.code_create_ak = os.environ["code_create_ak"]
+        self.code_create_sk = os.environ["code_create_sk"]
+        self.code_result_ak = os.environ["code_result_ak"]
+        self.code_result_sk = os.environ["code_result_sk"]
 
         if codecheck_conf.get("platform", "") == "gitcode":
             self._pr_url = self._pr_url.replace("/pull/", "/merge_requests/")

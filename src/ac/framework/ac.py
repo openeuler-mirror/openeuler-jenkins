@@ -251,9 +251,6 @@ def init_args():
     parser.add_argument("--jenkins-api-token", type=str, dest="jenkins_api_token", help="jenkins api token")
     parser.add_argument("--platform", type=str, dest="platform", default="gitcode", help="/gitcode/gitee/github")
 
-    parser.add_argument('--accountId', type=str, dest="accountid", help='openlibing account id')
-    parser.add_argument('--secretKey', type=str, dest="secretKey", help='openlibing secret key')
-
     return parser.parse_args()
 
 
@@ -345,8 +342,8 @@ if "__main__" == __name__:
 
     common_args = {"pr_url": "{url}/{owner}/{repo}/{pull}/{pr}".format(url=code_url, owner=args.community,
                                                                        repo=args.repo, pull=pull_tag, pr=args.pr),
-                          "community": args.community, "pr_num": args.pr, "accountid": args.accountid,
-                          "secretKey": args.secretKey, "access_token": args.token, "platform": args.platform}
+                          "community": args.community, "pr_num": args.pr,
+                          "access_token": args.token, "platform": args.platform}
 
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)

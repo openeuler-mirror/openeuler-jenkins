@@ -15,7 +15,7 @@
 # **********************************************************************************
 
 import logging
-from apig_sdk import signer
+from src.apig_sdk import signer
 
 logger = logging.getLogger("common")
 

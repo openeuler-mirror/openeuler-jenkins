@@ -17,6 +17,7 @@
 import logging
 import time
 import json
+import os
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
@@ -63,10 +64,10 @@ class CheckAntiPoisoning(BaseCheck):
 
         self._community = antipoisoning_conf.get("community", "")
         self._pr_url = antipoisoning_conf.get("pr_url", "")
-        self.anti_create_ak = antipoisoning_conf.get('anti_create_ak', "")
-        self.anti_create_sk = antipoisoning_conf.get('anti_create_sk', "")
-        self.anti_result_ak = antipoisoning_conf.get('anti_result_ak', "")
-        self.anti_result_sk = antipoisoning_conf.get('anti_result_sk', "")
+        self.anti_create_ak = os.environ['anti_create_ak']
+        self.anti_create_sk = os.environ['anti_create_sk']
+        self.anti_result_ak = os.environ['anti_result_ak']
+        self.anti_result_sk = os.environ['anti_result_sk']
 
         return self.start_check()
 
@@ -91,7 +92,6 @@ class CheckAntiPoisoning(BaseCheck):
                 obj=scan_response)
             if rs != 0 or scan_response.get('code', '') != 200:
                 logger.error('create anti_poison task failed: %s', scan_response.get("message"))
-                return None
             else:
                 logger.info('create anti_poison task success')
                 return scan_response.get('result').get('scanId')

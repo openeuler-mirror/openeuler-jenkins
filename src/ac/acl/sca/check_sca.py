@@ -15,6 +15,7 @@
 # **********************************************************************************
 import json
 import logging
+import os
 import time
 import sys
 import requests
@@ -64,10 +65,10 @@ class CheckSCA(BaseCheck):
         scanoss_conf = kwargs.get("common_args", {})
         self._community = scanoss_conf.get("community", "")
         self._pr_url = scanoss_conf.get("pr_url", "")
-        self.sca_create_ak = scanoss_conf.get('sca_create_ak', "")
-        self.sca_create_sk = scanoss_conf.get('sca_create_sk', "")
-        self.sca_result_ak = scanoss_conf.get('sca_result_ak', "")
-        self.sca_result_sk = scanoss_conf.get('sca_result_sk', "")
+        self.sca_create_ak = os.environ['sca_create_ak']
+        self.sca_create_sk = os.environ['sca_create_sk']
+        self.sca_result_ak = os.environ['sca_result_ak']
+        self.sca_result_sk = os.environ['sca_result_sk']
 
         return self.start_check()
 

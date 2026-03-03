@@ -1,6 +1,5 @@
 # Copyright Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
 
-import os
 from unittest import TestCase, mock
 import signer
 from signer import *
