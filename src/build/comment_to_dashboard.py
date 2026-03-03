@@ -113,8 +113,8 @@ class CommentToDashboard(object):
 
         logger.info("base_dict = %s", base_dict)
         # upload to es
-        kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
-        kp.send("openeuler_statewall_ci_result", key=args_list.comment_id, value=base_dict)
+        # kp = KafkaProducerProxy(brokers=os.environ["KAFKAURL"].split(","))
+        # kp.send("openeuler_statewall_ci_result", key=args_list.comment_id, value=base_dict)
 
         comment_tips = "门禁常见失败问题及解决方案, 可参考" \
                        "<a href=https://gitcode.com/openeuler/openeuler-jenkins/blob/master/doc/门禁问题排查手册.md>" \
