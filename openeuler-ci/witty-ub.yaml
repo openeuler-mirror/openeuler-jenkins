@@ -1,0 +1,8 @@
+repo_name: witty-ub
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: li-yuanrong
+    name: Yuanrong Li
+    email: liyuanrong1@huawei.com
+    gitee_id: li-yuanrong
