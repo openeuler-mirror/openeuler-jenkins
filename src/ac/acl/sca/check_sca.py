@@ -50,7 +50,7 @@ class CheckSCA(BaseCheck):
         self._sca_ip = 'https://apig.openlibing.com'
         self._sca_prefix = '/openlibing-sca'
         self.openlibing_proxy = None
-        self._timeout = True
+        self._timeout = False
 
     def __call__(self, *args, **kwargs):
         """
@@ -112,14 +112,15 @@ class CheckSCA(BaseCheck):
         # create sca task
         scan_id = self.get_create_task()
         if not scan_id:
-            sys.exit(-1)
+            self._result = 'no pass'
+            return
         status_url = f'{self._sca_ip}{self._sca_prefix}/scan/result?scanId=' + scan_id
         method = "GET"
         headers = {"host": "apig.openlibing.com"}
         ol_proxy = OpenlibingProxy(self.sca_result_ak, self.sca_result_sk)
         request = ol_proxy.create_openlibing_api_request(method, status_url, headers)
         expire_time = 0
-        total_expire = 600
+        total_expire = 1200
         logger.info("check sca probably need to {} seconds".format(total_expire))
         query_interval = 10
         while expire_time < total_expire:
@@ -132,7 +133,6 @@ class CheckSCA(BaseCheck):
                 state = data.get('state')
                 self._report_url = data.get('prResult')
                 if state == 'success':
-                    self._timeout = False
                     if data.get('unconfirmedFileNum') == 0:
                         self._result = 'pass'
                     elif data.get('unconfirmedFileNum') > 0:
@@ -143,13 +143,12 @@ class CheckSCA(BaseCheck):
                     expire_time = expire_time + query_interval
                     continue
                 elif state == 'failure':
-                    self._timeout = False
                     logger.error(f'sca check failed, info: %s ', response_content.get("message"))
                     break
             else:
-                self._timeout = False
                 logger.error(f'sca check interface failed')
                 break
+        self._timeout = True
 
     def check_scanoss(self):
         """
