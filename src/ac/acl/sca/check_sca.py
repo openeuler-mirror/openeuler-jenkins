@@ -50,7 +50,7 @@ class CheckSCA(BaseCheck):
         self._sca_ip = 'https://apig.openlibing.com'
         self._sca_prefix = '/openlibing-sca'
         self.openlibing_proxy = None
-        self._timeout = True
+        self._timeout = False
 
     def __call__(self, *args, **kwargs):
         """
@@ -133,7 +133,6 @@ class CheckSCA(BaseCheck):
                 state = data.get('state')
                 self._report_url = data.get('prResult')
                 if state == 'success':
-                    self._timeout = False
                     if data.get('unconfirmedFileNum') == 0:
                         self._result = 'pass'
                     elif data.get('unconfirmedFileNum') > 0:
@@ -144,13 +143,12 @@ class CheckSCA(BaseCheck):
                     expire_time = expire_time + query_interval
                     continue
                 elif state == 'failure':
-                    self._timeout = False
                     logger.error(f'sca check failed, info: %s ', response_content.get("message"))
                     break
             else:
-                self._timeout = False
                 logger.error(f'sca check interface failed')
                 break
+        self._timeout = True
 
     def check_scanoss(self):
         """
