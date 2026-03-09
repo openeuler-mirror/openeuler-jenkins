@@ -84,7 +84,8 @@ openeuler:
                  "Virt-docs","edk2","libvirt-python","open-vm-tools","cloud-hypervisor","virglrenderer","vagrant-lxc","vagrant-libvirt",
                  "vagrant-hostmanager","vagrant","libvirt-dbus","libvirt-glib","llm_solution","secDetector","rubik",
                  "security-tool","imageTailor","obmm","yuanrong-functionsystem","yuanrong","yuanrong-datasystem","ray-adapter",
-                 "ubs-engine","ubturbo","ubs-comm","golang","ham", "dpdk", "ubs-virt", "ubs-io", "cache_tuner", "mem_hot", "witty-ub"]
+                 "ubs-engine","ubturbo","ubs-comm","golang","ham", "dpdk", "ubs-virt", "ubs-io", "cache_tuner", "mem_hot", "witty-ub",
+                 "TSB-agent"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
