@@ -20,7 +20,7 @@ import time
 import json
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, SUCCESS
 from src.proxy.requests_proxy import do_requests
 from src.proxy.openlibing_proxy import OpenlibingProxy
 
