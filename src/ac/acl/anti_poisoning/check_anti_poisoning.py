@@ -112,9 +112,9 @@ class CheckAntiPoisoning(BaseCheck):
         request = ol_proxy.create_openlibing_api_request(method, status_url, headers, json.dumps(data))
         current_time = 0
         total_expire = 120
-        logger.info("codecheck probably need to {} seconds".format(total_expire))
+        logger.info("anti poisoning probably need to {} seconds".format(total_expire))
         time_interval = 10
-        while current_time < 120:
+        while current_time < total_expire:
             time.sleep(time_interval)
             response_content = {}
             # 检查anti_poisoning任务的执行状态

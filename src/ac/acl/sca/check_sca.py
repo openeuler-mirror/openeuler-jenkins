@@ -120,7 +120,7 @@ class CheckSCA(BaseCheck):
         ol_proxy = OpenlibingProxy(self.sca_result_ak, self.sca_result_sk)
         request = ol_proxy.create_openlibing_api_request(method, status_url, headers)
         expire_time = 0
-        total_expire = 600
+        total_expire = 1200
         logger.info("check sca probably need to {} seconds".format(total_expire))
         query_interval = 10
         while expire_time < total_expire:
