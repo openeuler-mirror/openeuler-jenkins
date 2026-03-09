@@ -148,7 +148,8 @@ class CheckSCA(BaseCheck):
             else:
                 logger.error(f'sca check interface failed')
                 break
-        self._timeout = True
+        if expire_time >= total_expire:
+            self._timeout = True
 
     def check_scanoss(self):
         """
