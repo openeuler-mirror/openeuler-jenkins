@@ -112,7 +112,8 @@ class CheckSCA(BaseCheck):
         # create sca task
         scan_id = self.get_create_task()
         if not scan_id:
-            sys.exit(-1)
+            self._result = 'no pass'
+            return
         status_url = f'{self._sca_ip}{self._sca_prefix}/scan/result?scanId=' + scan_id
         method = "GET"
         headers = {"host": "apig.openlibing.com"}
