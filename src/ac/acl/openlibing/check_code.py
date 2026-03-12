@@ -116,6 +116,9 @@ class CheckCode(BaseCheck):
         total_expire = 1200
         logger.info("codecheck probably need to {} seconds".format(total_expire))
         time_interval = 10
+        # 请求错误的次数和最大次数
+        rs_error = 0
+        max_rs_error = 3
         # 定时10min
         while current_time < total_expire:
             time.sleep(time_interval)
@@ -127,11 +130,28 @@ class CheckCode(BaseCheck):
                 headers=request.headers,
                 body=json.loads(request.body),
                 obj=response_content)
-            if rs == 0 and response_content.get('code') == '100':
-                current_time = current_time + time_interval
-                continue
+            # rs为0表示接口正常返回
+            if rs == 0:
+                # 还在执行的任务返回的code为100，成功的任务返回时200,200和其他code值都直接退出
+                if response_content.get('code') == '100':
+                    current_time = current_time + time_interval
+                    # 检查状态的请求成功后，rs_error需要重置
+                    rs_error = 0
+                    continue
+                else:
+                    break
+            # 表示接口不正常返回，需要重试，连续不正常返回3次，则不再查询
             else:
-                break
+                if rs_error >= max_rs_error:
+                    logger.error(f"check codecheck status failed for {rs_error} times, "
+                                 f"please contact openlibing, and the task id is {task_id}")
+                    break
+                else:
+                    logger.warning(f"check codecheck status failed: {rs}, retry")
+                    current_time = current_time + time_interval
+                    rs_error += 1
+                    continue
+
         return rs, response_content
 
     def check_code(self):

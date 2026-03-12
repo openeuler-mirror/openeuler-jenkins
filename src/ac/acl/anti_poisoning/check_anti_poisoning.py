@@ -114,6 +114,9 @@ class CheckAntiPoisoning(BaseCheck):
         total_expire = 120
         logger.info("anti poisoning probably need to {} seconds".format(total_expire))
         time_interval = 10
+        # 请求错误的次数和最大次数
+        rs_error = 0
+        max_rs_error = 3
         while current_time < total_expire:
             time.sleep(time_interval)
             response_content = {}
@@ -124,11 +127,27 @@ class CheckAntiPoisoning(BaseCheck):
                 headers=request.headers,
                 body=json.loads(request.body),
                 obj=response_content)
-            if rs == 0 and response_content.get('code') == 200 and not response_content.get('result'):
-                current_time = current_time + time_interval
-                continue
+            # rs为0表示接口正常返回
+            if rs == 0:
+                # result为空表示还在执行中，result有值或者code不为200表示正常或者异常结束，直接退出
+                if response_content.get('code') == 200 and not response_content.get('result'):
+                    current_time = current_time + time_interval
+                    rs_error = 0
+                    continue
+                else:
+                    break
+            # 表示接口不正常返回，需要重试，连续不正常返回3次，则不再查询
             else:
-                break
+                # 检查状态的请求连续失败3次，则不再查询
+                if rs_error >= max_rs_error:
+                    logger.error(f"check anti-posioning status failed for {rs_error} times, "
+                                 f"please contact openlibing, and the scan id is {scanid}")
+                    break
+                else:
+                    logger.warning(f"check codecheck status failed: {rs}, retry")
+                    current_time = current_time + time_interval
+                    rs_error += 1
+                    continue
         return rs, response_content
 
     def check_anti_poisoning(self):
