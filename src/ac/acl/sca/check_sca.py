@@ -123,12 +123,16 @@ class CheckSCA(BaseCheck):
         total_expire = 1200
         logger.info("check sca probably need to {} seconds".format(total_expire))
         query_interval = 10
+        rs_error = 0
+        max_rs_error = 3
         while expire_time < total_expire:
             time.sleep(query_interval)
             # 检查sca任务的执行状态
             rs = requests.request(method, status_url, headers=request.headers)
             response_content = rs.json()
+            # 接口返回正常
             if response_content.get('code') == 200:
+                rs_error = 0
                 data = response_content.get('data')
                 state = data.get('state')
                 self._report_url = data.get('prResult')
@@ -145,9 +149,19 @@ class CheckSCA(BaseCheck):
                 elif state == 'failure':
                     logger.error(f'sca check failed, info: %s ', response_content.get("message"))
                     break
+            # 接口返回异常
             else:
-                logger.error(f'sca check interface failed')
-                break
+                # 检查状态的请求连续失败3次，则不再查询
+                if rs_error >= max_rs_error:
+                    logger.error(f"check sca status failed for {rs_error} times, "
+                                 f"please contact openlibing, and the scan id is {scan_id}")
+                    break
+                else:
+                    logger.warning(f"sca check interface failed: {rs}, retry")
+                    expire_time = expire_time + query_interval
+                    rs_error += 1
+                    continue
+
         if expire_time >= total_expire:
             self._timeout = True
 
