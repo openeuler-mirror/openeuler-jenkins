@@ -85,7 +85,7 @@ openeuler:
                  "vagrant-hostmanager","vagrant","libvirt-dbus","libvirt-glib","llm_solution","secDetector","rubik",
                  "security-tool","imageTailor","obmm","yuanrong-functionsystem","yuanrong","yuanrong-datasystem","ray-adapter",
                  "ubs-engine","ubturbo","ubs-comm","golang","ham", "dpdk", "ubs-virt", "ubs-io", "cache_tuner", "mem_hot", "witty-ub",
-                 "TSB-agent"]
+                 "TSB-agent","ubs-optimizer","ubs-mem","cdf-crypto","scf-security"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
