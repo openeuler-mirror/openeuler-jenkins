@@ -1,0 +1,8 @@
+repo_name: scf-security
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: scfsecurity
+    name: liuruipeng
+    email: liuruipeng8@h-partners.com
+    gitee_id: LetGoOfMyChickenLeg
