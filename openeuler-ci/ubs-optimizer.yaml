@@ -1,0 +1,8 @@
+repo_name: ubs-optimizer
+container_level: l1
+init_shell: "echo hello\necho $?"
+user:
+  - login_name: ubsoptimizer
+    name: liuruipeng
+    email: liuruipeng8@h-partners.com
+    gitee_id: LetGoOfMyChickenLeg
