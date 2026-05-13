@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 import yaml
 
 from src.proxy.git_proxy import GitProxy
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
@@ -152,7 +152,7 @@ class CheckSpec(BaseCheck):
             return SUCCESS
 
         for _ in range(retrying):
-            if 0 == do_requests("get", homepage, timeout=timeout):
+            if 0 == do_requests("get", homepage, RequestData(timeout=timeout)):
                 return SUCCESS
             time.sleep(interval)
 

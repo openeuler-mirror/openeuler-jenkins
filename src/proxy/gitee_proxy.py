@@ -17,7 +17,7 @@ import logging
 
 import yaml
 
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 
 logger = logging.getLogger("common")
 
@@ -39,7 +39,7 @@ class GiteeProxy(object):
         comment_pr_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/comments".format(self._owner, self._repo, pr)
         data = {"access_token": self._token, "body": comment}
 
-        rs = do_requests("post", comment_pr_url, body=data, timeout=10)
+        rs = do_requests("post", comment_pr_url, RequestData(body=data, timeout=10))
 
         if rs != 0:
             logger.warning("comment pull request failed")
@@ -62,7 +62,7 @@ class GiteeProxy(object):
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
             self._owner, self._repo, pr, self._token)
 
-        rs = do_requests("post", pr_tag_url, body=list(tags), timeout=10)
+        rs = do_requests("post", pr_tag_url, RequestData(body=list(tags), timeout=10))
 
         if rs != 0:
             logger.warning("create tags:%s failed", tags)
@@ -85,7 +85,7 @@ class GiteeProxy(object):
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels?access_token={}".format(
             self._owner, self._repo, pr, self._token)
 
-        rs = do_requests("put", pr_tag_url, body=list(tags), timeout=10)
+        rs = do_requests("put", pr_tag_url, RequestData(body=list(tags), timeout=10))
         if rs != 0:
             logger.warning("replace tags:%s failed", tags)
             return False
@@ -103,7 +103,7 @@ class GiteeProxy(object):
         pr_tag_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}/labels/{}?access_token={}".format(
             self._owner, self._repo, pr, tag, self._token)
 
-        rs = do_requests("delete", pr_tag_url, timeout=10)
+        rs = do_requests("delete", pr_tag_url, RequestData(timeout=10))
 
         if rs != 0:
             logger.warning("delete tags:%s failed", tag)
@@ -132,7 +132,7 @@ class GiteeProxy(object):
 
         community_repo_url = "https://gitee.com/openeuler/community/raw/master/repository/src-openeuler.yaml"
         logger.info("requests repos from community, this will take multi seconds")
-        do_requests("get", url=community_repo_url, timeout=timeout, obj=analysis)
+        do_requests("get", community_repo_url, RequestData(timeout=timeout, obj=analysis))
 
         return repos
 
@@ -165,7 +165,7 @@ class GiteeProxy(object):
                 except KeyError:
                     logger.exception("extract committer info from gitee exception")
 
-        rs = do_requests("get", pr_url, timeout=10, obj=analysis)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=analysis))
 
         if rs != 0:
             logger.warning("get last pr committer failed")
@@ -177,7 +177,7 @@ class GiteeProxy(object):
         issue_url = "https://gitee.com/api/v5/enterprises/{}/issues/{}?access_token={}".format(
             enterprises, cve_issue, self._token)
         logging.info(issue_url)
-        rs = do_requests("get", issue_url, timeout=10, obj=resp)
+        rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp))
 
         if rs != 0:
             logging.warning("get issue failed")
@@ -188,7 +188,7 @@ class GiteeProxy(object):
         resp = {}
         issue_url = "https://gitee.com/api/v5/repos/{}/issues".format(owner)
 
-        rs = do_requests("post", issue_url, body=data, timeout=10, obj=resp)
+        rs = do_requests("post", issue_url, RequestData(body=data, timeout=10, obj=resp))
         if rs != 0:
             logging.warning("create issue failed")
         return resp
@@ -198,7 +198,7 @@ class GiteeProxy(object):
         resp = {}
         issue_url = "https://gitee.com/api/v5/repos/{}/issues/{}".format(owner, number)
 
-        rs = do_requests("patch", issue_url, body=data, timeout=10, obj=resp)
+        rs = do_requests("patch", issue_url, RequestData(body=data, timeout=10, obj=resp))
         if rs != 0:
             logging.warning("update issue failed")
         return resp
@@ -213,7 +213,7 @@ class GiteeProxy(object):
         pr_url = "https://gitee.com/api/v5/repos/{}/{}/pulls/{}?access_token={}".format(self._owner, self._repo, pr_id,
                                                                                         self._token)
         pr_info = {}
-        rs = do_requests("get", pr_url, timeout=10, obj=pr_info)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=pr_info))
         if rs != 0:
             logger.warning(f"get pr info {self._repo} {pr_id} failed")
 
@@ -227,7 +227,7 @@ class GiteeProxy(object):
         pr_url = f"https://gitee.com/api/v5/repos/{self._owner}/{self._repo}/issues?access_token={self._token}"
         issues_info = []
 
-        rs = do_requests("get", pr_url, timeout=10, obj=issues_info)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=issues_info))
         if rs != 0:
             logger.warning("get issue num info failed")
 
@@ -240,7 +240,7 @@ class GiteeProxy(object):
         """
         pr_url = f"https://gitee.com/api/v5/repos/{self._owner}/{self._repo}/milestones"
         milestones_info = []
-        rs = do_requests("get", pr_url, timeout=10, obj=milestones_info)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=milestones_info))
         if rs != 0:
             logger.warning("get milestone id info failed")
 

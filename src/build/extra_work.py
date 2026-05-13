@@ -23,7 +23,7 @@ import logging
 import yaml
 
 from src.proxy.obs_proxy import OBSProxy
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 from src.constant import Constant
 from src.build.obs_repo_source import OBSRepoSource
 from src.build.build_rpm_package import BuildRPMPackage
@@ -83,8 +83,8 @@ class ExtraWork(object):
         """
         package = self._rpm_package.last_main_package(package_arch, package_url)
         querystring = {"token": notify_token, "PACKAGE_URL": package, "arch": package_arch}
-        ret = do_requests("get", notify_url, querystring=querystring,
-                          auth={"user": notify_jenkins_user, "password": notify_jenkins_password}, timeout=1)
+        ret = do_requests("get", notify_url, RequestData(querystring=querystring,
+                          auth={"user": notify_jenkins_user, "password": notify_jenkins_password}, timeout=1))
         if ret in [0, 2]:
             # send async, don't care about response, timeout will be ok
             logger.info("notify ...ok")

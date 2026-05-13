@@ -74,7 +74,7 @@ class OBSRepoSource(object):
                     break
             branch = obs_branch.replace(":", ":/")
             url = "{}/{}/standard_{}".format(host, branch, arch)
-            if do_requests("GET", url) == 0:
+            if do_requests("GET", url, RequestData()) == 0:
                 logger.debug("add openstack base repo: %s", url)
                 repo_config += self.repo_format(obs_branch, repo_name_prefix + "_" + branch, url, priority)
                 priority += 1

@@ -23,7 +23,7 @@ import requests
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 from src.proxy.openlibing_proxy import OpenlibingProxy
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 
 logger = logging.getLogger("ac")
 
@@ -87,9 +87,7 @@ class CheckSCA(BaseCheck):
             rs = do_requests(
                 request.method,
                 request.scheme + "://" + request.host + request.uri,
-                headers=request.headers,
-                body=json.loads(request.body),
-                obj=response_content)
+                RequestData(headers=request.headers, body=json.loads(request.body), obj=response_content))
             if rs == 0 and response_content.get('code', "") == 200:
                 logger.info('create sca task success')
                 return response_content.get('data', '')
