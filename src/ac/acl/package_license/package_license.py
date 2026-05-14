@@ -22,7 +22,7 @@ import re
 import json
 import chardet
 
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
 
 logger = logging.getLogger("ac")
@@ -74,7 +74,7 @@ class PkgLicense(object):
 
         if pr_url:
             data = {"prUrl": pr_url}
-            rs = do_requests("get", url=self.license_url, timeout=360, querystring=data, obj=analysis)
+            rs = do_requests("get", self.license_url, RequestData(querystring=data, timeout=360, obj=analysis))
             if rs != 0:
                 logger.error("Failed to obtain %s information through service", pr_url)
         return self.response_content

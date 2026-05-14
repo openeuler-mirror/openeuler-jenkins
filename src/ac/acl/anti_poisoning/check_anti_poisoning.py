@@ -21,7 +21,7 @@ import os
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 from src.proxy.openlibing_proxy import OpenlibingProxy
 
 logger = logging.getLogger("ac")
@@ -87,9 +87,7 @@ class CheckAntiPoisoning(BaseCheck):
             rs = do_requests(
                 request.method,
                 request.scheme + "://" + request.host + request.uri,
-                headers=request.headers,
-                body=json.loads(request.body),
-                obj=scan_response)
+                RequestData(headers=request.headers, body=json.loads(request.body), obj=scan_response))
             if rs != 0 or scan_response.get('code', '') != 200:
                 logger.error('create anti_poison task failed: %s', scan_response.get("message"))
             else:
@@ -124,9 +122,7 @@ class CheckAntiPoisoning(BaseCheck):
             rs = do_requests(
                 request.method,
                 request.scheme + "://" + request.host + request.uri,
-                headers=request.headers,
-                body=json.loads(request.body),
-                obj=response_content)
+                RequestData(headers=request.headers, body=json.loads(request.body), obj=response_content))
             # rs为0表示接口正常返回
             if rs == 0:
                 # result为空表示还在执行中，result有值或者code不为200表示正常或者异常结束，直接退出

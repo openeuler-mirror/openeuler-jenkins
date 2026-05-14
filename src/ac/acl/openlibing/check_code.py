@@ -21,7 +21,7 @@ import json
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, SUCCESS
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 from src.proxy.openlibing_proxy import OpenlibingProxy
 
 logger = logging.getLogger("ac")
@@ -91,9 +91,7 @@ class CheckCode(BaseCheck):
         rs = do_requests(
             request.method,
             request.scheme + "://" + request.host + request.uri,
-            headers=request.headers,
-            body=json.loads(request.body),
-            obj=response_content)
+            RequestData(headers=request.headers, body=json.loads(request.body), obj=response_content))
         if rs != 0 or response_content.get('code', '') != '200':
             if response_content.get('msg') and response_content.get('msg').find("There is no proper set of languages") != -1:
                 response_content.update(code="200", msg="success", state="pass")
@@ -127,9 +125,7 @@ class CheckCode(BaseCheck):
             rs = do_requests(
                 request.method,
                 request.scheme + "://" + request.host + request.uri,
-                headers=request.headers,
-                body=json.loads(request.body),
-                obj=response_content)
+                RequestData(headers=request.headers, body=json.loads(request.body), obj=response_content))
             # rs为0表示接口正常返回
             if rs == 0:
                 # 还在执行的任务返回的code为100，成功的任务返回时200,200和其他code值都直接退出

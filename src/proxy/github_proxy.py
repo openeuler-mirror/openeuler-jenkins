@@ -16,7 +16,7 @@
 
 import logging
 
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 
 logger = logging.getLogger("common")
 
@@ -40,7 +40,7 @@ class GithubProxy(object):
         comment_pr_url = "https://api.github.com/repos/{}/{}/issues/{}/comments".format(self._owner, self._repo, pr)
         data = {"auth": self._token, "body": comment}
 
-        rs = do_requests("post", comment_pr_url, body=data, timeout=10, headers=self._headers)
+        rs = do_requests("post", comment_pr_url, RequestData(body=data, timeout=10, headers=self._headers))
 
         if rs != 0:
             logger.warning("comment pull request failed")
@@ -63,7 +63,7 @@ class GithubProxy(object):
         pr_tag_url = "https://api.github.com/repos/{}/{}/issues/{}/labels".format(
                 self._owner, self._repo, pr)
 
-        rs = do_requests("post", pr_tag_url, body=list(tags), timeout=10, headers=self._headers)
+        rs = do_requests("post", pr_tag_url, RequestData(body=list(tags), timeout=10, headers=self._headers))
 
         if rs != 0:
             logger.warning("create tags:%s failed", tags)
@@ -86,7 +86,7 @@ class GithubProxy(object):
         pr_tag_url = "https://api.github.com/repos/{}/{}/issues/{}/label".format(
                 self._owner, self._repo, pr)
 
-        rs = do_requests("put", pr_tag_url, body=list(tags), timeout=10, headers=self._headers)
+        rs = do_requests("put", pr_tag_url, RequestData(body=list(tags), timeout=10, headers=self._headers))
         if rs != 0:
             logger.warning("replace tags:%s failed", tags)
             return False
@@ -104,7 +104,7 @@ class GithubProxy(object):
         pr_tag_url = "https://api.github.com/repos/{}/{}/issues/{}/labels/{}".format(
                 self._owner, self._repo, pr, tag)
 
-        rs = do_requests("delete", pr_tag_url, timeout=10, headers=self._headers)
+        rs = do_requests("delete", pr_tag_url, RequestData(timeout=10, headers=self._headers))
 
         if rs != 0:
             logger.warning("delete tags:%s failed", tag)

@@ -9,12 +9,15 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
-# Author: 
+# Author:
 # Create: 2020-09-23
 # Description: requests api proxy
 # **********************************************************************************
 
 import logging
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
+
 import requests
 from requests.auth import HTTPBasicAuth
 try:
@@ -25,54 +28,74 @@ except ImportError:
 logger = logging.getLogger("common")
 
 
-def do_requests(method, url, querystring=None, body=None, headers=None, auth=None, timeout=30, obj=None):
+@dataclass
+class RequestData:
+    """HTTP request data container"""
+    querystring: Optional[Dict[str, Any]] = None
+    body: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, str]] = None
+    auth: Optional[Dict[str, str]] = None
+    timeout: int = 120
+    obj: Optional[Any] = None
+
+
+def do_requests(method, url, data: RequestData = None):
     """
     http request
     :param method: http method
     :param url: http[s] schema
-    :param querystring: dict
-    :param body: json
-    :param headers: headers
-    :param auth: dict, basic auth with user and password
-    :param timeout: second
-    :param obj: callback object, support list/dict/object
+    :param data: RequestData object containing querystring, body, headers, auth, timeout, obj
     :return:
     """
+    if data is None:
+        data = RequestData()
+
     try:
-        logger.debug("http requests, %s %s %s", method, url, timeout)
-        logger.debug("querystring: %s", querystring)
-        logger.debug("body: %s", body)
+        logger.debug("http requests, %s %s %s", method, url, data.timeout)
+        logger.debug("querystring: %s", data.querystring)
+        logger.debug("body: %s", data.body)
 
         if method.lower() not in ["get", "post", "put", "delete", "patch"]:
             return -1
 
-        if querystring:
-            url = "{}?{}".format(url, urlencode(querystring))
+        if data.querystring:
+            url = "{}?{}".format(url, urlencode(data.querystring))
 
         func = getattr(requests, method.lower())
-        if body:
-            if auth:
-                if headers:
-                    rs = func(url, json=body, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]),
-                              headers=headers)
+        if data.body:
+            if data.auth:
+                if data.headers:
+                    rs = func(url, 
+                    json=data.body, 
+                    timeout=data.timeout, 
+                    auth=HTTPBasicAuth(data.auth["user"], data.auth["password"]),
+                    headers=data.headers)
                 else:
-                    rs = func(url, json=body, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]))
+                    rs = func(url, 
+                    json=data.body, 
+                    timeout=data.timeout, 
+                    auth=HTTPBasicAuth(data.auth["user"], data.auth["password"]))
             else:
-                if headers:
-                    rs = func(url, json=body, timeout=timeout, headers=headers)
+                if data.headers:
+                    rs = func(url, json=data.body, timeout=data.timeout, headers=data.headers)
                 else:
-                    rs = func(url, json=body, timeout=timeout)
+                    rs = func(url, json=data.body, timeout=data.timeout)
         else:
-            if auth:
-                if headers:
-                    rs = func(url, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]), headers=headers)
+            if data.auth:
+                if data.headers:
+                    rs = func(url, 
+                    timeout=data.timeout, 
+                    auth=HTTPBasicAuth(data.auth["user"], data.auth["password"]), 
+                    headers=data.headers)
                 else:
-                    rs = func(url, timeout=timeout, auth=HTTPBasicAuth(auth["user"], auth["password"]))
+                    rs = func(url, 
+                    timeout=data.timeout, 
+                    auth=HTTPBasicAuth(data.auth["user"], data.auth["password"]))
             else:
-                if headers:
-                    rs = func(url, timeout=timeout, headers=headers)
+                if data.headers:
+                    rs = func(url, timeout=data.timeout, headers=data.headers)
                 else:
-                    rs = func(url, timeout=timeout)
+                    rs = func(url, timeout=data.timeout)
 
         logger.debug("status_code %s", rs.status_code)
         if rs.status_code not in [requests.codes.ok, requests.codes.created, requests.codes.no_content]:
@@ -80,15 +103,15 @@ def do_requests(method, url, querystring=None, body=None, headers=None, auth=Non
             return 1
 
         # return response
-        if obj is not None:
-            if isinstance(obj, list):
-                obj.extend(rs.json())
-            elif isinstance(obj, dict):
-                obj.update(rs.json())
-            elif callable(obj):
-                obj(rs)
-            elif hasattr(obj, "cb"):
-                getattr(obj, "cb")(rs.json())
+        if data.obj is not None:
+            if isinstance(data.obj, list):
+                data.obj.extend(rs.json())
+            elif isinstance(data.obj, dict):
+                data.obj.update(rs.json())
+            elif callable(data.obj):
+                data.obj(rs)
+            elif hasattr(data.obj, "cb"):
+                getattr(data.obj, "cb")(rs.json())
 
         return 0
     except requests.exceptions.SSLError as e:

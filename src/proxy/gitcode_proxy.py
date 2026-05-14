@@ -16,7 +16,7 @@
 import logging
 import requests
 
-from src.proxy.requests_proxy import do_requests
+from src.proxy.requests_proxy import do_requests, RequestData
 
 logger = logging.getLogger("common")
 SUCCESS_CODE = [requests.codes.ok, requests.codes.created, requests.codes.no_content]
@@ -161,7 +161,7 @@ class GitcodeProxy(object):
         issue_url = "${}/api/v5/enterprises/{}/issues/{}?access_token={}".format(
             self._base_url, enterprises, cve_issue, self._token)
 
-        rs = do_requests("get", issue_url, timeout=10, obj=resp)
+        rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp))
         if rs != 0:
             logging.warning("get issue failed")
         return resp
@@ -183,7 +183,7 @@ class GitcodeProxy(object):
         resp = {}
         issue_url = "https://api.gitcode.com/api/v5/repos/{}/issues".format(owner)
 
-        rs = do_requests("post", issue_url, body=data, timeout=10, obj=resp)
+        rs = do_requests("post", issue_url, RequestData(body=data, timeout=10, obj=resp))
         if rs != 0:
             logging.warning("create issue failed")
         return resp
@@ -206,7 +206,7 @@ class GitcodeProxy(object):
         resp = {}
         issue_url = "https://api.gitcode.com/api/v5/repos/{}/issues/{}".format(owner, number)
 
-        rs = do_requests("patch", issue_url, body=data, timeout=10, obj=resp)
+        rs = do_requests("patch", issue_url, RequestData(body=data, timeout=10, obj=resp))
         if rs != 0:
             logging.warning("update issue failed")
         return resp
@@ -224,7 +224,7 @@ class GitcodeProxy(object):
         )
         issues_info = []
 
-        rs = do_requests("get", pr_url, timeout=10, obj=issues_info)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=issues_info))
         if rs != 0:
             logger.warning("get issue num info failed")
 
@@ -244,7 +244,7 @@ class GitcodeProxy(object):
             token=self._token
         )
         pr_info = {}
-        rs = do_requests("get", pr_url, timeout=10, obj=pr_info)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=pr_info))
         if rs != 0:
             logger.warning(f"get pr info {self._repo} {pr_id} failed")
 
@@ -262,7 +262,7 @@ class GitcodeProxy(object):
             token=self._token
         )
         milestones_info = []
-        rs = do_requests("get", pr_url, timeout=10, obj=milestones_info)
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=milestones_info))
         if rs != 0:
             logger.warning("get milestone id info failed")
 
