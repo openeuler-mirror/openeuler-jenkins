@@ -57,6 +57,7 @@ def shell_cmd_live(cmd, cap_in=None, cap_out=False, cap_err=False, verbose=False
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     if cap_in:
         p.stdin.write(cap_in)
+        p.stdin.close()
 
     out = []
     while True:
