@@ -1,0 +1,17 @@
+repo_name: elasticMem
+container_level: l2
+init_shell: "echo hello\necho $?"
+users:
+  - login_name: luoshengwei
+    name: luoshengwei
+    email: luoshengwei@huawei.com
+    gitee_id: Lostwayzxc
+  - login_name: fly
+    name: fly
+    email: tianzongfei@huawei.com
+    gitee_id: fly_1997
+  - login_name: wangyi
+    name: wangyi
+    email: wangyi395@huawei.com
+    gitee_id: xingyue-fanxuan
+
