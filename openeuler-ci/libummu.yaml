@@ -1,4 +1,4 @@
-repo_name: ummu
+repo_name: libummu
 container_level: l1
 init_shell: "echo hello\necho $?"
 user:
