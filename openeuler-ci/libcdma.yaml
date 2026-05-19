@@ -1,4 +1,4 @@
-repo_name: cdma
+repo_name: libcdma
 container_level: l1
 init_shell: "echo hello\necho $?"
 user:
