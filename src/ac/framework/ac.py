@@ -211,6 +211,17 @@ class AC(object):
         ac_results = {item['name']: item['result'] for item in self._ac_check_result}
         return ac_results
 
+    def get_check_result(self, name):
+        """
+        获取指定检查项的结果值
+        :param name: 检查项名称
+        :return: 结果值，未找到返回 None
+        """
+        for item in self._ac_check_result:
+            if item["name"] == name:
+                return item["result"]
+        return None
+
     def save(self, ac_file):
         """
         save result
@@ -339,6 +350,8 @@ if "__main__" == __name__:
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_failed")
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "No-longer-maintained")
     gitee_proxy_inst.create_tags_of_pr(args.pr, "ci_processing")
+    gitee_proxy_inst.delete_tag_of_pr(args.pr, "check_lfs_success")
+    gitee_proxy_inst.delete_tag_of_pr(args.pr, "check_lfs_failed")
 
     common_args = {"pr_url": "{url}/{owner}/{repo}/{pull}/{pr}".format(url=code_url, owner=args.community,
                                                                        repo=args.repo, pull=pull_tag, pr=args.pr),
@@ -352,6 +365,15 @@ if "__main__" == __name__:
     ac_result = ac.repo_in_maintain()
     if ac_result.get('check_repo_in_maintain', '') == 2:
         gitee_proxy_inst.create_tags_of_pr(args.pr, "No-longer-maintained")
+
+    lfsconfig_result = ac.get_check_result("check_lfsconfig")
+    if lfsconfig_result == 0:
+        gitee_proxy_inst.delete_tag_of_pr(args.pr, "check_lfs_failed")
+        gitee_proxy_inst.create_tags_of_pr(args.pr, "check_lfs_success")
+    elif lfsconfig_result == 2:
+        gitee_proxy_inst.delete_tag_of_pr(args.pr, "check_lfs_success")
+        gitee_proxy_inst.create_tags_of_pr(args.pr, "check_lfs_failed")
+
     dd.set_attr_etime("access_control.build.etime")
     ac.save(args.output)
 

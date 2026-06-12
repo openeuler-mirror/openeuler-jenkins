@@ -31,7 +31,6 @@ from src.ac.framework.ac_result import ACResult, SUCCESS
 from src.proxy.gitcode_proxy import GitcodeProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
-from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.dist_dataset import DistDataset
 
@@ -183,6 +182,17 @@ class Comment(object):
         :return:
         """
         comments = self._comment_build_html_format()
+
+        acl = self.get_acl()
+        for item in acl:
+            if item.get("name") == "check_lfsconfig" and item.get("result") == 2:
+                comments.append(
+                    '<p>LFS配置文件有错误，请参考文档的要求进行修复： '
+                    '<a href="https://gitcode.com/openeuler/community/blob/master/zh/contributors/git-lfs.md">'
+                    'git-lfs.md</a></p>'
+                )
+                break
+
         gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
 
         return "\n".join(comments)
@@ -849,6 +859,7 @@ if "__main__" == __name__:
     comment_content = comment.comment_build(gp)
     dd.set_attr_etime("comment.build.etime")
     dd.set_attr("comment.build.content.html", comment_content)
+
     result_list = [comment.check_ac_result(), comment.check_install_result, comment.check_license_result]
     if comment.check_build_result() == SUCCESS and comment.check_install_result:
         if comment.check_ac_result() and comment.check_license_result:
@@ -863,8 +874,6 @@ if "__main__" == __name__:
             dd.set_attr("comment.build.result", "failed")
         if args.check_result_file:
             comment.comment_compare_package_details(gp, args.check_result_file, args.tbranch)
-            # comment.submit_compare_package_details_issue(gp, args.check_result_file, args.detail_result_file,
-            #                                              args.detail_analyse_url, args.pr)
     else:
         gp.delete_tag_of_pr(args.pr, "ci_successful")
         gp.create_tags_of_pr(args.pr, "ci_failed")

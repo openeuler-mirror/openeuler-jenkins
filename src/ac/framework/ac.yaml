@@ -1,4 +1,8 @@
 src-openeuler:
+  lfsconfig:
+    hint: check_lfsconfig
+    module: lfsconfig.check_lfsconfig
+    entry: CheckLfsconfig
   patch_format:
     hint: patch_format
     module: patch_format.check_patch_format
