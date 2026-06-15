@@ -101,6 +101,8 @@ openeuler:
     exclude: True
   patch_format:
     exclude: True
+  lfsconfig:
+    exclude: True
   anti_poisoning:
     hint: check_anti_poisoning
     module: anti_poisoning.check_anti_poisoning

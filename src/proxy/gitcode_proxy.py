@@ -14,12 +14,10 @@
 # Description: gitcode api proxy
 # **********************************************************************************
 import logging
-import requests
 
 from src.proxy.requests_proxy import do_requests, RequestData
 
 logger = logging.getLogger("common")
-SUCCESS_CODE = [requests.codes.ok, requests.codes.created, requests.codes.no_content]
 
 class GitcodeProxy(object):
     def __init__(self, owner, repo, token):
@@ -35,22 +33,19 @@ class GitcodeProxy(object):
         :param comment: 评论内容
         :return: True成功，False失败
         """
-        url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{number}/comments".format(
+        url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{number}/comments?access_token={token}".format(
             burl=self._base_url,
             owner=self._owner,
             repo=self._repo,
-            number=pr
+            number=pr,
+            token=self._token
         )
         data = {
             "body": comment
         }
-        params = {
-            "access_token": self._token
-        }
-        response = requests.request("POST", url, params=params, data=data)
-        if response.status_code not in SUCCESS_CODE:
-            logger.warning("comment pull request failed, the reason is:{}".format(
-                response.json().get("error_message")))
+        rs = do_requests("post", url, RequestData(body=data, timeout=10))
+        if rs != 0:
+            logger.warning("comment pull request failed")
             return False
         return True
 
@@ -69,25 +64,13 @@ class GitcodeProxy(object):
             number=pr
         )
         if oper == "DELETE":
-            url = url + "/{}".format(tags[0])
-            payload = None
+            url = url + "/{}?access_token={}".format(tags[0], self._token)
+            rs = do_requests("delete", url, RequestData(timeout=10))
         else:
-            payload = []
-            for tag in tags:
-                payload.append(tag)
-
-        params = {
-            "access_token": self._token
-        }
-        if payload:
-            response = requests.request(oper, url, params=params, json=payload)
-        else:
-            response = requests.request(oper, url, params=params)
-        if response.status_code not in SUCCESS_CODE:
-            logger.warning("{oper} tags:{tags} failed, the reason is: {reason}".format(
-                oper=oper,
-                tags=tags,
-                reason=response.json().get("error_message")))
+            url = url + "?access_token={}".format(self._token)
+            rs = do_requests(oper.lower(), url, RequestData(body=list(tags), timeout=10))
+        if rs != 0:
+            logger.warning("{oper} tags:{tags} failed".format(oper=oper, tags=tags))
             return False
         return True
 
@@ -125,30 +108,29 @@ class GitcodeProxy(object):
         :param state: pr状态
         :return: str or None
         """
-        committer = [None]
         url = "{burl}/api/v5/repos/{owner}/{repo}/pulls".format(
             burl=self._base_url,
             owner=self._owner,
             repo=self._repo,
         )
-        params = {
+        querystring = {
             "access_token": self._token,
             "state": state,
             "base": branch
         }
-        response = requests.request("GET", url, params=params)
-        if response.status_code not in SUCCESS_CODE:
+        pr_list = []
+        rs = do_requests("get", url, RequestData(querystring=querystring, timeout=10, obj=pr_list))
+        if rs != 0:
             logger.warning("get last pr committer failed")
-            return committer[0]
-        res = response.json()
-        if res:
+            return None
+        if pr_list:
             try:
-                committer[0] = res[0]["user"]["login"]
+                committer = pr_list[0]["user"]["login"]
                 logger.debug("get last pr committer: %s", committer)
+                return committer
             except KeyError:
                 logger.exception("extract committer info from gitcode exception")
-
-        return committer[0]
+        return None
 
     def get_issue(self, cve_issue, enterprises="open_euler"):
         """
