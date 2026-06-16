@@ -146,6 +146,8 @@ class CheckCode(BaseCheck):
                     logger.warning(f"check codecheck status failed: {rs}, retry")
                     current_time = current_time + time_interval
                     rs_error += 1
+                    # 重新生成签名请求，避免因签名过期（API网关约15分钟有效期）导致持续失败
+                    request = ol_proxy.create_openlibing_api_request(method, status_url, headers, json.dumps(data))
                     continue
 
         return rs, response_content
