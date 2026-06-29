@@ -94,3 +94,24 @@ class BaseCheck(object):
         logger.info("check items: %s", items)
 
         return self.start_check_with_order(*items)
+
+    def get_pr_changed_files(self):
+        """
+        通过 Gitcode API 获取本次 PR 的变更文件列表（仅文件名）。
+        返回 None 表示无法获取（缺少参数或 API 失败）。
+        """
+        kwargs = getattr(self, '_kwargs', {})
+        common_args = kwargs.get("common_args", {})
+        pr_num = common_args.get("pr_num", "")
+        owner = common_args.get("community", "")
+        token = common_args.get("access_token", "")
+
+        if not all([pr_num, owner, token]):
+            return None
+
+        from src.proxy.gitcode_proxy import GitcodeProxy
+        gp = GitcodeProxy(owner, self._repo, token)
+        pr_files = gp.get_pr_files(pr_num)
+        if pr_files is None: 
+            return None
+        return [f.get("filename", "") for f in pr_files if f.get("filename")]

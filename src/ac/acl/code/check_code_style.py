@@ -67,7 +67,9 @@ class CheckCodeStyle(BaseCheck):
         :return:
         """
         gp = GitProxy(self._work_dir)
-        diff_files = gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        diff_files = self.get_pr_changed_files()
+        if diff_files is None:
+            diff_files = gp.diff_files_between_commits("HEAD~1", "HEAD~0")
         logger.debug("diff files: %s", diff_files)
 
         diff_code_files = []                # 仓库中变更的代码文件
@@ -151,6 +153,7 @@ class CheckCodeStyle(BaseCheck):
         :return:
         """
         logger.info("check %s repo ...", self._repo)
+        self._kwargs = kwargs
 
         _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
         try:

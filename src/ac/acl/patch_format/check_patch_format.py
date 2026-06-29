@@ -76,7 +76,9 @@ class CheckPatchFormat(BaseCheck):
         if self._tbranch != "openEuler-20.03-LTS-SP4":
             return SUCCESS
         gp = GitProxy(self._work_dir)
-        diff_files = gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        diff_files = self.get_pr_changed_files()
+        if diff_files is None:
+            diff_files = gp.diff_files_between_commits("HEAD~1", "HEAD~0")
         logger.info("diff files: %s", diff_files)
 
         patch_list = [diff_file for diff_file in diff_files if GitcodeRepo.is_patch_file(diff_file)]
@@ -121,5 +123,6 @@ class CheckPatchFormat(BaseCheck):
         """
         logger.info("check %s patch format ...", self._repo)
         self._tbranch = kwargs.get("tbranch", None)
+        self._kwargs = kwargs
         return self.start_check_with_order("patch_format")
 

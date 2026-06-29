@@ -21,6 +21,7 @@ import logging
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import WARNING, SUCCESS
 from src.ac.common.gitcode_repo import GitcodeRepo
+from src.proxy.git_proxy import GitProxy
 from pyrpm.spec import Spec, replace_macros
 
 from src.utils.shell_cmd import shell_cmd
@@ -41,6 +42,7 @@ class CheckBinaryFile(BaseCheck):
         self._gr = GitcodeRepo(self._repo, self._work_dir, self._work_tar_dir)
         self._tarball_in_spec = set()
         self._upstream_community_tarball_in_spec()
+        self._gp = GitProxy(self._work_dir)
 
     def __call__(self, *args, **kwargs):
         """
@@ -50,12 +52,35 @@ class CheckBinaryFile(BaseCheck):
         :return:
         """
         logger.info("check %s binary files ...", self._repo)
+        self._kwargs = kwargs
 
         _ = not os.path.exists(self._work_tar_dir) and os.mkdir(self._work_tar_dir)
         try:
-            return self.start_check_with_order("compressed_file", "binary")
+            return self.start_check_with_order("pr_files", "compressed_file", "binary")
         finally:
             shutil.rmtree(self._work_tar_dir)
+
+    def check_pr_files(self):
+        """
+        通过 Gitcode API 获取本次 PR 的变更文件列表，检查是否包含二进制文件。
+        """
+        diff_files = self.get_pr_changed_files()
+        if diff_files is None:
+            diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+
+        logger.info("pr files: count=%s", len(diff_files))
+
+        binary_files = []
+        for file_path in diff_files:
+            suffix = os.path.splitext(file_path)[1]
+            if suffix in self.BINARY_LIST:
+                abs_path = os.path.join(self._work_dir, file_path)
+                if os.path.exists(abs_path) and self._get_file_type(abs_path):
+                    binary_files.append(file_path)
+        if binary_files:
+            logger.warning("binary files in pr commits: %s", binary_files)
+            return WARNING
+        return SUCCESS
 
     def check_compressed_file(self):
         """
