@@ -87,7 +87,7 @@ openeuler:
                  "stortrace", "storprototrace", "nvme-snsd","rust_shyper","qemu","libvirt","libcareplus","capsule","vmtop","skylark",
                  "Virt-docs","edk2","libvirt-python","open-vm-tools","cloud-hypervisor","virglrenderer","vagrant-lxc","vagrant-libvirt",
                  "vagrant-hostmanager","vagrant","libvirt-dbus","libvirt-glib","llm_solution","secDetector","rubik",
-                 "security-tool","imageTailor","obmm","yuanrong-functionsystem","yuanrong","yuanrong-datasystem","ray-adapter",
+                 "security-tool","imageTailor","obmm","yuanrong-functionsystem","yuanrong","yuanrong-frontend","yuanrong-datasystem","ray-adapter",
                  "ubs-engine","ubturbo","ubs-comm","golang","ham", "dpdk", "ubs-virt", "ubs-io", "cache_tuner", "mem_hot", "witty-ub",
                  "TSB-agent","ubs-atomic","ubs-optimizer","ubs-mem","cdf-crypto","scf-security", "umdk","knet", "elasticMem", "spdk"]
   commit_msg:
