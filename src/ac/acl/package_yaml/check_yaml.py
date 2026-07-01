@@ -58,10 +58,10 @@ class CheckPackageYaml(BaseCheck):
             self._spec = None
         self._yaml_content = None
         self._yaml_changed = True
-        self._is_standard = True
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s yaml ...", self._repo)
+        self._kwargs = kwargs
         self._yaml_changed = self.is_change_package_yaml() # yaml文件变更 进行检查
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_repo暂时关闭
         return self.start_check_with_order("fields", "repo_domain", "repo_name")
@@ -74,7 +74,9 @@ class CheckPackageYaml(BaseCheck):
         head:此次提交点
         :return: boolean
         """
-        diff_files = self._gp.diff_files_between_commits(base, head)
+        diff_files = self.get_pr_changed_files()
+        if diff_files is None:
+            diff_files = self._gp.diff_files_between_commits(base, head)
         package_yaml = "{}.yaml".format(self._repo)     # package yaml file name
 
         for change_file in diff_files:
@@ -92,7 +94,6 @@ class CheckPackageYaml(BaseCheck):
             return SUCCESS
         yaml_path = self._gr.yaml_file
         if yaml_path is None:
-            self._is_standard = False
             logger.warning("yaml file missing")
             return WARNING
         try:
@@ -109,7 +110,6 @@ class CheckPackageYaml(BaseCheck):
         for keyword in self.PACKAGE_YAML_NEEDED_KEY:
             if keyword not in self._yaml_content:
                 logger.error("yaml field %s missing", keyword)
-                self._is_standard = True
                 result = WARNING 
         return result
 
@@ -120,15 +120,16 @@ class CheckPackageYaml(BaseCheck):
         """
         if not self._yaml_changed:
             return SUCCESS
-        if not self._is_standard:
-            logger.warning("yaml does not comply with the rule")
+        if not self._yaml_content:
             return SUCCESS
         # get value by key from yaml data
-        vc = self._yaml_content[self.PACKAGE_YAML_NEEDED_KEY[0]] # value of version_control
-        sr = self._yaml_content[self.PACKAGE_YAML_NEEDED_KEY[1]] # value of src_repo
+        vc = self._yaml_content.get(self.PACKAGE_YAML_NEEDED_KEY[0]) # value of version_control
+        sr = self._yaml_content.get(self.PACKAGE_YAML_NEEDED_KEY[1]) # value of src_repo
 
-        if vc == self.NOT_FOUND or sr == self.NOT_FOUND:
-            logger.warning("no info for upsteam")
+        vc_missing = not vc or vc == self.NOT_FOUND	 
+        sr_missing = not sr or sr == self.NOT_FOUND 
+        if vc_missing or sr_missing:
+            logger.warning("no info for upstream")
             return WARNING
 
         release_tags = ReleaseTagsFactory.get_release_tags(vc)
@@ -146,21 +147,17 @@ class CheckPackageYaml(BaseCheck):
         """
         if not self._yaml_changed:
             return SUCCESS
-        if not self._is_standard:
-            logger.warning("yaml does not comply with the rule")
-            return SUCCESS
-        if not self._spec:
-            logger.warning("spec does not exist")
+        if not self._yaml_content or not self._spec:
             return SUCCESS
 
-        vc = self._yaml_content[self.PACKAGE_YAML_NEEDED_KEY[0]]
-        if vc == self.NOT_FOUND:
-            return SUCCESS
+        vc = self._yaml_content.get(self.PACKAGE_YAML_NEEDED_KEY[0])
+        if not vc or vc == self.NOT_FOUND:
+            return WARNING
         src_url = self._spec.get_source("Source0")
         if not src_url:
             src_url = self._spec.get_source("Source")
         vc = self.VERSION_CTRL_TRANS.get(vc, vc) # 对特殊的版本控制对应的域名进行转换
-        logger.debug("version control: %s source url: %s", vc, src_url)
+        logger.info("version control: %s source url: %s", vc, src_url)
         if vc not in src_url: # 通过判断版本控制字段是否在主页url中 判断一致性
             logger.warning("%s is not in url: %s", vc, src_url)
             return WARNING
@@ -171,18 +168,16 @@ class CheckPackageYaml(BaseCheck):
         检查spec中是否包含yaml中src_repo字段的软件名,仅做日志告警只返回SUCCESS
         :return:
         """
+        logger.info(f"check repo name:{self._yaml_changed},{self._yaml_content},{self._spec}")
         if not self._yaml_changed:
             return SUCCESS
-        if not self._is_standard:
-            logger.warning("yaml does not comply with the rule")
-            return SUCCESS
-        if not self._spec:
-            logger.warning("spec does not exist")
+        if not self._yaml_content or not self._spec:
             return SUCCESS
 
-        sr = self._yaml_content[self.PACKAGE_YAML_NEEDED_KEY[1]]
-        if sr == self.NOT_FOUND:
-            return SUCCESS
+        sr = self._yaml_content.get(self.PACKAGE_YAML_NEEDED_KEY[1])
+        logger.info("src repo: %s", sr)
+        if not sr or sr == self.NOT_FOUND:
+            return WARNING
         
         software_name_list = list(filter(None, sr.split("/")))
 
@@ -202,7 +197,7 @@ class CheckPackageYaml(BaseCheck):
         src_url = self._spec.get_source("Source0")
         if not src_url:
             src_url = self._spec.get_source("Source")
-        logger.debug("software name: %s source url: %s", software_name, src_url)
+        logger.info("software name: %s source url: %s", software_name, src_url)
         if software_name not in src_url:
             logger.warning("%s is not in source0: %s", software_name, src_url)
             return WARNING

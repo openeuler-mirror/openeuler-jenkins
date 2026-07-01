@@ -232,6 +232,28 @@ class GitcodeProxy(object):
 
         return pr_info
 
+    def get_pr_files(self, pr_id):
+        """
+        获取指定 PR 的所有变更文件列表
+        :param pr_id: pr id
+        :return: list of dict, 每个元素包含 filename、status 等字段
+        """
+        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{pr}/files?access_token={token}".format(
+            burl=self._base_url,
+            owner=self._owner,
+            repo=self._repo,
+            pr=pr_id,
+            token=self._token
+        )
+
+        file_list = []
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=file_list))
+        if rs != 0:
+            logger.warning("get pr files %s %s failed", self._repo, pr_id)
+            return None
+
+        return file_list
+
     def get_milestone_id(self):
         """
         查询仓库所有里程碑

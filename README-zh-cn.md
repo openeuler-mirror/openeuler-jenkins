@@ -51,9 +51,9 @@ openEuler社区代码均托管在gitee上，为了保证代码提交质量，开
 
 | 检查项                  | 功能                                                         | SUCCESS                                                      | FAILED              | WARNING                                         |
 | ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------- | ----------------------------------------------- |
-| check_binary_file       | 检查仓库中是否存在二进制文件                                 | 不存在以.pyc、.jar、.ko、.o为后缀的文件（包括压缩包内，但不包括以链接形式给出的上游社区） | 不符合SUCCESS的情况 | 不涉及                                          |
+| check_binary_file       | 检查仓库中是否存在二进制文件                                 | 不存在以.pyc、.jar、.ko、.o为后缀的文件（包括压缩包内，但不包括在spec文件中以链接形式给出的上游社区压缩包） | 不涉及 | 不符合SUCCESS的情况                                          |
 | check_package_license   | 检查license合法性                                            | 全部为白名单，并且源码和spec描述的license保持一致            | 存在黑名单license   | 全部为白名单，但是源码和spec描述的license不一致 |
-| check_package_yaml_file | 检查yaml格式                                                 | version_control、src_repo、tag_prefix、seperator字段完整，并且version_control字段内容与spec文件中url对应的域名一致 | 不符合SUCCESS的情况 | 不涉及                                          |
+| check_package_yaml_file | 检查yaml格式                                                 | （1）version_control、src_repo、tag_prefix、seperator字段完整；（2）version_control字段内容，及由src_repo字段指定的软件包名在spec文件的Source0/Source对应的域名中 | 不涉及 | 不符合SUCCESS的情况                                          |
 | check_spec_file         | 检查sepc合法性                                               | 版本号不变时，release号必须递增；版本号变化时，release必须置为1；补丁在编译时必须全部应用；changelog格式正确 | 不符合SUCCESS的情况 | 不涉及                                          |
 | check_consistency       | 通过远端和本地源码文件的sha256值是否一致来判断源码包是否发生变更 | 远端和本地源码文件的sha256值一致                             | 不符合SUCCESS的情况 | 不涉及                                          |
 | check_build             | 验证编译                                                     | 构建rpm包成功                                                | 不符合SUCCESS的情况 | 不涉及                                          |

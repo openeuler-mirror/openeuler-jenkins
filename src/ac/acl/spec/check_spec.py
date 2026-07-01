@@ -54,6 +54,7 @@ class CheckSpec(BaseCheck):
         logger.info("check %s spec ...", self._repo)
         self._ex_support_arch()
         self._tbranch = kwargs.get("tbranch", None)
+        self._kwargs = kwargs
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
         return self.start_check_with_order("patches", "changelog", "version_pr_changelog")
 
@@ -62,7 +63,9 @@ class CheckSpec(BaseCheck):
         如果本次提交只变更yaml，则无需检查version
         :return: boolean
         """
-        diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        diff_files = self.get_pr_changed_files()
+        if diff_files is None:
+            diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
         package_yaml = "{}.yaml".format(self._repo)  # package yaml file name
 
         if len(diff_files) == 1 and diff_files[0] == package_yaml:

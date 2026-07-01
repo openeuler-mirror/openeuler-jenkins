@@ -20,8 +20,11 @@ class CheckLfsconfig(BaseCheck):
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s .lfsconfig ...", self._repo)
+        self._kwargs = kwargs
 
-        diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        diff_files = self.get_pr_changed_files()
+        if diff_files is None:
+            diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
         if ".lfsconfig" not in diff_files:
             logger.info(".lfsconfig not in PR diff, skip check")
             return EXCLUDE
