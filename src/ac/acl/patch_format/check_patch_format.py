@@ -20,7 +20,7 @@ import logging
 
 from src.proxy.git_proxy import GitProxy
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
 
 from src.ac.common.gitcode_repo import GitcodeRepo
 from src.utils.shell_cmd import shell_cmd_unicode
@@ -92,25 +92,28 @@ class CheckPatchFormat(BaseCheck):
 
         failed_num = 0
         warning_num = 0
+        details = []
         for patch in patch_list:
             logger.info(f"check {patch}")
             ret, description = self.do_checkpatch(patch)
             if ret == 1:
                 logger.error(f"check {patch} failed")
                 logger.error(description)
+                details.append("patch '{}' 格式检查失败".format(patch))
                 failed_num = failed_num + 1
             elif ret == 2:
                 logger.warning(f"check {patch} warning")
                 logger.warning(description)
+                details.append("patch '{}' 格式检查有警告".format(patch))
                 warning_num += 1
             else:
                 logger.info(f"check {patch} success")
                 logger.info(description)
 
         if failed_num > 0:
-            return FAILED
+            return ACResult(FAILED.val, details=details)
         elif warning_num > 0:
-            return WARNING
+            return ACResult(WARNING.val, details=details)
         else:
             return SUCCESS
 

@@ -1,9 +1,27 @@
+# -*- encoding=utf-8 -*-
+"""
+# ***********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# Author:
+# Create: 2026-07-04
+# Description: check .lfsconfig file in software package
+# ***********************************************************************************/
+"""
+
 import configparser
 import logging
 import os
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import EXCLUDE, FAILED, SUCCESS
+from src.ac.framework.ac_result import EXCLUDE, FAILED, SUCCESS, ACResult
 from src.proxy.git_proxy import GitProxy
 
 logger = logging.getLogger("ac")
@@ -43,12 +61,14 @@ class CheckLfsconfig(BaseCheck):
         except (configparser.Error, KeyError) as e:
             logger.error("parse .lfsconfig failed: %s", e)
             logger.error("expected url: %s", expected_url)
-            return FAILED
+            details = ["解析.lfsconfig文件失败: {}".format(e), "期望URL: {}".format(expected_url)]
+            return ACResult(FAILED.val, details=details)
 
         if not url:
             logger.error("lfs.url not found in .lfsconfig")
             logger.error("expected url: %s", expected_url)
-            return FAILED
+            details = [".lfsconfig中未找到lfs.url配置项", "期望URL: {}".format(expected_url)]
+            return ACResult(FAILED.val, details=details)
 
         url = url.strip()
         if url == expected_url:
@@ -60,4 +80,8 @@ class CheckLfsconfig(BaseCheck):
         logger.info(
             "please refer to https://gitcode.com/openeuler/community/blob/master/zh/contributors/git-lfs.md for fix"
         )
-        return FAILED
+        details = [
+            ".lfsconfig URL不正确: 实际值 '{}'，期望值 '{}'".format(url, expected_url),
+            "请参考 https://gitcode.com/openeuler/community/blob/master/zh/contributors/git-lfs.md 进行修复"
+        ]
+        return ACResult(FAILED.val, details=details)

@@ -1,9 +1,27 @@
+# -*- encoding=utf-8 -*-
+"""
+# ***********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# Author:
+# Create: 2026-07-04
+# Description: check commit message format
+# ***********************************************************************************/
+"""
+
 import logging
 import subprocess
 import os
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS
+from src.ac.framework.ac_result import FAILED, SUCCESS, ACResult
 
 logger = logging.getLogger("ac")
 
@@ -81,20 +99,12 @@ class CheckCommitMsg(BaseCheck):
         conf_dir = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../conf/"))
         commit_check_dist = self.get_commit_msg_result(branch_log_res, repo_dir, conf_dir)
         if len(commit_check_dist) > 0:
-            log_format = """
-commit specifications is:
-script: title
-
-this is commit body
-
-Signed-off-by: example example@xx.com
-the folowint commits do not conform to the specifications:
-        """
-            logger.info(log_format)
-            logger.info("==============================================================")
+            details = []
             for commit, check_res in commit_check_dist.items():
-                logger.info("commit: %s", commit)
-                logger.info("check result: \n\r %s", check_res)
-                logger.info("==============================================================")
-            return FAILED
+                short_commit = commit[:8]
+                error_lines = [line.strip() for line in check_res.strip().split('\n') if line.strip()]
+                logger.debug("gitlint full output for %s:\n%s", short_commit, check_res)
+                detail_msg = "; ".join(error_lines[:2]) if error_lines else "格式不规范"
+                details.append("commit {} 不符合规范: {}".format(short_commit, detail_msg))
+            return ACResult(FAILED.val, details=details)
         return SUCCESS

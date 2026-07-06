@@ -22,7 +22,7 @@ import yaml
 
 from src.proxy.git_proxy import GitProxy
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import WARNING, SUCCESS
+from src.ac.framework.ac_result import WARNING, SUCCESS, ACResult
 from src.ac.common.gitcode_repo import GitcodeRepo
 from src.ac.acl.package_yaml.check_repo import ReleaseTagsFactory
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
@@ -95,23 +95,28 @@ class CheckPackageYaml(BaseCheck):
         yaml_path = self._gr.yaml_file
         if yaml_path is None:
             logger.warning("yaml file missing")
-            return WARNING
+            details = ["yaml文件不存在，请确认是否已添加package.yaml"]
+            return ACResult(WARNING.val, details=details)
         try:
             with open(os.path.join(self._work_dir, yaml_path), 'r') as yaml_data:    # load yaml data
                 self._yaml_content = yaml.safe_load(yaml_data)
         except IOError as e:
             logging.warning("package yaml not exist. %s", str(e))
-            return WARNING
+            details = ["yaml文件不存在或无法读取: {}".format(e)]
+            return ACResult(WARNING.val, details=details)
         except yaml.YAMLError as exc:
             logging.warning("Error parsering YAML: %s", str(exc))
-            return WARNING
+            details = ["yaml文件解析失败: {}".format(str(exc)[:80])]
+            return ACResult(WARNING.val, details=details)
         
         result = SUCCESS
+        details = []
         for keyword in self.PACKAGE_YAML_NEEDED_KEY:
             if keyword not in self._yaml_content:
                 logger.error("yaml field %s missing", keyword)
+                details.append("yaml文件缺少必填字段 '{}'".format(keyword))
                 result = WARNING 
-        return result
+        return ACResult(result.val, details=details) if details else result
 
     def check_repo(self):
         """
@@ -130,14 +135,16 @@ class CheckPackageYaml(BaseCheck):
         sr_missing = not sr or sr == self.NOT_FOUND 
         if vc_missing or sr_missing:
             logger.warning("no info for upstream")
-            return WARNING
+            details = ["yaml文件中缺少上游社区信息（version_control或src_repo未配置）"]
+            return ACResult(WARNING.val, details=details)
 
         release_tags = ReleaseTagsFactory.get_release_tags(vc)
         tags = release_tags.get_tags(sr)
         
         if not tags:
             logger.warning("failed to get version by yaml, version_control: %s, src_repo: %s", vc, sr)
-            return WARNING
+            details = ["无法从上游社区获取版本信息: vc={}, src_repo={}".format(vc, sr)]
+            return ACResult(WARNING.val, details=details)
         return SUCCESS
 
     def check_repo_domain(self):
@@ -152,7 +159,8 @@ class CheckPackageYaml(BaseCheck):
 
         vc = self._yaml_content.get(self.PACKAGE_YAML_NEEDED_KEY[0])
         if not vc or vc == self.NOT_FOUND:
-            return WARNING
+            details = ["yaml文件中未配置version_control字段"]
+            return ACResult(WARNING.val, details=details)
         src_url = self._spec.get_source("Source0")
         if not src_url:
             src_url = self._spec.get_source("Source")
@@ -160,7 +168,8 @@ class CheckPackageYaml(BaseCheck):
         logger.info("version control: %s source url: %s", vc, src_url)
         if vc not in src_url: # 通过判断版本控制字段是否在主页url中 判断一致性
             logger.warning("%s is not in url: %s", vc, src_url)
-            return WARNING
+            details = ["yaml的version_control '{}' 不在spec Source0 URL '{}' 的域名中".format(vc, src_url)]
+            return ACResult(WARNING.val, details=details)
         return SUCCESS
 
     def check_repo_name(self):
@@ -177,7 +186,8 @@ class CheckPackageYaml(BaseCheck):
         sr = self._yaml_content.get(self.PACKAGE_YAML_NEEDED_KEY[1])
         logger.info("src repo: %s", sr)
         if not sr or sr == self.NOT_FOUND:
-            return WARNING
+            details = ["yaml文件中未配置src_repo字段"]
+            return ACResult(WARNING.val, details=details)
         
         software_name_list = list(filter(None, sr.split("/")))
 
@@ -200,7 +210,8 @@ class CheckPackageYaml(BaseCheck):
         logger.info("software name: %s source url: %s", software_name, src_url)
         if software_name not in src_url:
             logger.warning("%s is not in source0: %s", software_name, src_url)
-            return WARNING
+            details = ["yaml的src_repo软件名 '{}' 未出现在spec Source0 '{}' 中".format(software_name, src_url)]
+            return ACResult(WARNING.val, details=details)
         return SUCCESS
 
 

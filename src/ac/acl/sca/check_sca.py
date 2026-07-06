@@ -21,7 +21,7 @@ import sys
 import requests
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
+from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING, ACResult
 from src.proxy.openlibing_proxy import OpenlibingProxy
 from src.proxy.requests_proxy import do_requests, RequestData
 
@@ -168,13 +168,19 @@ class CheckSCA(BaseCheck):
         Obtain scanoss logs and result
         """
         self.get_task_result()
+        details = []
         if self._timeout:
             logger.error("check sca result timeout for 10min, click %s view sca check detail", self._report_url)
-            return FAILED
+            details.append("SCA检查超时，可能是服务繁忙，请稍后重试")
+            if self._report_url:
+                details.append("SCA报告链接: {}".format(self._report_url))
+            return ACResult(FAILED.val, details=details)
         if not self._report_url:
-            return FAILED
+            details.append("SCA检查未能生成报告，请联系CI管理员")
+            return ACResult(FAILED.val, details=details)
         if self._result == "no pass":
             logger.warning("click %s view sca check detail", self._report_url)
-            return WARNING
+            details.append("SCA检查发现未确认的开源组件问题，请查看报告: {}".format(self._report_url))
+            return ACResult(WARNING.val, details=details)
         logger.info("click %s view sca check detail", self._report_url)
         return SUCCESS

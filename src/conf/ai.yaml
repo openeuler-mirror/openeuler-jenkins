@@ -1,0 +1,34 @@
+# ***********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# Author:
+# Create: 2026-07-04
+# Description: AI summary configuration
+# ***********************************************************************************
+# AI 智能摘要配置
+# API Key 通过环境变量 AI_API_KEY 注入，不要硬编码在此文件中
+ai_summary:
+  enabled: true
+  llm:
+    # API 地址（OpenAI 兼容接口）
+    # 可选值示例:
+    #   MiMo:     https://token-plan-cn.xiaomimimo.com/v1/chat/completions
+    #             mimo-v2.5-pro
+    #   GLM:      https://open.bigmodel.cn/api/paas/v4/chat/completions
+    #             glm-5.2
+    #   DeepSeek: https://api.deepseek.com/chat/completions
+    #             deepseek-v4-pro
+    #   ARK:      https://ark.cn-beijing.volces.com/api/plan/v3/chat/completions
+    #             ark-code-latest
+    api_url: "https://ark.cn-beijing.volces.com/api/plan/v3/chat/completions"
+    api_key: "${ARK_AGENT_PLAN_KEY}"
+    model: "ark-code-latest"
+    timeout: 60
+    max_tokens: 1500

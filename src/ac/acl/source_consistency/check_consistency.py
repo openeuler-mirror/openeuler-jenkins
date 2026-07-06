@@ -1,3 +1,21 @@
+# -*- encoding=utf-8 -*-
+"""
+# ***********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# Author:
+# Create: 2026-07-04
+# Description: check source consistency between spec and upstream
+# ***********************************************************************************/
+"""
+
 import difflib
 import hashlib
 import logging
@@ -10,7 +28,7 @@ import subprocess
 from sqlite3 import Error
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
+from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING, ACResult
 
 logger = logging.getLogger("ac")
 
@@ -130,13 +148,15 @@ class CheckSourceConsistency(BaseCheck):
         if self.source_url == "":
             logger.warning("Source keywords of spec content are invalid or spec content is illegal. " +
                            self.ask_warning)
-            return WARNING
+            details = ["spec文件中的Source字段无效或无法解析"]
+            return ACResult(WARNING.val, details=details)
 
         base_name = os.path.basename(self.source_url)
         package_name = base_name if base_name in os.listdir(self._work_dir) else self.get_package_name(self.source_url)
         if package_name == "":
             logger.warning("no source package file in the repo")
-            return WARNING
+            details = ["仓库中未找到源码包文件，请检查Source字段是否正确"]
+            return ACResult(WARNING.val, details=details)
 
         self.tarball_path = os.path.join(self._work_dir, package_name)
         native_sha256sum = self.get_sha256sum()
@@ -163,7 +183,13 @@ class CheckSourceConsistency(BaseCheck):
             logger.error("The sha256sum of source package is inconsistency, maybe you modified source code, "
                          "you must let the source package keep consistency with official website source package. " +
                          self.ask_warning)
-            return FAILED
+            details = [
+                "源码包SHA256校验不一致: 本地值 '{}...'，远端值 '{}...'".format(
+                    native_sha256sum[:16], remote_sha256sum[:16]),
+                "Source URL: {}".format(self.source_url),
+                "请确保源码包与官方源码包保持一致"
+            ]
+            return ACResult(FAILED.val, details=details)
 
         return SUCCESS
 

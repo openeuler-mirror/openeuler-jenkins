@@ -20,7 +20,7 @@ import time
 import json
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS
+from src.ac.framework.ac_result import FAILED, SUCCESS, ACResult
 from src.proxy.requests_proxy import do_requests, RequestData
 from src.proxy.openlibing_proxy import OpenlibingProxy
 
@@ -158,28 +158,24 @@ class CheckCode(BaseCheck):
         """
         # 等待计算结果
         rs, response_content = self.get_codecheck_result()
+        details = []
 
         # 判断是否计算完成
         if rs != 0:
-            return FAILED
+            details.append("CodeCheck服务调用失败，请联系CI管理员")
+            return ACResult(FAILED.val, details=details)
         if response_content.get('msg') == 'success':
-            """
-            # 返回结果 {
-            "code": "200", 
-            "msg": "success", 
-            "data": "http://{ip}:{port}/inc/{projectId}/reports/{taskId}/detail" 一个可以看到codecheck检查结果详情的地址
-            "state": "pass(通过)/no pass(不通过)"
-            }
-            """
             logger.warning("click %s view code check detail", response_content.get('data'))
-            # 只有codecheck完成且codecheck检查的代码中存在bug，返回检查项失败的结果，以detail结尾，会显示具体的代码bug所在位置。
             if response_content.get("state") == "no pass":
-                return FAILED
+                details.append("CodeCheck检查发现代码缺陷，请查看报告: {}".format(response_content.get('data')))
+                return ACResult(FAILED.val, details=details)
         elif response_content.get('code') == '500':
             logger.error("response content detail : %s", response_content)
-            logger.error("Maybe an unpredictable error has occurred. Please contact the CI administrator.")
-            return FAILED
+            details.append("CodeCheck服务内部错误(500)，请联系CI管理员")
+            return ACResult(FAILED.val, details=details)
         else:
             logger.error("code check failed, info : %s", response_content.get('msg'))
+            details.append("CodeCheck检查失败: {}".format(response_content.get('msg', '未知错误')))
+            return ACResult(FAILED.val, details=details)
 
         return SUCCESS

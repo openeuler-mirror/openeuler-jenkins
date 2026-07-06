@@ -23,7 +23,7 @@ import json
 import chardet
 
 from src.proxy.requests_proxy import do_requests, RequestData
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
 
 logger = logging.getLogger("ac")
 
@@ -88,7 +88,8 @@ class PkgLicense(object):
 
         if not license_in_scope:
             logger.warning("No src license data is obtained")
-            return WARNING
+            details = ["未获取到源码license检查数据，可能是接口异常"]
+            return ACResult(WARNING.val, details=details)
 
         res = license_in_scope.get("pass")
         if res:
@@ -97,7 +98,8 @@ class PkgLicense(object):
         else:
             notice_content = license_in_scope.get("notice")
             logger.warning("the license in scope is not pass, notice: %s", notice_content)
-            return FAILED
+            details = ["源码中license不在白名单中: {}".format(notice_content)]
+            return ACResult(FAILED.val, details=details)
 
     def check_repo_copyright_legal(self):
         """
@@ -108,7 +110,8 @@ class PkgLicense(object):
 
         if not repo_copyright_legal:
             logger.warning("No copyright data is obtained")
-            return WARNING
+            details = ["未获取到仓库copyright检查数据，可能是接口异常"]
+            return ACResult(WARNING.val, details=details)
 
         res = repo_copyright_legal.get("pass")
         if res:
@@ -117,7 +120,8 @@ class PkgLicense(object):
         else:
             notice_content = repo_copyright_legal.get("notice")
             logger.warning("the copyright in repo is not pass, notice: %s", notice_content)
-            return WARNING
+            details = ["仓库copyright检查未通过: {}".format(notice_content)]
+            return ACResult(WARNING.val, details=details)
 
     def translate_license(self, licenses):
         """

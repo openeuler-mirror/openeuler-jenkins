@@ -20,7 +20,7 @@ import logging
 
 from src.ac.acl.package_license.package_license import PkgLicense
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
 
 logger = logging.getLogger("ac")
 
@@ -57,7 +57,8 @@ class CheckOpeneulerLicense(BaseCheck):
         repo_license_legal = self.response_content.get("repo_license_legal")
         if not repo_license_legal:
             logger.warning("No repo license data is obtained")
-            return WARNING
+            details = ["未获取到仓库license检查数据，可能是接口异常"]
+            return ACResult(WARNING.val, details=details)
         res = repo_license_legal.get("pass")
         if res:
             logger.info("the license in repo is free")
@@ -65,6 +66,7 @@ class CheckOpeneulerLicense(BaseCheck):
         else:
             notice_content = repo_license_legal.get("notice")
             logger.warning("License notice: %s", notice_content)
+            details = ["仓库license不在白名单中: {}".format(notice_content)]
 
             is_legal = repo_license_legal.get("is_legal")
             if is_legal:
@@ -72,11 +74,12 @@ class CheckOpeneulerLicense(BaseCheck):
                 if not is_legal_pass:
                     detail = is_legal.get("detail")
                     if detail:
-                        black_reason = detail.get("is_white").get("blackReason")
+                        black_reason = detail.get("is_white", {}).get("blackReason", "")
                         if black_reason:
+                            details.append("黑名单原因: {}".format(black_reason))
                             logger.error("License black reason: %s", black_reason)
 
-            return FAILED
+            return ACResult(FAILED.val, details=details)
 
     def check_license_in_scope(self):
         """

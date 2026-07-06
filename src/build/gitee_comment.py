@@ -24,8 +24,10 @@ import logging.config
 import json
 import argparse
 import warnings
-import yaml
+from dataclasses import dataclass
+from html import escape as html_escape
 
+import yaml
 from yaml.error import YAMLError
 from src.ac.framework.ac_result import ACResult, SUCCESS
 from src.proxy.gitcode_proxy import GitcodeProxy
@@ -33,6 +35,19 @@ from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.dist_dataset import DistDataset
+
+
+@dataclass
+class TableRowData:
+    """HTML table row data for build check results."""
+    name: str
+    detail: str
+    icon: str
+    status: str
+    href: str
+    build_no: str
+    hashtag: bool = True
+    rowspan: int = 1
 
 
 class Comment(object):
@@ -195,7 +210,56 @@ class Comment(object):
 
         gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
 
+        # AI 智能摘要（独立评论，失败不影响主流程）
+        self._comment_ai_summary(gitcode_proxy, acl)
+
         return "\n".join(comments)
+
+    def _comment_ai_summary(self, gitcode_proxy, acl):
+        """
+        AI 智能摘要：调用 LLM 对门禁结果生成自然语言分析。
+        作为独立评论发布，任何异常只记录 warning 日志，不影响门禁主流程。
+        """
+        try:
+            if not acl:
+                logger.info("[AI] acl is empty, skip ai summary")
+                return
+
+            # 有失败或警告项时才需要 AI 摘要（SUCCESS=0, EXCLUDE=3 视为通过）
+            has_issues = any(item.get("result", 0) in (1, 2) for item in acl)
+            if not has_issues:
+                logger.info("[AI] all checks passed or excluded, skip ai summary")
+                return
+
+            logger.info("[AI] checks not all passed, preparing ai summary")
+
+            from src.ac.common.ai_summary import AISummarizer, load_ai_config
+            from src.proxy.llm_proxy import LLMProxy
+
+            config = load_ai_config()
+            if not config.get("enabled"):
+                logger.info("[AI] ai summary is disabled in config, skip")
+                return
+
+            llm = LLMProxy(**config["llm"])
+            summarizer = AISummarizer(llm)
+
+            pr_context = {
+                "repo": os.environ.get("REPO", ""),
+                "branch": os.environ.get("TARGET_BRANCH", ""),
+            }
+
+            logger.info("[AI] calling LLM for ai summary")
+            success, summary = summarizer.summarize(acl, pr_context)
+            if success and summary:
+                ai_comment = "**PR门禁 AI 智能分析（仅供参考）**\n\n" + summary
+                logger.info("[AI] ai summary generated, posting comment")
+                gitcode_proxy.comment_pr(self._pr, ai_comment)
+            else:
+                logger.warning("[AI] LLM call failed or returned empty, skip comment")
+
+        except Exception as e:
+            logger.warning("[AI] AI summary failed (non-critical): %s", e)
 
     def comment_compare_package_details(self, gitcode_proxy, check_result_file, tbranch):
         """
@@ -404,14 +468,27 @@ class Comment(object):
 
         for index, item in enumerate(acl):
             ac_result = ACResult.get_instance(item["result"])
+
+            # 构建 details 列内容
+            detail_display = ""
+            if item.get("details"):
+                detail_display = "<br/>".join(["&#8226; " + html_escape(d) for d in item["details"]])
+
             if index == 0:
                 build_url = build["url"]
                 comments.append(self.__class__.comment_html_table_tr(
-                    item["name"], ac_result.emoji, ac_result.hint,
-                    "{}{}".format(build_url, "console"), build["number"], rowspan=len(acl)))
+                    TableRowData(
+                        name=item["name"],
+                        detail=detail_display,
+                        icon=ac_result.emoji,
+                        status=ac_result.hint,
+                        href="{}{}".format(build_url, "console"),
+                        build_no=build["number"],
+                        rowspan=len(acl)
+                    )))
             else:
                 comments.append(self.__class__.comment_html_table_tr_rowspan(
-                    item["name"], ac_result.emoji, ac_result.hint))
+                    item["name"], detail_display, ac_result.emoji, ac_result.hint))
             self.ac_result[item["name"]] = ac_result.hint
         logger.info("ac comment: %s", comments)
 
@@ -673,16 +750,16 @@ class Comment(object):
         if arch in 'riscv64' and ac_result != SUCCESS:
             ac_result = ACResult.get_instance(1)
 
-        comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> " \
+        comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> <td></td> " \
                         "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
             item_num, arch, "check_build", ac_result.emoji, ac_result.hint, item_num,
             "{}{}".format(build["url"], "console"), build["number"]))
         arch_dict["check_build"] = ac_result.hint
 
         if ac_result.hint == "EXCLUDE":
-            comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+            comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td></td>".format(
                 "check_install", ac_result.emoji, ac_result.hint))
-            comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+            comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td></td>".format(
                 "check_license", ac_result.emoji, ac_result.hint))
             arch_dict["check_install"] = ac_result.hint
             arch_dict["check_license"] = ac_result.hint
@@ -690,7 +767,7 @@ class Comment(object):
             for check_item, check_result in check_item_info.items():
                 if check_result:
                     check_result = ACResult.get_instance(check_result)
-                    comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td>".format(
+                    comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td></td>".format(
                         check_item, check_result.emoji, check_result.hint))
                     arch_dict[check_item] = check_result.hint
         self.check_item_result[arch] = arch_dict
@@ -703,23 +780,26 @@ class Comment(object):
         """
         table header
         """
-        return "<tr><th colspan=2>Check Name</th> <th>Build Result</th> <th>Build Details</th></tr>"
+        return "<tr><th colspan=2>Check Name</th> <th>Build Result</th> <th>详情</th> <th>Build Details</th></tr>"
 
     @classmethod
-    def comment_html_table_tr(cls, name, icon, status, href, build_no, hashtag=True, rowspan=1):
+    def comment_html_table_tr(cls, row_data):
         """
         one row or span row
+        :param row_data: TableRowData instance
         """
-        return "<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td> " \
+        return "<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td> <td>{}</td> " \
                "<td rowspan={}><a href={}>{}{}</a></td></tr>".format(
-            name, icon, status, rowspan, href, "#" if hashtag else "", build_no)
+            row_data.name, row_data.icon, row_data.status, row_data.detail,
+            row_data.rowspan, row_data.href, "#" if row_data.hashtag else "", row_data.build_no)
 
     @classmethod
-    def comment_html_table_tr_rowspan(cls, name, icon, status):
+    def comment_html_table_tr_rowspan(cls, name, detail, icon, status):
         """
         span row
         """
-        return "<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td></tr>".format(name, icon, status)
+        return ("<tr><td colspan=2>{}</td> <td>{}<strong>{}</strong></td>"
+                " <td>{}</td></tr>".format(name, icon, status, detail))
 
     def _get_job_url(self, comment_url):
         """

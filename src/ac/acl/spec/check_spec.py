@@ -20,12 +20,11 @@ import calendar
 import logging
 import time
 import re
-from datetime import datetime, timezone
 import yaml
 
 from src.proxy.git_proxy import GitProxy
 from src.proxy.requests_proxy import do_requests, RequestData
-from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
+from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING, ACResult
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.common.gitcode_repo import GitcodeRepo
@@ -113,7 +112,8 @@ class CheckSpec(BaseCheck):
             logger.debug("lts branch %s", self._tbranch)
             if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
                 logger.error("version update of lts branch is forbidden")
-                return FAILED
+                details = ["LTS分支 '{}' 禁止版本号升级".format(self._tbranch)]
+                return ACResult(FAILED.val, details=details)
 
         def every_pr_changelog(changelog):
             """
@@ -126,10 +126,12 @@ class CheckSpec(BaseCheck):
             changelog_old = every_pr_changelog(spec_o.changelog)
         except StopIteration as error:
             logger.error("new spec.changelog: %s, old spec.changelog: %s", self._spec.changelog, spec_o.changelog)
-            return FAILED
+            details = ["无法解析changelog内容，请检查%changelog段是否存在且格式正确"]
+            return ACResult(FAILED.val, details=details)
         if changelog_new == changelog_old:
             logger.error("Every pr commit requires a changelog!")
-            return FAILED
+            details = ["本次PR未更新changelog，每次提交都需要添加changelog条目"]
+            return ACResult(FAILED.val, details=details)
         if self._spec > spec_o:
             return SUCCESS
         elif self._spec < spec_o:
@@ -139,7 +141,9 @@ class CheckSpec(BaseCheck):
 
         logger.error("current version: %s-r%s, last version: %s-r%s",
                        self._spec.version, self._spec.release, spec_o.version, spec_o.release)
-        return FAILED
+        details = ["版本号未递增: 当前 {}-r{}, 上次 {}-r{}，请递增Release或Version".format(
+            self._spec.version, self._spec.release, spec_o.version, spec_o.release)]
+        return ACResult(FAILED.val, details=details)
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
         """
@@ -166,9 +170,10 @@ class CheckSpec(BaseCheck):
         检查changelog中的日期错误
         :return:
         """
-        ret = self._parse_spec()
+        ret, detail_msg = self._parse_spec()
         if not ret:
-            return FAILED
+            details = [detail_msg] if detail_msg else ["changelog格式错误"]
+            return ACResult(FAILED.val, details=details)
         return SUCCESS
 
     def check_patches(self):
@@ -182,6 +187,7 @@ class CheckSpec(BaseCheck):
         logger.debug("file patches: %s", patches_file)
 
         result = SUCCESS
+        details = []
 
         def equivalent_patch_number(patch_con):
             """
@@ -263,14 +269,17 @@ class CheckSpec(BaseCheck):
 
         for patch in patches_spec - patches_file:
             logger.error("patch %s lost", patch)
+            details.append("spec中声明的patch '{}' 在仓库中缺失".format(patch))
             result = FAILED
         if self._repo in ["kernel", "grub2", "bazel"]:
             for patch in patches_file - patches_spec:
                 logger.warning("patch %s redundant", patch)
+                details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
                 result = WARNING
         else:
             for patch in patches_file - patches_spec:
                 logger.error("patch %s redundant", patch)
+                details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
                 result = FAILED
 
         with open(os.path.join(self._work_dir, self._gr.spec_file), "r", encoding="utf-8") as fp:
@@ -278,8 +287,9 @@ class CheckSpec(BaseCheck):
             adapter = Spec.from_string(all_str)
             patch_dict = adapter.__dict__.get("patches_dict")
             if not patch_adaptation(all_str, patch_dict):
+                details.append("spec的%prep阶段存在未应用的patch，请检查%patch指令是否遗漏")
                 result = FAILED
-        return result
+        return ACResult(result.val, details=details) if details else result
 
     def _ex_support_arch(self):
         """
@@ -331,7 +341,7 @@ class CheckSpec(BaseCheck):
     def _parse_spec(self):
         """
         获取最新提交的spec文件
-        :return:
+        :return: (bool, str) - (是否通过, 失败原因)
         """
         weeks = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
         months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
@@ -380,27 +390,27 @@ class CheckSpec(BaseCheck):
                     logger.error(
                         "There is an non-standard format in %s, please keep it consistent: Epoch:version-release \n"
                         "e.g: 1:1.0.0-1", changelog_con)
-                    return False
+                    return False, "changelog中存在非标准格式，请保持 Epoch:version-release 格式"
                 version = "".join([self._spec.epoch, ":", version])
             else:
                 obj_s = re.search(r"(\w+(.\w+){0,9})-[\w.]+", new_str)
                 if not obj_s:
                     logger.error("%s release or version incorrect format,please keep it consistent: version-release \n"
                                  "e.g: 1.0.0-1", changelog_con)
-                    return False
+                    return False, "changelog中release或version格式不正确，请保持 version-release 格式"
             try:
                 version_num, release_num = obj_s.group(0).split("-")
             except (ValueError, IOError, KeyError, IndexError) as e:
                 logger.error("%s release or version incorrect format,please keep it consistent: version-release \n"
                              "e.g: 1.0.0-1", changelog_con)
-                return False
+                return False, "changelog中release或version格式不正确，请保持 version-release 格式"
             if version_num != version:
                 logger.error("version error in changelog: %s is different from %s", version_num, version)
-                return False
+                return False, "changelog中的版本号 '{}' 与spec中的版本号 '{}' 不一致".format(version_num, version)
             if release_num != release:
                 logger.error("release error in changelog: %s is different from %s", release_num, release)
-                return False
-            return True
+                return False, "changelog中的release号 '{}' 与spec中的release号 '{}' 不一致".format(release_num, release)
+            return True, ""
 
         def check_mailbox(changelog):
             """
@@ -441,24 +451,25 @@ class CheckSpec(BaseCheck):
 
         if not check_changelog_entries_start(self._spec.changelog):
             logger.error("%changelog entries must start with *")
-            return False
+            return False, "changelog条目必须以 * 开头"
         changelog = self._spec.changelog.split("*")
         # 取最新一条changelog
         changelog_con = next(need_str for need_str in changelog if need_str)
         # 检查changelog中邮箱格式
         if not check_mailbox(changelog_con):
             logger.error("bad mailbox in changelog:%s", changelog_con)
-            return False
+            return False, "changelog中邮箱格式错误: {}".format(changelog_con.strip()[:80])
         # date_obj是字符串列表，样例：['Tue', 'Mar', '21', '2022', 'xxx', '<xxx@xxx.com>', '-', '2.9.24-5-', 'test', '2.9.24-5']
         date_obj = get_date_data(changelog_con)  # 列表中的空字符串已处理
         if not date_obj:
-            return False
+            return False, "changelog中的日期数据格式不正确"
         if not judgment_date(date_obj):
             logger.error("bad date in changelog:%s", changelog_con)
-            return False
-        if not release_and_version(changelog_con, self._spec.version, self._spec.release):
-            return False
+            return False, "changelog中的日期无效: {}".format(changelog_con.strip()[:80])
+        ret, detail_msg = release_and_version(changelog_con, self._spec.version, self._spec.release)
+        if not ret:
+            return False, detail_msg
         if not bogus_date(date_obj):
             logger.error("bogus date in changelog:%s", changelog_con)
-            return False
-        return True
+            return False, "changelog中日期与星期不匹配: {}".format(changelog_con.strip()[:80])
+        return True, ""

@@ -161,7 +161,10 @@ class AC(object):
             result = entry(**kwargs)
             logger.debug("check result %s %s", element, result)
 
-            self._ac_check_result.append({"name": hint, "result": result.val})
+            item_result = {"name": hint, "result": result.val}
+            if result.details:
+                item_result["details"] = result.details
+            self._ac_check_result.append(item_result)
             dataset.set_attr("access_control.build.acl.{}".format(element), result.hint)
 
         dataset.set_attr("access_control.build.content", self._ac_check_result)
