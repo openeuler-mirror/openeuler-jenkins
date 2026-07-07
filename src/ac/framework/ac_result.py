@@ -22,11 +22,30 @@ class ACResult(object):
     Use this variables (FAILED, WARNING, SUCCESS， EXCLUDE) at most time,
     and don't new ACResult unless you have specific needs.
     """
-    def __init__(self, val):
+    def __init__(self, val, details=None):
         self._val = val
+        self._details = details or []
 
     def __add__(self, other):
-        return self if self.val >= other.val else other
+        combined_details = list(self._details) + list(other._details)
+        if self.val >= other.val:
+            winner = ACResult(self.val, combined_details)
+        else:
+            winner = ACResult(other.val, combined_details)
+        return winner
+
+    def __eq__(self, other):
+        if isinstance(other, ACResult):
+            return self._val == other._val
+        return NotImplemented
+
+    def __hash__(self):
+        return hash(self._val)
+
+    def __ne__(self, other):
+        if isinstance(other, ACResult):
+            return self._val != other._val
+        return NotImplemented
 
     def __str__(self):
         return self.hint
@@ -64,6 +83,11 @@ class ACResult(object):
     @property
     def emoji(self):
         return ["&#9989;", "&#9888;", "&#10060;", ":ballot_box_with_check:"][self.val]
+
+    @property
+    def details(self):
+        """失败/警告的详细原因列表"""
+        return self._details
 
 
 EXCLUDE = ACResult(3)

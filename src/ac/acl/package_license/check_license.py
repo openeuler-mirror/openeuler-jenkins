@@ -24,7 +24,7 @@ from src.ac.acl.package_license.package_license import PkgLicense
 from src.ac.common.gitcode_repo import GitcodeRepo
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
 from src.proxy.git_proxy import GitProxy
 
 logger = logging.getLogger("ac")
@@ -79,12 +79,14 @@ class CheckLicense(BaseCheck):
         """
         if self._spec is None:
             logger.error("spec file not find")
-            return FAILED
+            details = ["未找到spec文件，无法检查license"]
+            return ACResult(FAILED.val, details=details)
         spec_license_legal = self.response_content.get("spec_license_legal")
 
         if not spec_license_legal:
             logger.warning("No spec license data is obtained")
-            return WARNING
+            details = ["未获取到spec license检查数据，可能是接口异常"]
+            return ACResult(WARNING.val, details=details)
 
         res = spec_license_legal.get("pass")
         if res:
@@ -93,10 +95,12 @@ class CheckLicense(BaseCheck):
         else:
             notice_content = spec_license_legal.get("notice")
             logger.warning("License notice: %s", notice_content)
-            black_reason = spec_license_legal.get("detail").get("is_white").get("blackReason")
+            black_reason = spec_license_legal.get("detail", {}).get("is_white", {}).get("blackReason", "")
+            details = ["spec中的license不在白名单中: {}".format(notice_content)]
             if black_reason:
+                details.append("黑名单原因: {}".format(black_reason))
                 logger.error("License black reason: %s", black_reason)
-            return FAILED
+            return ACResult(FAILED.val, details=details)
 
     def check_license_in_src(self):
         """
@@ -121,7 +125,9 @@ class CheckLicense(BaseCheck):
         else:
             logger.error("licenses in src:%s and in spec:%s are not same", self._license_in_src,
                                                                                    self._license_in_spec)
-            return WARNING
+            details = ["spec中声明的license '{}' 与源码中扫描到的license '{}' 不一致".format(
+                self._license_in_spec, self._license_in_src)]
+            return ACResult(WARNING.val, details=details)
 
     def check_copyright_in_repo(self):
         """

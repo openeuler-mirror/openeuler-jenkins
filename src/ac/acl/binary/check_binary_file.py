@@ -19,7 +19,7 @@ import shutil
 import logging
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import WARNING, SUCCESS
+from src.ac.framework.ac_result import WARNING, SUCCESS, ACResult
 from src.ac.common.gitcode_repo import GitcodeRepo
 from src.proxy.git_proxy import GitProxy
 from pyrpm.spec import Spec, replace_macros
@@ -79,7 +79,8 @@ class CheckBinaryFile(BaseCheck):
                     binary_files.append(file_path)
         if binary_files:
             logger.warning("binary files in pr commits: %s", binary_files)
-            return WARNING
+            details = ["PR提交中包含二进制文件: {}".format(", ".join(binary_files))]
+            return ACResult(WARNING.val, details=details)
         return SUCCESS
 
     def check_compressed_file(self):
@@ -91,7 +92,11 @@ class CheckBinaryFile(BaseCheck):
             if decompress_file not in self._tarball_in_spec:
                 need_compress_files.append(decompress_file)
         self._gr.set_compress_files(need_compress_files)
-        return SUCCESS if 0 == self._gr.decompress_all() else WARNING
+        decompress_result = self._gr.decompress_all()
+        if decompress_result != 0:
+            details = ["压缩包解压失败，请检查压缩文件格式是否正确"]
+            return ACResult(WARNING.val, details=details)
+        return SUCCESS
 
     def check_binary(self):
         """
@@ -102,7 +107,11 @@ class CheckBinaryFile(BaseCheck):
             logger_con = ["%s: \n%s" % (key, value) for suffix_list in suffixes_list for key, value in
                           suffix_list.items()]
             logger.warning("binary file of type exists:\n%s", "\n".join(logger_con))
-            return WARNING
+            details = []
+            for suffix_list in suffixes_list:
+                for dir_path, files in suffix_list.items():
+                    details.append("目录 '{}' 中包含二进制文件: {}".format(dir_path, ", ".join(files)))
+            return ACResult(WARNING.val, details=details)
         else:
             return SUCCESS
 

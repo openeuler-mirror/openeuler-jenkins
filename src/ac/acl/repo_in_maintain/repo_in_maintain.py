@@ -19,7 +19,7 @@ import requests
 import yaml
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, SUCCESS
+from src.ac.framework.ac_result import FAILED, SUCCESS, ACResult
 
 logger = logging.getLogger("ac")
 
@@ -56,5 +56,7 @@ class CheckRepoInMaintain(BaseCheck):
         del_repos = [x.get("name") for x in yml.get("packages")] if yml else []
 
         if self._repo in del_repos:
-            return FAILED
+            details = ["仓库 '{}' 在分支 '{}' 的维护清单中被标记为删除，不再接受PR提交".format(
+                self._repo, self._branch)]
+            return ACResult(FAILED.val, details=details)
         return SUCCESS

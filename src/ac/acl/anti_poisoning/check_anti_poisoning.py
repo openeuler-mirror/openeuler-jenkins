@@ -20,7 +20,7 @@ import json
 import os
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
 from src.proxy.requests_proxy import do_requests, RequestData
 from src.proxy.openlibing_proxy import OpenlibingProxy
 
@@ -152,30 +152,24 @@ class CheckAntiPoisoning(BaseCheck):
         """
         # 等待计算结果
         rs, response_content = self.get_poison_result()
+        details = []
 
         # 判断是否计算完成
         if rs != 0:
-            return FAILED
+            details.append("Anti-Poisoning检查服务调用失败，请联系CI管理员")
+            return ACResult(FAILED.val, details=details)
 
         result = response_content.get('result')
         if result:
-            """
-            # 返回结果 {
-            "code": "200", 
-            "message": "success", 
-            "result"{
-            "isPass": True
-            "url": "http://{ip}:{port}/increment/autipoisoning/{projectId}/openMajun/{repo}" 一个可以看到poison检查结果详情的地址
-            }}
-            """
             ispass = result.get('isPass')
             if not ispass:
-                # 只有anti_poisoning完成且anti_poisoning检查的代码中存在bug，返回检查项失败的结果
                 logger.warning("click %s view anti_poisoning check detail", result.get('url'))
-                return FAILED
+                details.append("Anti-Poisoning检查发现可疑代码，请查看报告: {}".format(result.get('url')))
+                return ACResult(FAILED.val, details=details)
         else:
             logger.error("anti_poisoning check failed, info : %s", response_content.get('message'))
-            return FAILED
+            details.append("Anti-Poisoning检查异常: {}".format(response_content.get('message', '未知错误')))
+            return ACResult(FAILED.val, details=details)
         logger.info("click %s view anti_poisoning check detail", result.get('url'))
         return SUCCESS
 

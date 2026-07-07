@@ -20,7 +20,7 @@ import logging
 
 from src.proxy.git_proxy import GitProxy
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS
+from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
 from src.ac.common.gitcode_repo import GitcodeRepo
 from src.ac.common.linter import LinterCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
@@ -43,7 +43,11 @@ class CheckCodeStyle(BaseCheck):
         """
         解压缩包
         """
-        return SUCCESS if 0 == self._gr.decompress_all() else FAILED
+        decompress_result = self._gr.decompress_all()
+        if decompress_result != 0:
+            details = ["压缩包解压失败，请检查压缩文件格式是否正确"]
+            return ACResult(FAILED.val, details=details)
+        return SUCCESS
 
     def check_patch(self):
         """
@@ -59,7 +63,11 @@ class CheckCodeStyle(BaseCheck):
         if 0 == rs:
             return SUCCESS
 
-        return WARNING if 1 == rs else FAILED
+        if 1 == rs:
+            details = ["部分patch应用失败（警告级别）"]
+            return ACResult(WARNING.val, details=details)
+        details = ["patch应用失败，请检查patch文件是否正确"]
+        return ACResult(FAILED.val, details=details)
 
     def check_code_style(self):
         """
@@ -137,11 +145,17 @@ class CheckCodeStyle(BaseCheck):
             return SUCCESS
 
         logger.info("Linter: %s %s", file_path, rs)
+        short_path = os.path.basename(file_path)
+
         if rs.get("F", 0) > 0:
-            return FAILED
+            details = ["文件 '{}' 存在Fatal级别错误: E={}, W={}, F={}".format(
+                short_path, rs.get("E", 0), rs.get("W", 0), rs.get("F", 0))]
+            return ACResult(FAILED.val, details=details)
 
         if rs.get("W", 0) > 0 or rs.get("E", 0) > 0:
-            return WARNING
+            details = ["文件 '{}' 存在代码风格问题: E={}, W={}".format(
+                short_path, rs.get("E", 0), rs.get("W", 0))]
+            return ACResult(WARNING.val, details=details)
 
         return SUCCESS
 

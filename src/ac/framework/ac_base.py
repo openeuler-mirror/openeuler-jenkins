@@ -69,12 +69,18 @@ class BaseCheck(object):
             ignored = True if self._conf and name in self._conf.get("ignored", []) else False
             logger.debug("%s ignore: %s", name, ignored)
 
-            if rs is SUCCESS:
+            if rs == SUCCESS:
                 logger.info("check %s pass", name)
-            elif rs is WARNING:
+            elif rs == WARNING:
                 logger.warning("check %s warning %s", name, " [ignored]" if ignored else "")
-            elif rs is FAILED:
+                if rs.details:
+                    for d in rs.details:
+                        logger.warning("  -> %s", d)
+            elif rs == FAILED:
                 logger.error("check %s fail %s", name, " [ignored]" if ignored else "")
+                if rs.details:
+                    for d in rs.details:
+                        logger.error("  -> %s", d)
             else:
                 # never here
                 logger.exception("check %s exception %s", name, " [ignored]" if ignored else "")
