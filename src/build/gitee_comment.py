@@ -106,8 +106,15 @@ class Comment(object):
 
     @staticmethod
     def _match(name, comment_file):
+        # 64k variant cross-check: if one side has 64k and the other doesn't, no match
+        is_name_64k = "64k" in name
+        is_file_64k = "64k" in comment_file
+        if is_name_64k != is_file_64k:
+            return False, ""
+
         if "aarch64" in name and "aarch64" in comment_file:
-            return True, "aarch64"
+            arch = "aarch64_64k" if is_file_64k else "aarch64"
+            return True, arch
         if "x86-64" in name and "x86_64" in comment_file:
             return True, "x86_64"
         if "riscv64" in name and "riscv64" in comment_file:
@@ -617,7 +624,14 @@ class Comment(object):
                             "<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
                                 item, "<br>".join(rpm_name), "<br>".join(rpm_level), compare_result.emoji,
                                 compare_result.hint))
-                detail_result_path = all_detail_files[0] if arch_name == "x86_64" else all_detail_files[1]
+                detail_result_path = None
+                for df in all_detail_files:
+                    if arch_name in df:
+                        detail_result_path = df
+                        break
+                if not detail_result_path or not os.path.exists(detail_result_path):
+                    logger.warning("detail result file not found for arch %s", arch_name)
+                    continue
                 with open(detail_result_path, "r") as df:
                     detail_content = json.load(df)
                 recomponent_detail = self._get_filter_cmp_details(summary_details, detail_content)
@@ -642,6 +656,11 @@ class Comment(object):
         comments = []
 
         def match(name, comment_file):
+            is_name_64k = "64k" in name
+            is_file_64k = "64k" in comment_file
+            if is_name_64k != is_file_64k:
+                return False
+
             if "aarch64" in name and "aarch64" in comment_file:
                 return True
             if "x86-64" in name and "x86_64" in comment_file:
@@ -664,6 +683,8 @@ class Comment(object):
 
             if "x86-64" in name:
                 arch = "x86_64"
+            elif "64k" in name and "aarch64" in name:
+                arch = "aarch64_64k"
             elif "aarch64" in name:
                 arch = "aarch64"
             elif "riscv64" in name:
@@ -738,7 +759,9 @@ class Comment(object):
         logger.info(f"check_item_info:{check_item_info}")
         if os.path.exists("support_arch"):
             with open("support_arch", "r") as s_file:
-                if arch not in s_file.readline():
+                support_content = s_file.readline()
+                base_arch = arch.split("_64k")[0] if "_64k" in arch else arch
+                if base_arch not in support_content:
                     ac_result = ACResult.get_instance("EXCLUDE")
                     item_num = 3
                 else:

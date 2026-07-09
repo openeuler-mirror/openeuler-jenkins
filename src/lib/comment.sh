@@ -1,6 +1,14 @@
 #!/bin/bash
 . ${shell_path}/src/lib/lib.sh
 
+# 64k variant support
+variant="${variant:-""}"
+if [[ -n "$variant" ]]; then
+    variant_suffix="_${variant}"
+else
+    variant_suffix=""
+fi
+
 check_item_comment_aarch64=""
 check_item_comment_x86=""
 check_item_comment_riscv64=""
@@ -10,6 +18,10 @@ compare_package_result_riscv64=""
 detail_result_file_aarch64=""
 detail_result_file_x86_64=""
 detail_result_file_riscv64=""
+# variant (e.g. 64k) files
+check_item_comment_aarch64_variant=""
+compare_package_result_aarch64_variant=""
+detail_result_file_aarch64_variant=""
 
 repo_server_test_tail=""
 token=${gitcodeToken}
@@ -42,6 +54,11 @@ function clearn_env() {
   compare_package_result_riscv64="${repo}_${prid}_riscv64_compare_result"
   build_num_file="${repo_owner}_${repo}_${prid}_build_num.yaml"
 
+  # variant files
+  if [[ -n "${variant_suffix}" ]]; then
+    check_item_comment_aarch64_variant="${repo}_${prid}_aarch64${variant_suffix}_comment"
+    compare_package_result_aarch64_variant="${repo}_${prid}_aarch64${variant_suffix}_compare_result"
+  fi
 
   if [[ -e check_item_comment_aarch64 ]]; then
     rm $check_item_comment_aarch64
@@ -63,6 +80,15 @@ function clearn_env() {
   fi
   if [[ -e build_num_file ]]; then
     rm $build_num_file
+  fi
+  # cleanup variant files
+  if [[ -n "${variant_suffix}" ]]; then
+    if [[ -e $check_item_comment_aarch64_variant ]]; then
+      rm $check_item_comment_aarch64_variant
+    fi
+    if [[ -e $compare_package_result_aarch64_variant ]]; then
+      rm $compare_package_result_aarch64_variant
+    fi
   fi
   log_info "***** End to clearn env *****"
 }
@@ -90,6 +116,13 @@ function scp_comment_file() {
   if [[ -e ${repo}_${prid}_support_arch ]]; then
     mv ${repo}_${prid}_support_arch support_arch
   fi
+  # variant files
+  if [[ -n "${variant_suffix}" ]]; then
+    detail_result_file_aarch64_variant="${repo}_aarch64${variant_suffix}.json"
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64_variant} . || log_info "file ${check_item_comment_aarch64_variant} not exist"
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:"/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/aarch64${variant_suffix}/${prid}/${repo}_*.json" ${detail_result_file_aarch64_variant} || log_info "file ${detail_result_file_aarch64_variant} not exist"
+    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${compare_package_result_aarch64_variant} . || log_info "file ${compare_package_result_aarch64_variant} not exist"
+  fi
   log_info "***** End to scp comment file *****"
 }
 
@@ -98,10 +131,29 @@ function exec_comment() {
   log_info "***** Start to exec comment *****"
   url_files_server="http://${repo_server}/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/replace__arch/${prid}"
   export PYTHONPATH=${shell_path}
+
+  # build -a args (space-separated)
+  a_args="${check_item_comment_aarch64} ${check_item_comment_x86} ${check_item_comment_riscv64}"
+  if [[ -n "${check_item_comment_aarch64_variant}" ]]; then
+    a_args="${a_args} ${check_item_comment_aarch64_variant}"
+  fi
+
+  # build -f args (comma-separated)
+  f_args="${compare_package_result_x86},${compare_package_result_aarch64},${compare_package_result_riscv64}"
+  if [[ -n "${compare_package_result_aarch64_variant}" ]]; then
+    f_args="${f_args},${compare_package_result_aarch64_variant}"
+  fi
+
+  # build -d args (comma-separated)
+  d_args="${detail_result_file_x86_64},${detail_result_file_aarch64},${detail_result_file_riscv64}"
+  if [[ -n "${detail_result_file_aarch64_variant}" ]]; then
+    d_args="${d_args},${detail_result_file_aarch64_variant}"
+  fi
+
   python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${token}\
-   -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${check_item_comment_aarch64} ${check_item_comment_x86} ${check_item_comment_riscv64}\
-    -f ${compare_package_result_x86},${compare_package_result_aarch64},${compare_package_result_riscv64} -m ${commentid} -l ${url_files_server} \
-    -d ${detail_result_file_x86_64},${detail_result_file_aarch64},${detail_result_file_riscv64} -tb ${tbranch} --platform ${platform}
+   -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${a_args}\
+    -f ${f_args} -m ${commentid} -l ${url_files_server} \
+    -d ${d_args} -tb ${tbranch} --platform ${platform}
   log_info "***** End to exec comment *****"
 }
 
