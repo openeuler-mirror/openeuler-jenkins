@@ -1,6 +1,14 @@
 #!/bin/bash
 . /home/jenkins/ci_check/src/lib/lib.sh
 
+# 64k variant support
+variant="${variant:-""}"
+if [[ -n "$variant" ]]; then
+    variant_suffix="_${variant}"
+else
+    variant_suffix=""
+fi
+
 # debug测试变量
 function config_debug_variable() {
   repo_server_test_tail=""
@@ -22,6 +30,29 @@ function save_build_result() {
   global_x86_64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/0X080480000XC0000000/${gitcodeRepoName}/x86_64/"
   global_aarch64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/0X080480000XC0000000/${gitcodeRepoName}/aarch64/"
   global_riscv64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/0X080480000XC0000000/${gitcodeRepoName}/riscv64/"
+
+  # variant dirs
+  variant_dir_cmds=""
+  if [[ -n "${variant_suffix}" ]]; then
+    committer_pr_aarch64_variant_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/${gitcodeCommitter}/${gitcodeRepoName}/aarch64${variant_suffix}/${gitcodePullRequestId}/"
+    global_aarch64_variant_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/0X080480000XC0000000/${gitcodeRepoName}/aarch64${variant_suffix}/"
+    variant_dir_cmds="
+if [[ -d \"$committer_pr_aarch64_variant_dir\" && (\"\$(ls -A $committer_pr_aarch64_variant_dir | grep '\\.rpm\$')\" || \"\$(ls -A $committer_pr_aarch64_variant_dir | grep '\\.json\$')\") ]]; then
+	if [[ ! -d \"$global_aarch64_variant_dir/report\" ]]; then
+		mkdir -p $global_aarch64_variant_dir/report
+	fi
+	if [[ -d \"$global_aarch64_variant_dir\" && \"\$(ls -A $global_aarch64_variant_dir | grep '\\.rpm\$')\" ]]; then
+		rm $global_aarch64_variant_dir/*.rpm
+	fi
+
+    if [[ -d \"$committer_pr_aarch64_variant_dir\" && \"\$(ls -A $committer_pr_aarch64_variant_dir | grep '\\.rpm\$')\" ]]; then
+		cp $committer_pr_aarch64_variant_dir/*.rpm $global_aarch64_variant_dir/
+	fi
+	if [[ -d \"$committer_pr_aarch64_variant_dir\" && \"\$(ls -A $committer_pr_aarch64_variant_dir | grep '\\.json\$')\" ]]; then
+		cp $committer_pr_aarch64_variant_dir/*.json $global_aarch64_variant_dir/report/
+	fi
+fi"
+  fi
 
   log_info "***** Start to config remote shell *****"
   remote_place_cmd=$(
@@ -72,13 +103,14 @@ if [[ -d "$committer_pr_riscv64_dir" && ("\$(ls -A $committer_pr_riscv64_dir | g
 		cp $committer_pr_riscv64_dir/*.json $global_riscv64_dir/report/
 	fi
 fi
+${variant_dir_cmds}
 
 EOF
   )
   echo "$remote_place_cmd"
   echo "https://gitcode.com/src-openeuler/${gitcodeRepoName}/pull/${gitcodePullRequestId}"
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_place_cmd"
-  
+
   sed -i "s/dbhost=127.0.0.1/dbhost=${MysqldbHost}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
   sed -i "s/dbport=3306/dbport=${MysqldbPort}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
   python3 ${JENKINS_HOME}/oecp/cli.py -s ${gitcodeTargetBranch} --db-password ${MysqlUserPasswd:5} --pull-request-id ${gitcodeRepoName}-${gitcodePullRequestId} --submit-symbol
