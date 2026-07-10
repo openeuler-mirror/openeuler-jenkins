@@ -83,9 +83,22 @@ class CheckSpec(BaseCheck):
                 return True
         return False
 
+    def _get_changed_spec_files(self):
+        """
+        返回PR中所有被修改的spec文件名列表
+        无法获取时返回空列表，由调用方回退到默认逻辑
+        """
+        changed_files = self.get_pr_changed_files()
+        if changed_files is None:
+            changed_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        if not changed_files:
+            return []
+        return [os.path.basename(f) for f in changed_files if f.endswith(".spec")]
+
     def check_version_pr_changelog(self):
         """
         检查当前版本号是否比上一个commit新，每次提交pr的changelog
+        支持多spec仓库：根据PR实际修改的spec文件逐一检查
         :return:
         """
         # need check version？
@@ -93,15 +106,44 @@ class CheckSpec(BaseCheck):
             logger.debug("only change package yaml")
             return SUCCESS
 
+        changed_specs = self._get_changed_spec_files()
+        if not changed_specs:
+            # 无法获取PR变更文件，回退到默认spec
+            changed_specs = [self._gr.spec_file]
+
+        details = []
+        for spec_file in changed_specs:
+            logger.info("check version and changelog for spec: %s", spec_file)
+            sub_details = self._check_single_spec_version_changelog(spec_file)
+            if sub_details:
+                details.extend(sub_details)
+
+        if details:
+            return ACResult(FAILED.val, details=details)
+        return SUCCESS
+
+    def _check_single_spec_version_changelog(self, spec_file):
+        """
+        检查单个spec的version递增和changelog更新
+        :param spec_file: spec文件名
+        :return: None(通过) 或 list[str](失败的详细信息)
+        """
+        # 当前commit的spec
+        fp = self._gp.get_content_of_file_with_commit(spec_file)
+        if fp is None:
+            logger.error("cannot read spec file: %s", spec_file)
+            return ["无法读取spec文件: {}".format(spec_file)]
+        spec_current = RPMSpecAdapter(fp)
+
+        # HEAD~1的旧spec
         self._gp.checkout_to_commit_force("HEAD~1")
         try:
-            gr = GitcodeRepo(self._repo, self._work_dir, None)  # don't care about decompress
-            logger.info("gr.spec_file:%s", gr.spec_file)
-            fp = self._gp.get_content_of_file_with_commit(gr.spec_file)
-            if fp is None:
-                # last commit has no spec file
-                return SUCCESS
-            spec_o = RPMSpecAdapter(fp)
+            fp_old = self._gp.get_content_of_file_with_commit(spec_file)
+            if fp_old is None:
+                # 新增的spec文件，旧版不存在，跳过
+                logger.info("spec file %s is newly added, skip", spec_file)
+                return None
+            spec_o = RPMSpecAdapter(fp_old)
         finally:
             self._gp.checkout_to_commit_force(self._latest_commit)  # recover whatever
 
@@ -110,10 +152,9 @@ class CheckSpec(BaseCheck):
         # if lts branch is in MAINTENANCE_LTS_BRANCH, version update is allowed
         if self._is_lts_branch():
             logger.debug("lts branch %s", self._tbranch)
-            if RPMSpecAdapter.compare_version(self._spec.version, spec_o.version) == 1:
+            if RPMSpecAdapter.compare_version(spec_current.version, spec_o.version) == 1:
                 logger.error("version update of lts branch is forbidden")
-                details = ["LTS分支 '{}' 禁止版本号升级".format(self._tbranch)]
-                return ACResult(FAILED.val, details=details)
+                return ["LTS分支 '{}' 禁止版本号升级 ({})".format(self._tbranch, spec_file)]
 
         def every_pr_changelog(changelog):
             """
@@ -122,28 +163,27 @@ class CheckSpec(BaseCheck):
             return next(need_str for need_str in changelog.split("*") if need_str)
 
         try:
-            changelog_new = every_pr_changelog(self._spec.changelog)
+            changelog_new = every_pr_changelog(spec_current.changelog)
             changelog_old = every_pr_changelog(spec_o.changelog)
-        except StopIteration as error:
-            logger.error("new spec.changelog: %s, old spec.changelog: %s", self._spec.changelog, spec_o.changelog)
-            details = ["无法解析changelog内容，请检查%changelog段是否存在且格式正确"]
-            return ACResult(FAILED.val, details=details)
+        except StopIteration:
+            logger.error("new spec.changelog: %s, old spec.changelog: %s",
+                         spec_current.changelog, spec_o.changelog)
+            return ["无法解析changelog内容，请检查{}的%changelog段是否存在且格式正确".format(spec_file)]
         if changelog_new == changelog_old:
             logger.error("Every pr commit requires a changelog!")
-            details = ["本次PR未更新changelog，每次提交都需要添加changelog条目"]
-            return ACResult(FAILED.val, details=details)
-        if self._spec > spec_o:
-            return SUCCESS
-        elif self._spec < spec_o:
+            return ["{}: 本次PR未更新changelog，每次提交都需要添加changelog条目".format(spec_file)]
+        if spec_current > spec_o:
+            return None
+        elif spec_current < spec_o:
             if self._gp.is_revert_commit(depth=5):  # revert, version back, ignore
                 logger.debug("revert commit")
-                return SUCCESS
+                return None
 
         logger.error("current version: %s-r%s, last version: %s-r%s",
-                       self._spec.version, self._spec.release, spec_o.version, spec_o.release)
-        details = ["版本号未递增: 当前 {}-r{}, 上次 {}-r{}，请递增Release或Version".format(
-            self._spec.version, self._spec.release, spec_o.version, spec_o.release)]
-        return ACResult(FAILED.val, details=details)
+                     spec_current.version, spec_current.release, spec_o.version, spec_o.release)
+        return ["{}: 版本号未递增: 当前 {}-r{}, 上次 {}-r{}，请递增Release或Version".format(
+            spec_file, spec_current.version, spec_current.release,
+            spec_o.version, spec_o.release)]
 
     def check_homepage(self, timeout=30, retrying=3, interval=1):
         """
