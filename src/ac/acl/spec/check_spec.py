@@ -16,6 +16,7 @@
 # **********************************************************************************
 """
 import os
+import io
 import calendar
 import logging
 import time
@@ -57,14 +58,22 @@ class CheckSpec(BaseCheck):
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
         return self.start_check_with_order("patches", "changelog", "version_pr_changelog")
 
+    def _get_changed_files(self):
+        """
+        获取PR变更文件列表，API失败时回退到git diff
+        :return: list[str]
+        """
+        changed_files = self.get_pr_changed_files()
+        if changed_files is None:
+            changed_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        return changed_files or []
+
     def _only_change_package_yaml(self):
         """
         如果本次提交只变更yaml，则无需检查version
         :return: boolean
         """
-        diff_files = self.get_pr_changed_files()
-        if diff_files is None:
-            diff_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
+        diff_files = self._get_changed_files()
         package_yaml = "{}.yaml".format(self._repo)  # package yaml file name
 
         if len(diff_files) == 1 and diff_files[0] == package_yaml:
@@ -88,11 +97,7 @@ class CheckSpec(BaseCheck):
         返回PR中所有被修改的spec文件名列表
         无法获取时返回空列表，由调用方回退到默认逻辑
         """
-        changed_files = self.get_pr_changed_files()
-        if changed_files is None:
-            changed_files = self._gp.diff_files_between_commits("HEAD~1", "HEAD~0")
-        if not changed_files:
-            return []
+        changed_files = self._get_changed_files()
         return [os.path.basename(f) for f in changed_files if f.endswith(".spec")]
 
     def check_version_pr_changelog(self):
@@ -111,10 +116,44 @@ class CheckSpec(BaseCheck):
             # 无法获取PR变更文件，回退到默认spec
             changed_specs = [self._gr.spec_file]
 
-        details = []
+        # 批量获取当前版本spec
+        current_specs = {}
         for spec_file in changed_specs:
+            fp = self._gp.get_content_of_file_with_commit(spec_file)
+            if fp is None:
+                logger.error("cannot read spec file: %s", spec_file)
+                continue
+            current_specs[spec_file] = RPMSpecAdapter(fp)
+
+        # 所有spec均读取失败，不应静默通过
+        if not current_specs:
+            details = ["无法读取任何spec文件: {}".format(", ".join(changed_specs))]
+            return ACResult(FAILED.val, details=details)
+
+        # 批量获取旧版本spec（一次性checkout）
+        old_specs = {}
+        self._gp.checkout_to_commit_force("HEAD~1")
+        try:
+            for spec_file in changed_specs:
+                if spec_file not in current_specs:
+                    continue  # 当前版本读取失败的跳过
+                fp_old = self._gp.get_content_of_file_with_commit(spec_file)
+                if fp_old is None:
+                    # 新增的spec文件，旧版不存在，跳过
+                    logger.info("spec file %s is newly added, skip", spec_file)
+                    continue
+                old_specs[spec_file] = RPMSpecAdapter(fp_old)
+        finally:
+            self._gp.checkout_to_commit_force(self._latest_commit)  # recover whatever
+
+        # 逐一比较
+        details = []
+        for spec_file in current_specs:
+            if spec_file not in old_specs:
+                continue  # 新增的spec文件，跳过
             logger.info("check version and changelog for spec: %s", spec_file)
-            sub_details = self._check_single_spec_version_changelog(spec_file)
+            sub_details = self._compare_single_spec_version_changelog(
+                spec_file, current_specs[spec_file], old_specs[spec_file])
             if sub_details:
                 details.extend(sub_details)
 
@@ -122,34 +161,17 @@ class CheckSpec(BaseCheck):
             return ACResult(FAILED.val, details=details)
         return SUCCESS
 
-    def _check_single_spec_version_changelog(self, spec_file):
+    def _compare_single_spec_version_changelog(self, spec_file, spec_current, spec_o):
         """
-        检查单个spec的version递增和changelog更新
+        比较单个spec的version递增和changelog更新
         :param spec_file: spec文件名
+        :param spec_current: 当前版本的RPMSpecAdapter对象
+        :param spec_o: 上一版本的RPMSpecAdapter对象
         :return: None(通过) 或 list[str](失败的详细信息)
         """
-        # 当前commit的spec
-        fp = self._gp.get_content_of_file_with_commit(spec_file)
-        if fp is None:
-            logger.error("cannot read spec file: %s", spec_file)
-            return ["无法读取spec文件: {}".format(spec_file)]
-        spec_current = RPMSpecAdapter(fp)
-
-        # HEAD~1的旧spec
-        self._gp.checkout_to_commit_force("HEAD~1")
-        try:
-            fp_old = self._gp.get_content_of_file_with_commit(spec_file)
-            if fp_old is None:
-                # 新增的spec文件，旧版不存在，跳过
-                logger.info("spec file %s is newly added, skip", spec_file)
-                return None
-            spec_o = RPMSpecAdapter(fp_old)
-        finally:
-            self._gp.checkout_to_commit_force(self._latest_commit)  # recover whatever
-
         self._ex_pkgship(spec_o)
 
-        # if lts branch is in MAINTENANCE_LTS_BRANCH, version update is allowed
+        # LTS分支禁止版本号升级，继续检查changelog和release
         if self._is_lts_branch():
             logger.debug("lts branch %s", self._tbranch)
             if RPMSpecAdapter.compare_version(spec_current.version, spec_o.version) == 1:
@@ -219,11 +241,20 @@ class CheckSpec(BaseCheck):
     def check_patches(self):
         """
         检查spec中的patch是否存在，及patch的使用情况
+        多spec仓库：汇总所有spec声明的patch后再与仓库patch文件比较
         :return:
         """
-        patches_spec = set(self._spec.patches)
+        # 收集仓库中所有spec文件
+        all_spec_files = []
+        for filename in os.listdir(self._work_dir):
+            if os.path.isfile(os.path.join(self._work_dir, filename)) and GitcodeRepo.is_spec_file(filename):
+                all_spec_files.append(filename)
+
+        # 回退：未找到spec文件时使用默认spec
+        if not all_spec_files:
+            all_spec_files = [self._gr.spec_file]
+
         patches_file = set(self._gr.patch_files_not_recursive())
-        logger.debug("spec patches: %s", patches_spec)
         logger.debug("file patches: %s", patches_file)
 
         result = SUCCESS
@@ -307,28 +338,45 @@ class CheckSpec(BaseCheck):
                 return False
             return True
 
-        for patch in patches_spec - patches_file:
+        # 汇总所有spec文件声明的patch，并逐一检查patch_adaptation
+        all_spec_patches = set()
+        for spec_file in all_spec_files:
+            spec_path = os.path.join(self._work_dir, spec_file)
+            if not os.path.exists(spec_path):
+                continue
+            with open(spec_path, "r", encoding="utf-8") as fp:
+                all_str = fp.read()
+            # RPMSpecAdapter 展开宏后的 patch 文件名列表，用于与仓库文件比对
+            adapter = RPMSpecAdapter(io.StringIO(all_str))
+            patches_in_this_spec = set(adapter.patches if adapter.patches else [])
+            all_spec_patches.update(patches_in_this_spec)
+            logger.debug("patches in %s: %s", spec_file, patches_in_this_spec)
+
+            # Spec.from_string 的原始 patches_dict（key=序号, value=未展开的patch名）
+            # patch_adaptation 仅使用 key（序号）匹配 %prep 指令，不依赖 value
+            raw_spec = Spec.from_string(all_str)
+            patch_dict = getattr(raw_spec, "patches_dict", None)
+            if not patch_adaptation(all_str, patch_dict):
+                details.append("{}: %prep阶段存在未应用的patch，请检查%patch指令是否遗漏".format(spec_file))
+                result = FAILED
+
+        logger.debug("all spec patches: %s", all_spec_patches)
+
+        for patch in all_spec_patches - patches_file:
             logger.error("patch %s lost", patch)
             details.append("spec中声明的patch '{}' 在仓库中缺失".format(patch))
             result = FAILED
         if self._repo in ["kernel", "grub2", "bazel"]:
-            for patch in patches_file - patches_spec:
+            for patch in patches_file - all_spec_patches:
                 logger.warning("patch %s redundant", patch)
                 details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
                 result = WARNING
         else:
-            for patch in patches_file - patches_spec:
+            for patch in patches_file - all_spec_patches:
                 logger.error("patch %s redundant", patch)
                 details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
                 result = FAILED
 
-        with open(os.path.join(self._work_dir, self._gr.spec_file), "r", encoding="utf-8") as fp:
-            all_str = fp.read()
-            adapter = Spec.from_string(all_str)
-            patch_dict = adapter.__dict__.get("patches_dict")
-            if not patch_adaptation(all_str, patch_dict):
-                details.append("spec的%prep阶段存在未应用的patch，请检查%patch指令是否遗漏")
-                result = FAILED
         return ACResult(result.val, details=details) if details else result
 
     def _ex_support_arch(self):
