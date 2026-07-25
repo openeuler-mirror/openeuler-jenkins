@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 # **********************************************************************************
-# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2026. All rights reserved.
 # [openeuler-jenkins] is licensed under the Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
@@ -413,9 +413,10 @@ class Comment(object):
         acl = {}
         if "ACL" not in os.environ:
             logger.debug("no ac check")
+            return acl
 
         try:
-            acl = json.loads(os.environ["ACL"])
+            acl = json.loads(os.environ["ACL"], strict=False)
             logger.debug("ac result: %s", acl)
         except ValueError:
             logger.exception("invalid ac result format")
