@@ -132,15 +132,19 @@ class CheckSpec(BaseCheck):
 
         # 批量获取旧版本spec（一次性checkout）
         old_specs = {}
-        self._gp.checkout_to_commit_force("HEAD~1")
+        checkout_ok = self._gp.checkout_to_commit_force("HEAD~1")
         try:
             for spec_file in changed_specs:
                 if spec_file not in current_specs:
                     continue  # 当前版本读取失败的跳过
+                if not checkout_ok:
+                    # HEAD~1不存在（如仓库只有一个commit），无法获取旧版本，跳过对比
+                    logger.warning("checkout to HEAD~1 failed, skip version check for %s", spec_file)
+                    continue
                 fp_old = self._gp.get_content_of_file_with_commit(spec_file)
                 if fp_old is None:
-                    # 新增的spec文件，旧版不存在，跳过
-                    logger.info("spec file %s is newly added, skip", spec_file)
+                    # spec文件在HEAD~1中不存在，跳过
+                    logger.info("spec file %s not found in HEAD~1, skip", spec_file)
                     continue
                 old_specs[spec_file] = RPMSpecAdapter(fp_old)
         finally:
