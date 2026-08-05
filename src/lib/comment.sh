@@ -1,4 +1,15 @@
 #!/bin/bash
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2026. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# **********************************************************************************
 . ${shell_path}/src/lib/lib.sh
 
 # 64k variant support
@@ -112,9 +123,22 @@ function scp_comment_file() {
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${compare_package_result_riscv64} . || log_info "file ${compare_package_result_riscv64} not exist"
   ls $WORKSPACE/${compare_result}
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${build_num_file} . || log_info "file ${build_num_file} not exist"
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${repo}_${prid}_support_arch .
-  if [[ -e ${repo}_${prid}_support_arch ]]; then
-    mv ${repo}_${prid}_support_arch support_arch
+  # 下载所有 per-spec support_arch 文件
+  support_arch_prefix=${repo}_${prid}_support_arch_
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${support_arch_prefix}* . 2>/dev/null || true
+  for f in ${support_arch_prefix}*; do
+    if [[ -e "$f" ]]; then
+      local_suffix="${f#${support_arch_prefix}}"
+      mv "$f" "support_arch_${local_suffix}"
+    fi
+  done
+  # 下载 spec_list 清单（PR 修改的全部 spec 名，用于识别无限制 spec）
+  spec_list_remote=${repo}_${prid}_spec_list
+  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${spec_list_remote} . 2>/dev/null || true
+  if [[ -e "$spec_list_remote" ]]; then
+    mv "$spec_list_remote" "spec_list"
   fi
   # variant files
   if [[ -n "${variant_suffix}" ]]; then

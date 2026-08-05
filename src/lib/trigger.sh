@@ -1,8 +1,19 @@
 #!/bin/bash
+# **********************************************************************************
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2026. All rights reserved.
+# [openeuler-jenkins] is licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# **********************************************************************************
 . ${shell_path}/src/lib/lib.sh
 # 需要输入的参数
 jenkins_api_host="https://ci.openeuler.openatom.cn/"
-support_arch_file=${gitcodeRepoName}_${gitcodePullRequestId}_support_arch
+support_arch_prefix="${gitcodeRepoName}_${gitcodePullRequestId}_support_arch_"
 repo_server_test_tail=""
 token=${gitcodeToken}
 user_passwd=${gitcodeUserPassword}
@@ -29,12 +40,10 @@ config_debug_variable
 
 # 清理环境
 function clearn_env() {
-  fileserver_tmpfile_path="/repo/soe${repo_server_test_tail}/support_arch/${support_arch_file}"
   remote_dir_reset_cmd=$(
     cat <<EOF
-    if [[ -e $fileserver_tmpfile_path ]]; then
-	    rm -f $fileserver_tmpfile_path
-    fi
+    rm -f /repo/soe${repo_server_test_tail}/support_arch/${support_arch_prefix}*
+    rm -f /repo/soe${repo_server_test_tail}/support_arch/${gitcodeRepoName}_${gitcodePullRequestId}_spec_list
 EOF
 )
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_dir_reset_cmd"
@@ -87,9 +96,24 @@ EOF
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null pkgship_notify root@${repo_server}:/repo/soe${repo_server_test_tail}/pkgship
   fi
 
-  if [[ -e support_arch ]]; then
-    mv support_arch ${support_arch_file}
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${support_arch_file} root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
+  # 上传所有 per-spec support_arch 文件
+  for f in support_arch_*; do
+      if [[ -e "$f" ]]; then
+          remote_name="${gitcodeRepoName}_${gitcodePullRequestId}_${f}"
+          mv "$f" "${remote_name}"
+          scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              "${remote_name}" root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
+      fi
+  done
+
+  # 上传 spec_list 清单（PR 修改的全部 spec 名，用于识别无限制 spec）
+  if [[ -e spec_list ]]; then
+      remote_name="${gitcodeRepoName}_${gitcodePullRequestId}_spec_list"
+      mv spec_list "${remote_name}"
+      scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile=/dev/null \
+          "${remote_name}" root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/
   fi
   log_info "***** End to exec extra worker *****"
 }

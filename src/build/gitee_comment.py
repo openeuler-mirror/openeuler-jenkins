@@ -17,6 +17,7 @@
 """
 
 import os
+import glob
 import re
 import stat
 import sys
@@ -758,19 +759,58 @@ class Comment(object):
                 self.check_license_result = True
         logger.info(f"single_build_result:{single_build_result}")
         logger.info(f"check_item_info:{check_item_info}")
-        if os.path.exists("support_arch"):
-            with open("support_arch", "r") as s_file:
-                support_content = s_file.readline()
-                base_arch = arch.split("_64k")[0] if "_64k" in arch else arch
-                if base_arch not in support_content:
-                    ac_result = ACResult.get_instance("EXCLUDE")
-                    item_num = 3
-                else:
-                    ac_result = ACResult.get_instance(single_build_result)
-                    item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
+        # 收集所有 per-spec support_arch 信息
+        support_arch_map = {}  # {spec_name: "x86_64 aarch64 ..."}
+        for f in glob.glob("support_arch_*"):
+            spec_name = os.path.basename(f).replace("support_arch_", "")
+            try:
+                with open(f, "r") as sf:
+                    support_arch_map[spec_name] = sf.readline().strip()
+            except IOError:
+                logger.warning("failed to read support_arch file: %s", f)
+
+        base_arch = arch.split("_64k")[0] if "_64k" in arch else arch
+
+        # 读取 PR 修改的 spec 清单（trigger 阶段生成）。
+        # 无清单时以 support_arch_map 的 key 作为 spec 集合（兼容旧 trigger 数据）
+        changed_specs = None
+        if os.path.exists("spec_list"):
+            with open("spec_list", "r") as sf:
+                changed_specs = [s for s in sf.read().split() if s]
+        if not changed_specs:
+            changed_specs = list(support_arch_map.keys())
+
+        # 受限 spec：有 support_arch 文件且当前 arch 不在支持列表。
+        # 无 support_arch 文件的 spec 视为无架构限制，不列入 excluded_specs
+        excluded_specs = []
+        for spec in changed_specs:
+            support_arch = support_arch_map.get(spec)
+            if support_arch is not None and base_arch not in support_arch.split():
+                excluded_specs.append(spec)
+
+        if changed_specs:
+            if len(excluded_specs) == len(changed_specs):
+                # 所有修改的 spec 都不支持当前 arch
+                ac_result = ACResult.get_instance("EXCLUDE")
+                item_num = 3
+            else:
+                # 部分或全部 spec 支持当前 arch，取正常结果
+                ac_result = ACResult.get_instance(single_build_result)
+                item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
         else:
-            ac_result = ACResult.get_instance(single_build_result)
-            item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
+            # 兼容旧的单文件格式
+            if os.path.exists("support_arch"):
+                with open("support_arch", "r") as s_file:
+                    support_content = s_file.readline()
+                    if base_arch not in support_content.split():
+                        ac_result = ACResult.get_instance("EXCLUDE")
+                        item_num = 3
+                    else:
+                        ac_result = ACResult.get_instance(single_build_result)
+                        item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
+            else:
+                ac_result = ACResult.get_instance(single_build_result)
+                item_num = len(check_item_info) - list(check_item_info.values()).count(None) + 1
         if arch in 'riscv64' and ac_result != SUCCESS:
             ac_result = ACResult.get_instance(1)
 
@@ -794,6 +834,19 @@ class Comment(object):
                     comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td></td>".format(
                         check_item, check_result.emoji, check_result.hint))
                     arch_dict[check_item] = check_result.hint
+
+        # 多 spec 场景下追加 EXCLUDE 备注行
+        if excluded_specs and len(excluded_specs) < len(changed_specs):
+            exclude_hint = ACResult.get_instance("EXCLUDE")
+            comments.append(
+                "<tr><td colspan=5>{}<strong> {}</strong>：因 ExclusiveArch 不支持 {}，"
+                "已跳过验证</td></tr>".format(
+                    exclude_hint.emoji,
+                    ", ".join(excluded_specs),
+                    base_arch
+                )
+            )
+
         self.check_item_result[arch] = arch_dict
         logger.info("check item comment: %s", comments)
 
