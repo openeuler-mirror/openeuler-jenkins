@@ -52,9 +52,10 @@ class CheckSpec(BaseCheck):
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s spec ...", self._repo)
-        self._ex_support_arch()
+        # 先记录 kwargs，供 _ex_support_arch 通过 PR API 获取完整变更文件列表
         self._tbranch = kwargs.get("tbranch", None)
         self._kwargs = kwargs
+        self._ex_support_arch()
         # 因门禁系统限制外网访问权限，将涉及外网访问的检查功能check_homepage暂时关闭
         return self.start_check_with_order("patches", "changelog", "version_pr_changelog")
 
@@ -385,25 +386,52 @@ class CheckSpec(BaseCheck):
 
     def _ex_support_arch(self):
         """
-        保存spec中exclusivearch字段信息
-        :return:
+        对 PR 修改的每个 spec 文件，提取 ExclusiveArch 并生成 per-spec 的 support_arch 文件。
+        同时生成 spec_list 清单文件（PR 修改的全部 spec 名），用于识别无限制 spec。
+        兼容回退：获取不到 PR 变更文件时，默认处理 self._gr.spec_file。
         """
-        exclusive_arch = self._spec.get_exclusivearch()
-        if exclusive_arch:
-            obj_s = list(set(exclusive_arch).intersection(("x86_64", "aarch64", "riscv64", "noarch")))
-            logger.info("support arch:%s", " ".join(obj_s))
-            
-            if obj_s and "noarch" in obj_s:
-                return
-            
-            content = ""
-            if obj_s and "noarch" not in obj_s:
-                content = " ".join(obj_s)
+        changed_specs = self._get_changed_spec_files()
+        if not changed_specs:
+            changed_specs = [os.path.basename(self._gr.spec_file)]
+
+        # 生成修改的 spec 清单（去 .spec 后缀，与 support_arch_{spec_name} 的命名一致）
+        try:
+            spec_names = [
+                os.path.splitext(os.path.basename(s))[0] for s in changed_specs
+            ]
+            with open("spec_list", "w") as f:
+                f.write(" ".join(spec_names))
+            logger.info("spec_list: %s", " ".join(spec_names))
+        except Exception:
+            logger.exception("failed to save spec_list")
+
+        for spec_file in changed_specs:
             try:
-                with open("support_arch", "w") as f:
-                    f.write(content)
-            except IOError:
-                logger.exception("save support arch exception")
+                fp = self._gp.get_content_of_file_with_commit(spec_file)
+                if fp is None:
+                    logger.warning("cannot read spec file for support_arch: %s", spec_file)
+                    continue
+                spec = RPMSpecAdapter(fp)
+                exclusive_arch = spec.get_exclusivearch()
+                if not exclusive_arch:
+                    continue
+
+                obj_s = list(set(exclusive_arch).intersection(
+                    ("x86_64", "aarch64", "riscv64", "noarch")))
+                logger.info("support arch for %s: %s", spec_file, " ".join(obj_s))
+
+                if not obj_s or "noarch" in obj_s:
+                    continue
+
+                spec_name = os.path.splitext(os.path.basename(spec_file))[0]
+                content = " ".join(obj_s)
+                try:
+                    with open(f"support_arch_{spec_name}", "w") as f:
+                        f.write(content)
+                except IOError:
+                    logger.exception("save support arch exception for %s", spec_file)
+            except Exception:
+                logger.exception("failed to process support_arch for %s", spec_file)
 
     def _ex_pkgship(self, spec):
         """
