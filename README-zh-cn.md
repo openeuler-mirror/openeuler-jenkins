@@ -4,7 +4,7 @@
 
 openEuler社区代码均托管在gitee上，为了保证代码提交质量，开发者在gitee提交PR时，会自动触发门禁执行编码规范检查、构建、安装、接口变更等检查，最后将门禁检查结果返回到PR评论中，帮助开发者定位问题及maintainer检视代码。
 
-门禁代码开源 https://gitee.com/openeuler/openeuler-jenkins
+门禁代码开源 https://atomgit.com/openeuler/openeuler-jenkins
 
 ## 2. src-openeuler门禁检查项
 
