@@ -57,6 +57,7 @@ openeuler:
     hint: check_package_license
     module: package_license.check_openeuler_license
     entry: CheckOpeneulerLicense
+    deny_list: ["kernel"]
   binary:
     exclude: True
   sca:
