@@ -195,7 +195,7 @@ class CheckSpec(BaseCheck):
         except StopIteration:
             logger.error("new spec.changelog: %s, old spec.changelog: %s",
                          spec_current.changelog, spec_o.changelog)
-            return ["无法解析changelog内容，请检查{}的%changelog段是否存在且格式正确".format(spec_file)]
+            return ["无法解析changelog内容，请检查{}的changelog段是否存在且格式正确".format(spec_file)]
         if changelog_new == changelog_old:
             logger.error("Every pr commit requires a changelog!")
             return ["{}: 本次PR未更新changelog，每次提交都需要添加changelog条目".format(spec_file)]
