@@ -144,8 +144,6 @@ do
   
       sed -i "$changelog G" "$repo.spec"
       sed -i "/^%changelog/a * $(echo "$now_date" | awk '{print$1,$2,$3,$5}') $author_name <$author_email>" "$repo.spec"
-      #sed -i "/^%changelog/a * $(echo "$author_date" | awk '{print$1,$2,$3,$5}') $author_name <$author_email>" "$repo.spec"
-      # sed -i "/^%changelog/a * $(echo "$author_date" | awk '{print$1,$2,$3,$5}') Huawei Technologies Co., Ltd <$author_email>" "$repo.spec"
       spec_subject="spec: Update patch and changelog with !$prid"
       spec_body=$(git show -s --format=%s "$from_hash..HEAD" | tac)
       spec_signoff=$(git show -s --format=%b "$from_hash..HEAD" | awk '$1=="Signed-off-by:"' | sort -u)
