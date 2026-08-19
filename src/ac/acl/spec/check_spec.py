@@ -306,6 +306,34 @@ class CheckSpec(BaseCheck):
             all_patches = filter_patch(prep_patches, Constant.PATCH_RULE, patch_con)
             return list(set(all_patches) - set(format_not_used_patches))
 
+        def check_patch_as_source(spec_con):
+            """
+            提取 Spec 文件中作为Source被声明的patch，且该补丁被使用
+            :param spec_con: spec 文件内容字符串
+            :return: 在Source中且被应用的补丁列表
+            """
+            single_source_patch = []
+            #匹配Source标签中的补丁
+            source_pattern = re.compile(
+                r'^\s*(Source[0-9]*)\s*:\s*(\S+\.(?:patch|diff))(?=\s|$|#|\s*$)',
+                re.MULTILINE | re.IGNORECASE
+            )
+            #匹配spec文件中所有%{SOURCEN}格式的字符串
+            id_pattern = re.compile(r'%\{(SOURCE\d*)\}', re.IGNORECASE)
+
+            #去除注释
+            clean_content = re.sub(r'^\s*#.*$', '', spec_con, flags=re.MULTILINE)
+            #将Source标签里的SourceN跟source_list对比，若是在列表内，说明该补丁在别处被使用，需要保留
+            #spec文件对大小写不敏感，因此统一转换为大写
+            raw_source_list = id_pattern.findall(clean_content)
+            source_list = set([s.upper() for s in raw_source_list])
+            for match in source_pattern.finditer(clean_content):
+                source_id = match.group(1).strip().upper()
+                filename = match.group(2).strip()
+                if source_id in source_list:
+                    single_source_patch.append(filename)
+            return single_source_patch
+
         def patch_adaptation(spec_con, patches_dict):
             """
             检查spec文件中patch在prep阶段的使用情况
@@ -345,6 +373,7 @@ class CheckSpec(BaseCheck):
 
         # 汇总所有spec文件声明的patch，并逐一检查patch_adaptation
         all_spec_patches = set()
+        all_source_patches = set()
         for spec_file in all_spec_files:
             spec_path = os.path.join(self._work_dir, spec_file)
             if not os.path.exists(spec_path):
@@ -356,6 +385,8 @@ class CheckSpec(BaseCheck):
             patches_in_this_spec = set(adapter.patches if adapter.patches else [])
             all_spec_patches.update(patches_in_this_spec)
             logger.debug("patches in %s: %s", spec_file, patches_in_this_spec)
+
+            all_source_patches.update(check_patch_as_source(all_str))
 
             # Spec.from_string 的原始 patches_dict（key=序号, value=未展开的patch名）
             # patch_adaptation 仅使用 key（序号）匹配 %prep 指令，不依赖 value
@@ -371,16 +402,17 @@ class CheckSpec(BaseCheck):
             logger.error("patch %s lost", patch)
             details.append("spec中声明的patch '{}' 在仓库中缺失".format(patch))
             result = FAILED
-        if self._repo in ["kernel", "grub2", "bazel"]:
+        if self._repo in ["kernel", "grub2"]:
             for patch in patches_file - all_spec_patches:
                 logger.warning("patch %s redundant", patch)
                 details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
                 result = WARNING
         else:
             for patch in patches_file - all_spec_patches:
-                logger.error("patch %s redundant", patch)
-                details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
-                result = FAILED
+                if patch not in all_source_patches:
+                    logger.error("patch %s redundant", patch)
+                    details.append("仓库中的patch '{}' 未在spec中声明".format(patch))
+                    result = FAILED
 
         return ACResult(result.val, details=details) if details else result
 
