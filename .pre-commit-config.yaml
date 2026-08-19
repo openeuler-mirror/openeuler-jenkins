@@ -1,0 +1,60 @@
+# 修复模式：仅对暂存区文件生效；存量仓库请勿运行 pre-commit run --all-files
+minimum_pre_commit_version: "4.0"
+
+repos:
+  # ===== 通用基础 hook（所有语言） =====
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace          # 修复：移除行尾空白
+      - id: end-of-file-fixer            # 修复：确保文件以单个换行结尾
+      - id: check-yaml
+      - id: check-json
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=8192]             # 存量最大测试夹具 7.2MB（license_test_sample），按基线调整
+      - id: detect-private-key
+
+  # ===== 密钥检测 =====
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # ===== 拼写检查 =====
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+
+  # ===== Python：Ruff（修复）+ Bandit（检查） =====
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.3
+    hooks:
+      - id: ruff
+        args: [--fix]                    # 修复模式；只读档去掉 --fix
+      - id: ruff-format                  # 修复模式；只读档加 --check
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-lll]                     # 存量先只看高危；清理后按路线图放开 -ll → 全量
+
+  # ===== Shell：Shfmt（修复）+ ShellCheck（检查） =====
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.13.1-1
+    hooks:
+      - id: shfmt                        # 修复模式无需加参数（manifest 已内置 --write）
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=error]         # 存量默认 error 起步；清理后按基线收紧回 warning
+
+  # ===== Markdown：markdownlint（修复） =====
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.49.1
+    hooks:
+      - id: markdownlint
+        args: [--fix]                    # 修复模式；只读档去掉 --fix
