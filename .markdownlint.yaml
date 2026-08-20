@@ -1,0 +1,13 @@
+# markdownlint 配置：先放宽适配存量文档，后续按需收紧
+default: true
+MD013: false   # 行宽（CJK 文档换行习惯与自动换行渲染）
+MD033: false   # inline HTML
+MD041: false   # 首行必须是一级标题
+MD024: false   # 重复标题
+MD040: false   # 代码块缺语言标签（存量文档常见；清理 PR 补语言后再收紧）
+MD025: false   # 多一级标题（changelog 按日期分段惯例）
+MD010: false   # hard tabs（存量文档历史格式；清理 PR 归一化后再收紧）
+MD060: false   # 代码块风格（存量文档大量缩进代码块；清理 PR 统一 fenced 后再收紧）
+MD036: false   # 强调代替标题（存量文档常用；清理 PR 改标题后再收紧）
+MD034: false   # 裸 URL（清理 PR 统一转 autolink 后再收紧）
+MD045: false   # 图片缺 alt 文本（清理 PR 统一补充后再收紧）

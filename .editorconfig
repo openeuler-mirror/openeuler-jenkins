@@ -1,0 +1,40 @@
+# 与 Shfmt 配合
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{sh,bash,zsh}]
+indent_style = space
+indent_size = 2
+
+# 无扩展名的 shell 可执行脚本不会被上面的通配段匹配，单独声明以保留项目缩进风格
+[extract_file]
+indent_style = space
+indent_size = 2
+
+[recompress]
+indent_style = space
+indent_size = 2
+
+[tar_local]
+indent_style = space
+indent_size = 2
+
+[tar_local_kernel]
+indent_style = space
+indent_size = 2
+
+[tar_local_kernels]
+indent_style = space
+indent_size = 2
+
+[jenkins-agent]
+indent_style = tab
+
+[*.{js,jsx,ts,tsx,json,md,yaml,yml}]
+indent_style = space
+indent_size = 2

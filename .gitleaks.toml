@@ -1,0 +1,11 @@
+# Gitleaks 最小配置
+# 默认无配置即可运行；仅当需要 allowlist/自定义规则时启用。
+# [allowlist]
+# description = "测试与文档中的示例密钥"
+# regexes = [
+#   '''EXAMPLE[A-Z0-9_]+''',
+# ]
+# paths = [
+#   "tests/",
+#   "docs/",
+# ]

@@ -1,0 +1,19 @@
+# 仓库无 pyproject.toml，使用 .ruff.toml 作为最小 Ruff 配置
+target-version = "py39"   # 仓库未声明 python_requires，按存量兼容默认 py39
+line-length = 100
+
+[lint]
+# 存量仓库默认只开错误类规则；按基线预检结果收紧
+select = ["E", "F", "I"]
+ignore = [
+  "E501",                               # 存量行普遍超长；清理 PR 后按阶段收紧
+  "RUF001", "RUF002", "RUF003",         # 中文/全角标点注释误报；收紧 RUF 时必须保留
+]
+
+[lint.per-file-ignores]
+# gevent monkey patch 必须在后续网络模块导入前执行，E402 为固有模式
+"src/jobs/jenkins_job.py" = ["E402"]
+"src/tools/obs_package_build_history.py" = ["E402"]
+# 测试文件对被测模块使用星号导入（signer），F403/F405 为既定写法
+"src/apig_sdk/signer_test.py" = ["F403", "F405"]
+# 收紧路径：清理 PR 后按阶段加回 B → UP/SIM → RUF（规则分批启用）
