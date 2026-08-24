@@ -1,6 +1,6 @@
 # 门禁工程tirgger部分Jenkins工程中的配置
 
-## 一、背景：
+## 一、背景
 
 当前Jenkins工程trigger部分存在无法在保存当前页面修改的问题，需使用其他Jenkins工程来辅助更改trigger部分配置。
 
@@ -255,8 +255,9 @@ set -x
       <scanossCredentials/>
       <url>https://api.osinfra.cn</url>
       <sbomFile>/home/jenkins/deny_list.sbom</sbomFile>
-      <authCode>eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InRlc3RANDMyMS5jb20ifQ.1WBjnBDgNsPfAVqxQyXDl-PS7r3L_h4OR45rNKPLJeE</authCode>
-      <sourceFile></sourceFile>      
+      <!-- authCode 由管理员在 Jenkins 插件配置中填写，禁止写入任何仓库文件 -->
+      <authCode>&lt;your-scanoss-authcode&gt;</authCode>
+      <sourceFile></sourceFile>
       <sudoOrder>sudo</sudoOrder>
     </com.huawei.scanoss.business.SCABuilder>
     <hudson.tasks.Shell>
@@ -267,12 +268,12 @@ owner='openeuler'
 #shell_path=/home/jenkins/ci_check2
 #mkdir -p ${shell_path}
 #rm -rf ${shell_path}
-#git clone -b for_test https://gitee.com/MementoMoriCheng/openeuler-jenkins.git ${shell_path}       
+#git clone -b for_test https://gitee.com/MementoMoriCheng/openeuler-jenkins.git ${shell_path}
 export PYTHONPATH=/home/jenkins/ci_check
 #export PYTHONPATH=/home/jenkins/ci_check
 export PATH=$PATH:/home/jenkins/.local/bin
 output="scanoss_result_"${BUILD_NUMBER}".json"
-CodeCheckAPIKEY="q28abtBDCnrcsXeVRxulPEIeYwWdcM5g"
+# CodeCheckAPIKEY 已由上方 Jenkins 凭证绑定注入（credentialsId: codecheck_static_key），此处禁止硬编码赋值
 python3 /home/jenkins/ci_check/src/ac/framework/ac.py -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${GiteeToken} -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${GiteeUserPassword} -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" -i ${commentID} -e ${giteeCommitter} -c ${owner} --scanoss-output ${output} --codecheck-api-key ${CodeCheckAPIKEY}
 set -x
 
@@ -397,8 +398,6 @@ export PYTHONPATH=/home/jenkins/ci_check2
 python3 hotfix.py
 ```
 
-
-
 ### 2.2.4、trigger页面各部分对应关系
 
 | 配置内容部分                   | trigger页面部分   |
@@ -444,12 +443,12 @@ owner='openeuler'
 #shell_path=/home/jenkins/ci_check2
 #mkdir -p ${shell_path}
 #rm -rf ${shell_path}
-#git clone -b for_test https://gitee.com/MementoMoriCheng/openeuler-jenkins.git ${shell_path}       
+#git clone -b for_test https://gitee.com/MementoMoriCheng/openeuler-jenkins.git ${shell_path}
 export PYTHONPATH=/home/jenkins/ci_check
 #export PYTHONPATH=/home/jenkins/ci_check
 export PATH=$PATH:/home/jenkins/.local/bin
 output="scanoss_result_"${BUILD_NUMBER}".json"
-CodeCheckAPIKEY="q28abtBDCnrcsXeVRxulPEIeYwWdcM5g"
+# CodeCheckAPIKEY 已由上方 Jenkins 凭证绑定注入（credentialsId: codecheck_static_key），此处禁止硬编码赋值
 python3 /home/jenkins/ci_check/src/ac/framework/ac.py -w ${WORKSPACE} -r ${giteeRepoName} -o acfile -t ${GiteeToken} -p ${giteePullRequestIid} -b ${giteeTargetBranch} -a ${GiteeUserPassword} -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" -i ${commentID} -e ${giteeCommitter} -c ${owner} --scanoss-output ${output} --codecheck-api-key ${CodeCheckAPIKEY}
 set -x
 
@@ -467,7 +466,7 @@ set -x
 
 ## 3.1、sacnnoss插件
 
-###  3.1.1、介绍
+### 3.1.1、介绍
 
 SCA PR级jenkins插件目前应用于码云仓库进行pull request操作时触发使用。
 
@@ -494,7 +493,7 @@ SCA PR级jenkins插件目前应用于码云仓库进行pull request操作时触�
 | REPO_OWNER          | str      | 目标社区名称（openeuler） |
 | giteeRepoName       | str      | 目标仓库名称              |
 
-通过这三个参数调用Gitee API查询对应的PR信息，若需要查询的仓库为私仓，还需提供ACCESS_TOKEN(授权码)参数以授权查询。       
+通过这三个参数调用Gitee API查询对应的PR信息，若需要查询的仓库为私仓，还需提供ACCESS_TOKEN(授权码)参数以授权查询。
 
 ![](images/scannoss.png)
 
@@ -546,7 +545,7 @@ SCA PR级jenkins插件目前应用于码云仓库进行pull request操作时触�
 }
 
 5、插件扫描结果的日志信息输出至workspace路径下，以文件名scanoss_result_构建编号.json格式保存，用户可读取文件信息获取本次扫描的结果状态。
- 
+
 ```
 
 ### 3.2.3 scannoss插件配置修改
