@@ -20,7 +20,7 @@
 
 ## 环境构成
 
-- 基础镜像：`openeuler/openeuler:22.03-lts-sp1`（Python 3.9，与门禁运行节点同系；可用 `ARG OPENELER_IMAGE` 覆盖）
+- 基础镜像：`openeuler/openeuler:22.03-lts-sp1`（Python 3.9，与门禁运行节点同系；可用 `ARG OPENEULER_IMAGE` 覆盖）
 - 系统依赖：dnf 包名对齐 openEuler（git、cpio/bsdtar/xz/bzip2、file、rpm-build、expect、openssh-clients 等），
   其中 `python3-pyrpm` 提供 `pyrpm.spec`（`src/ac/**` 运行必需）
 - Python 依赖：`--user` 安装，pip 缓存挂载到命名 volume，重建容器不重复下载
