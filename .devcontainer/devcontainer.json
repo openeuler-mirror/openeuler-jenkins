@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "openeuler-jenkins (CLI 门禁子集)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:Asia/Shanghai}"
+    }
+  },
+  "runArgs": [],
+  "init": true,
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "ruff.nativeServer": "on",
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "mounts": [
+    "source=openeuler-jenkins-pip-${devcontainerId},target=/home/vscode/.cache/pip,type=volume",
+    "source=openeuler-jenkins-history-${devcontainerId},target=/commandhistory,type=volume"
+  ],
+  "containerEnv": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "HISTFILE": "/commandhistory/.bash_history"
+  },
+  "remoteEnv": {
+    "GITEE_TOKEN": "${localEnv:GITEE_TOKEN:}",
+    "GITCODE_TOKEN": "${localEnv:GITCODE_TOKEN:}",
+    "OBS_PASSWORD": "${localEnv:OBS_PASSWORD:}",
+    "JENKINS_USER": "${localEnv:JENKINS_USER:}",
+    "JENKINS_API_TOKEN": "${localEnv:JENKINS_API_TOKEN:}"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "bash /workspace/.devcontainer/post_install.sh"
+}
