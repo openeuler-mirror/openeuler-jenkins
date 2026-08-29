@@ -111,7 +111,7 @@ class CheckCode(BaseCheck):
         ol_proxy = OpenlibingProxy(self.code_result_ak, self.code_result_sk)
         request = ol_proxy.create_openlibing_api_request(method, status_url, headers, json.dumps(data))
         current_time = 0
-        total_expire = 1200
+        total_expire = 5400
         logger.info("codecheck probably need to {} seconds".format(total_expire))
         time_interval = 10
         # 请求错误的次数和最大次数
