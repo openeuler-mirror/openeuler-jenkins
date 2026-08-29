@@ -9,12 +9,12 @@
 #   1. Python 依赖在 post_install.sh 中以 --user 安装（legacy Python，无 pyproject/锁文件）
 #   2. 内网 pip 源不写死：通过 PIP_INDEX_URL 环境变量注入
 #   3. 不加 --privileged / --gpus=all，无内核或硬件直通
-#   4. 基础镜像可用 ARG OPENELER_IMAGE 覆盖（如内网镜像仓库）
+#   4. 基础镜像可用 ARG OPENEULER_IMAGE 覆盖（如内网镜像仓库）
 #   5. pyrpm 必须用 openEuler 的 python3-pyrpm（dnf 包，提供 pyrpm.spec）；
 #      PyPI 上的 pyrpm 是另一个包（只有 pyrpm.rpm），不要 pip 安装
 
-ARG OPENELER_IMAGE=openeuler/openeuler:22.03-lts-sp1
-FROM ${OPENELER_IMAGE}
+ARG OPENEULER_IMAGE=openeuler/openeuler:22.03-lts-sp1
+FROM ${OPENEULER_IMAGE}
 
 ARG TZ=Asia/Shanghai
 ENV TZ="${TZ}"
