@@ -830,13 +830,13 @@ def test_trigger_concurrency_keeps_build_target_binding(tmp_path):
 
 
 def test_exceed_max_targets_skips_audit(tmp_path):
-    """目标数超过 MAX_TARGETS（100）时，跳过自动化审计，评论提示人工审核，不触发审计."""
+    """目标数超过 MAX_TARGETS（100）时，跳过自动化审计，评论提示人工审核，门禁 WARNING 不触发审计."""
     repos = "".join("- url: https://gitcode.com/openeuler/repo{}\n".format(i) for i in range(101))
     _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos:\n" + repos)
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
         result = _run(check, diff_files=["community/sig-x/skill.yaml"])
-    assert result == SUCCESS
+    assert result == WARNING
     mock_post.assert_not_called()  # 未触发任何审计
     body = mock_gp.return_value.comment_pr.call_args.args[1]
     assert "SkillHub 安全审计门禁" in body
