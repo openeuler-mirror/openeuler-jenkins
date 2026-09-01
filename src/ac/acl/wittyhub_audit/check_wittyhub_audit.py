@@ -69,6 +69,7 @@ class CheckWittyhubAudit(BaseCheck):
     DEFAULT_POLL_TIMEOUT = 600     # 轮询总超时（秒），可用 WITTYHUB_AUDIT_TIMEOUT 覆盖
     POLL_INTERVAL = 10             # 轮询间隔（秒）
     MAX_TRIGGER_WORKERS = 20       # 触发阶段并发上限（Jenkins 多 executor 并行跑扫描）
+    MAX_POLL_WORKERS = 20          # 轮询阶段并发上限（各目标独立 600s 超时并行轮询）
     # 风险等级标签 -> 背景色（黑色字体），安全到高风险：绿/黄/橙/红；未检测用灰
     RISK_LEVEL_STYLE = {
         "安全": "#67C23A",
@@ -163,12 +164,28 @@ class CheckWittyhubAudit(BaseCheck):
                     pending.append((build_number, target))
 
         audits = []
-        for build_number, target in pending:
-            result = self._poll_one(build_number, target)
-            if result is None:
-                failed_details.append("审计失败: {}".format(target.get("desc", target.get("url", ""))))
-            else:
-                audits.append(result)
+        # 轮询阶段并发：各目标并行轮询，_poll_one 内部各自计时（每个 build 独立
+        # 600s 超时），避免串行导致总耗时 = 各目标轮询时长之和。
+        if pending:
+            with ThreadPoolExecutor(
+                max_workers=min(len(pending), self.MAX_POLL_WORKERS)
+            ) as executor:
+                # future->目标映射：某目标轮询抛异常也能定位到是哪个目标
+                future_to_target = {
+                    executor.submit(self._poll_one, build_number, target): (build_number, target)
+                    for build_number, target in pending
+                }
+                for future in as_completed(future_to_target):
+                    build_number, target = future_to_target[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        logger.warning("wittyhub audit poll exception: %s", exc)
+                        result = None
+                    if result is None:
+                        failed_details.append("审计失败: {}".format(target.get("desc", target.get("url", ""))))
+                    else:
+                        audits.append(result)
 
         details = []
         block_hit = False

@@ -83,8 +83,11 @@
    executor 并行跑各 skill 扫描。
 2. 门禁轮询 `GET /api/v1/skills/audit-by-url/result?build_number=<n>`，每 10 秒一次，
    直到 `status == "done"`（拿到审计结果）或 `status == "error"`（按审计失败告警）。
-3. 轮询总超时上限：门禁 `WITTYHUB_AUDIT_TIMEOUT`（默认 600 秒）。超过后该目标按
-   审计失败告警（WARNING，不阻断、不重试）。
+   多目标时轮询阶段同样用**线程池并发**（并发度上限 `MAX_POLL_WORKERS`，默认 20），
+   各目标并行轮询、互不等待。
+3. 轮询超时按**每个目标独立**计时：门禁 `WITTYHUB_AUDIT_TIMEOUT`（默认 600 秒）。
+   某个目标超过 600 秒未完成则按审计失败告警（WARNING，不阻断、不重试），
+   不影响其他目标的正常轮询。
 
 wittyhub 侧 `security.skillspector_timeout`（默认 600 秒/10 分钟，可用
 `SECURITY__SKILLSPECTOR_TIMEOUT` 覆盖）为 Jenkins 构建等待上限，应 ≥ 门禁轮询超时。
