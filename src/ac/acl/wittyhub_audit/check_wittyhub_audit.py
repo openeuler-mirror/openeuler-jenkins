@@ -149,9 +149,7 @@ class CheckWittyhubAudit(BaseCheck):
             return SUCCESS
         logger.info("wittyhub audit targets: %s", targets)
 
-        # 两阶段执行：先并发触发所有目标的扫描（Jenkins 并行跑），再统一轮询。
-        # 触发阶段用线程池真正并行发出全部 POST，避免串行逐个等待 Jenkins 队列
-        # 解析 build_number 导致触发阶段总时长 = 各目标触发耗时之和。
+        # 两阶段执行：先并发触发所有目标扫描（Jenkins 并行跑），再统一轮询
         pending = []  # [(build_number, target)]
         failed_details = []
         with ThreadPoolExecutor(max_workers=min(len(targets), self.MAX_TRIGGER_WORKERS)) as executor:
@@ -169,9 +167,8 @@ class CheckWittyhubAudit(BaseCheck):
                 else:
                     pending.append((build_number, target))
 
-        # 轮询阶段：串行轮询。逐个 skill 单次查询（请求超时 POLL_REQUEST_TIMEOUT=10s），
-        # 查不到结果就换下一个，下一轮继续；总超时 _poll_timeout（默认 20 分钟）到点后
-        # 仍未完成的目标按审计失败告警。
+        # 轮询阶段：串行轮询，逐个 skill 单次查询（请求超时 10s），查不到就换下一个，
+        # 下一轮继续；总超时（默认 20 分钟）到点后未完成目标按审计失败告警
         audits = []
         deadline = time.monotonic() + self._poll_timeout
         pending_targets = pending
@@ -341,9 +338,8 @@ class CheckWittyhubAudit(BaseCheck):
             if not base_url or not resolved_branch:
                 logger.warning("discover skills: cannot resolve base/branch for %s", repo_url)
                 return None
-            # wittyhub 的 skill_url（owner/repo/blob/<ref>/<path>）不支持 ref 含 '/'（如
-            # release/2.0 会被拆成 ref=release），逐 skill 无法正确审计；回退整仓库审计
-            # （repo 模式把 branch 原样传 git，可正确处理斜杠分支）
+            # wittyhub 的 skill_url 不支持 ref 含 '/'（如 release/2.0 会被拆错），逐 skill
+            # 无法正确审计；回退整仓库审计（repo 模式把 branch 原样传 git 可处理斜杠分支）
             if "/" in resolved_branch:
                 logger.warning(
                     "discover skills: branch %s contains '/', fall back to whole-repo audit for %s",
@@ -660,10 +656,9 @@ class CheckWittyhubAudit(BaseCheck):
             if not target.get("head_url") or not target.get("head_ref"):
                 logger.warning("no PR head info for %s, skip", target.get("url"))
                 return None
-            # wittyhub 的 skill_url（owner/repo/blob/<ref>/<path>）不支持 ref 含 '/'（如
-            # feature/ai-skill 会被拆成 ref=feature），拼出的 URL 会审计错误目标；且无法用
-            # commit SHA 代替（git fetch <sha> 需服务端允许未通告对象）。此处显式跳过并
-            # 告警（计入 failed_details -> WARNING），保守不静默。
+            # wittyhub 的 skill_url（.../blob/<ref>/<path>）不支持 ref 含 '/'（如
+            # feature/ai-skill 会被拆错），也无法用 commit SHA 代替（git fetch <sha>
+            # 需服务端允许未通告对象）；显式跳过并告警，保守不静默。
             if "/" in target["head_ref"]:
                 logger.warning(
                     "PR head ref %s contains '/', cannot build a parseable skill_url; skip %s",
