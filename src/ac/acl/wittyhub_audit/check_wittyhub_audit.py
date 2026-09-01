@@ -146,7 +146,7 @@ class CheckWittyhubAudit(BaseCheck):
         if len(targets) > self.MAX_TARGETS:
             logger.warning("wittyhub audit skipped: %d targets exceed %d", len(targets), self.MAX_TARGETS)
             self._comment_skip(len(targets))
-            return SUCCESS
+            return ACResult(WARNING.val, details=["超过 {} 个 skill，本次不做安全审计，请人工审核".format(self.MAX_TARGETS)])
         logger.info("wittyhub audit targets: %s", targets)
 
         # 两阶段执行：先并发触发所有目标扫描（Jenkins 并行跑），再统一轮询
