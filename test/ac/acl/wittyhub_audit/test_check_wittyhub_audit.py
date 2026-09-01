@@ -763,42 +763,6 @@ def test_trigger_phase_runs_in_parallel(tmp_path):
     assert state["max_in_flight"] >= 2  # 3 个仓库目标并发触发，在途 POST 数应 >= 2
 
 
-def test_poll_phase_runs_in_parallel(tmp_path):
-    """轮询阶段并发：多个目标的 GET 轮询应同时并发发出（各目标独立 600s 超时，
-    互不等待），而不是串行逐个轮询."""
-    _skill_yaml(
-        tmp_path,
-        "community/sig-x/skill.yaml",
-        "skill_repos:\n"
-        "- url: https://gitcode.com/openeuler/foo\n"
-        "- url: https://gitcode.com/openeuler/bar\n"
-        "- url: https://gitcode.com/openeuler/baz\n",
-    )
-    check = _make_check(tmp_path, conf={"poll_interval": 0.01})
-    state = {"in_flight": 0, "max_in_flight": 0}
-    lock = threading.Lock()
-
-    def _post_side_effect(*args, **kwargs):
-        return mock.Mock(status_code=200, json=lambda: {"details": {"skillspector_build_number": 42}})
-
-    def _get_side_effect(*args, **kwargs):
-        # 模拟轮询耗时：让并发窗口可见，统计同一时刻在途的 GET 数
-        with lock:
-            state["in_flight"] += 1
-            state["max_in_flight"] = max(state["max_in_flight"], state["in_flight"])
-        time.sleep(0.05)
-        with lock:
-            state["in_flight"] -= 1
-        return mock.Mock(status_code=200, json=lambda: {"status": "done", "risk_level": "low", "risk_score": 10})
-
-    with _audit_ctx(check) as (mock_post, mock_get, _gp):
-        mock_post.side_effect = _post_side_effect
-        mock_get.side_effect = _get_side_effect
-        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
-    assert result == SUCCESS
-    assert state["max_in_flight"] >= 2  # 3 个目标并发轮询，在途 GET 数应 >= 2
-
-
 def test_trigger_exception_preserves_target(tmp_path):
     """触发阶段某目标抛异常时，failed_details 应保留该目标信息（不丢失目标名），
     且不影响其他目标的正常审计."""
@@ -863,3 +827,29 @@ def test_trigger_concurrency_keeps_build_target_binding(tmp_path):
     bar_line = next(d for d in result.details if "bar" in d)
     assert "risk_level=high" in foo_line
     assert "risk_level=low" in bar_line
+
+
+def test_exceed_max_targets_skips_audit(tmp_path):
+    """目标数超过 MAX_TARGETS（100）时，跳过自动化审计，评论提示人工审核，不触发审计."""
+    repos = "".join("- url: https://gitcode.com/openeuler/repo{}\n".format(i) for i in range(101))
+    _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos:\n" + repos)
+    check = _make_check(tmp_path)
+    with _audit_ctx(check) as (mock_post, _get, mock_gp):
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+    assert result == SUCCESS
+    mock_post.assert_not_called()  # 未触发任何审计
+    body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert "SkillHub 安全审计门禁" in body
+    assert "不做安全审计" in body
+    assert "人工审核" in body
+
+
+def test_poll_total_timeout_marks_pending_failed(tmp_path):
+    """轮询总超时（默认 20 分钟）到点后，仍为 pending 的目标按审计失败告警."""
+    _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos:\n- url: https://gitcode.com/openeuler/foo\n")
+    check = _make_check(tmp_path, conf={"poll_timeout": 0.2, "poll_interval": 0.01})
+    with _audit_ctx(check) as (mock_post, mock_get, _gp):
+        _mock_async_audit(mock_post, mock_get, {"status": "pending", "build_number": 42})
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+    assert result == WARNING
+    assert any("审计失败" in d for d in result.details)
