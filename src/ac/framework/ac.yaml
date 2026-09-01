@@ -46,6 +46,8 @@ src-openeuler:
     entry: CheckRepoInMaintain
   anti_poisoning:
     exclude: True
+  wittyhub_audit:
+    exclude: True
 openeuler:
   spec:
     exclude: True
@@ -57,7 +59,7 @@ openeuler:
     hint: check_package_license
     module: package_license.check_openeuler_license
     entry: CheckOpeneulerLicense
-    deny_list: ["kernel"]
+    deny_list: ["kernel", "openEuler-skills"]
   binary:
     exclude: True
   sca:
@@ -109,4 +111,9 @@ openeuler:
     module: anti_poisoning.check_anti_poisoning
     entry: CheckAntiPoisoning
     allow_list: ["aops-apollo", "iSulad","OmniStream","Gluten","OmniOperator","OmniStateStore","OmniAdaptor","obmm","golang","witty-ub"]
+  wittyhub_audit:
+    hint: check_wittyhub_audit
+    module: wittyhub_audit.check_wittyhub_audit
+    entry: CheckWittyhubAudit
+    allow_list: ["openEuler-skills"]
 
