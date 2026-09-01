@@ -33,6 +33,9 @@
   `release/2.0`）时，wittyhub 的 `.../blob/<ref>/<path>` 逐 skill URL 无法正确
   解析 ref，门禁自动回退为整仓库审计（repo 模式把 branch 原样传给 git，可正确
   处理斜杠分支）。
+- **目标数上限**：单次 PR 审计目标（skill / 仓库）超过 `MAX_TARGETS`（默认 100）时，
+  不做自动化安全审计，仅在 PR 评论提示「本次不做安全审计，请人工审核」，门禁
+  SUCCESS 放行。
 
 ## 判定规则
 
@@ -81,13 +84,12 @@
    多目标时触发阶段用**线程池并发**发出全部 POST（并发度上限 `MAX_TRIGGER_WORKERS`，
    默认 20），避免串行逐个等待 Jenkins 队列解析 build_number；Jenkins 侧由多
    executor 并行跑各 skill 扫描。
-2. 门禁轮询 `GET /api/v1/skills/audit-by-url/result?build_number=<n>`，每 10 秒一次，
-   直到 `status == "done"`（拿到审计结果）或 `status == "error"`（按审计失败告警）。
-   多目标时轮询阶段同样用**线程池并发**（并发度上限 `MAX_POLL_WORKERS`，默认 20），
-   各目标并行轮询、互不等待。
-3. 轮询超时按**每个目标独立**计时：门禁 `WITTYHUB_AUDIT_TIMEOUT`（默认 600 秒）。
-   某个目标超过 600 秒未完成则按审计失败告警（WARNING，不阻断、不重试），
-   不影响其他目标的正常轮询。
+2. 门禁**串行轮询**：逐个 skill 单次查询
+   `GET /api/v1/skills/audit-by-url/result?build_number=<n>`，单个查询请求超时
+   `POLL_REQUEST_TIMEOUT`（默认 10 秒），查不到结果就换查下一个 skill，下一轮
+   继续轮询，直到 `status == "done"`（拿到结果）或 `status == "error"`（按审计失败告警）。
+3. 轮询**总超时**：门禁 `WITTYHUB_AUDIT_TIMEOUT`（默认 20 分钟）。总超时到点后
+   仍未完成的目标按审计失败告警（WARNING，不阻断、不重试），不影响其他目标。
 
 wittyhub 侧 `security.skillspector_timeout`（默认 600 秒/10 分钟，可用
 `SECURITY__SKILLSPECTOR_TIMEOUT` 覆盖）为 Jenkins 构建等待上限，应 ≥ 门禁轮询超时。

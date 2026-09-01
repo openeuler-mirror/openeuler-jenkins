@@ -66,10 +66,11 @@ class CheckWittyhubAudit(BaseCheck):
         "archive", "archives", "legacy",
     })
     MAX_COMMENT_CHARS = 60000      # 评论总长上限
-    DEFAULT_POLL_TIMEOUT = 600     # 轮询总超时（秒），可用 WITTYHUB_AUDIT_TIMEOUT 覆盖
-    POLL_INTERVAL = 10             # 轮询间隔（秒）
+    MAX_TARGETS = 100              # 单次 PR 审计目标上限，超过则跳过审计、评论提示人工审核
+    POLL_TOTAL_TIMEOUT = 1200      # 轮询总超时（秒，20 分钟），可用 WITTYHUB_AUDIT_TIMEOUT 覆盖
+    POLL_REQUEST_TIMEOUT = 10      # 单个 skill 单次查询请求超时（秒）
+    POLL_INTERVAL = 10             # 两轮轮询之间的间隔（秒）
     MAX_TRIGGER_WORKERS = 20       # 触发阶段并发上限（Jenkins 多 executor 并行跑扫描）
-    MAX_POLL_WORKERS = 20          # 轮询阶段并发上限（各目标独立 600s 超时并行轮询）
     # 风险等级标签 -> 背景色（黑色字体），安全到高风险：绿/黄/橙/红；未检测用灰
     RISK_LEVEL_STYLE = {
         "安全": "#67C23A",
@@ -94,10 +95,10 @@ class CheckWittyhubAudit(BaseCheck):
         self._warn_levels = tuple(conf.get("warn_levels") or self.DEFAULT_WARN_LEVELS)
         try:
             self._poll_timeout = float(
-                conf.get("poll_timeout") or os.environ.get("WITTYHUB_AUDIT_TIMEOUT") or self.DEFAULT_POLL_TIMEOUT
+                conf.get("poll_timeout") or os.environ.get("WITTYHUB_AUDIT_TIMEOUT") or self.POLL_TOTAL_TIMEOUT
             )
         except (TypeError, ValueError):
-            self._poll_timeout = self.DEFAULT_POLL_TIMEOUT
+            self._poll_timeout = self.POLL_TOTAL_TIMEOUT
         try:
             self._poll_interval = float(conf.get("poll_interval") or self.POLL_INTERVAL)
         except (TypeError, ValueError):
@@ -141,6 +142,11 @@ class CheckWittyhubAudit(BaseCheck):
         targets = self._collect_targets(diff_files)
         if not targets:
             return SUCCESS
+        # 目标数上限保护：超过 MAX_TARGETS 个 skill 时不做自动化审计，评论提示人工审核
+        if len(targets) > self.MAX_TARGETS:
+            logger.warning("wittyhub audit skipped: %d targets exceed %d", len(targets), self.MAX_TARGETS)
+            self._comment_skip(len(targets))
+            return SUCCESS
         logger.info("wittyhub audit targets: %s", targets)
 
         # 两阶段执行：先并发触发所有目标的扫描（Jenkins 并行跑），再统一轮询。
@@ -163,29 +169,29 @@ class CheckWittyhubAudit(BaseCheck):
                 else:
                     pending.append((build_number, target))
 
+        # 轮询阶段：串行轮询。逐个 skill 单次查询（请求超时 POLL_REQUEST_TIMEOUT=10s），
+        # 查不到结果就换下一个，下一轮继续；总超时 _poll_timeout（默认 20 分钟）到点后
+        # 仍未完成的目标按审计失败告警。
         audits = []
-        # 轮询阶段并发：各目标并行轮询，_poll_one 内部各自计时（每个 build 独立
-        # 600s 超时），避免串行导致总耗时 = 各目标轮询时长之和。
-        if pending:
-            with ThreadPoolExecutor(
-                max_workers=min(len(pending), self.MAX_POLL_WORKERS)
-            ) as executor:
-                # future->目标映射：某目标轮询抛异常也能定位到是哪个目标
-                future_to_target = {
-                    executor.submit(self._poll_one, build_number, target): (build_number, target)
-                    for build_number, target in pending
-                }
-                for future in as_completed(future_to_target):
-                    build_number, target = future_to_target[future]
-                    try:
-                        result = future.result()
-                    except Exception as exc:
-                        logger.warning("wittyhub audit poll exception: %s", exc)
-                        result = None
-                    if result is None:
-                        failed_details.append("审计失败: {}".format(target.get("desc", target.get("url", ""))))
-                    else:
-                        audits.append(result)
+        deadline = time.monotonic() + self._poll_timeout
+        pending_targets = pending
+        while pending_targets and time.monotonic() < deadline:
+            next_round = []
+            for build_number, target in pending_targets:
+                if time.monotonic() >= deadline:
+                    break
+                status, result = self._poll_once(build_number, target)
+                if status == "done":
+                    audits.append(result)
+                elif status == "error":
+                    failed_details.append("审计失败: {}".format(target.get("desc", target.get("url", ""))))
+                else:
+                    next_round.append((build_number, target))
+            pending_targets = next_round
+            if pending_targets and time.monotonic() < deadline:
+                time.sleep(self._poll_interval)
+        for build_number, target in pending_targets:
+            failed_details.append("审计失败: {}".format(target.get("desc", target.get("url", ""))))
 
         details = []
         block_hit = False
@@ -624,11 +630,18 @@ class CheckWittyhubAudit(BaseCheck):
         return {"Authorization": "Bearer {}".format(self._admin_token), "Content-Type": "application/json"}
 
     def _audit_one(self, target):
-        """兼容封装：触发并轮询单个目标（供单目标场景直接使用）。"""
+        """兼容封装：触发并轮询单个目标直到出结果或总超时（供单目标场景直接使用）。"""
         build_number = self._trigger_one(target)
         if build_number is None:
             return None
-        return self._poll_one(build_number, target)
+        deadline = time.monotonic() + self._poll_timeout
+        while time.monotonic() < deadline:
+            status, result = self._poll_once(build_number, target)
+            if status != "pending":
+                return result
+            time.sleep(self._poll_interval)
+        logger.error("wittyhub audit build %s timed out after %.0fs", build_number, self._poll_timeout)
+        return None
 
     def _trigger_one(self, target):
         """触发一次 audit-by-url 异步扫描，返回 Jenkins build_number；失败返回 None。
@@ -689,53 +702,63 @@ class CheckWittyhubAudit(BaseCheck):
         logger.info("wittyhub audit triggered: build_number=%s target=%s", build_number, target.get("desc", ""))
         return build_number
 
-    def _poll_one(self, build_number, target):
-        """轮询单个 build 的审计结果，返回结果 dict；失败/超时返回 None。"""
-        result_url = "{}/api/v1/skills/audit-by-url/result?build_number={}".format(self._api_url, build_number)
-        deadline = time.monotonic() + self._poll_timeout
-        last_status = None
-        while time.monotonic() < deadline:
-            try:
-                resp = requests.get(result_url, headers=self._headers(), timeout=(30, 60))
-            except requests.RequestException as exc:
-                logger.error("wittyhub audit poll failed: %s", exc)
-                time.sleep(self._poll_interval)
-                continue
-            if resp.status_code != 200:
-                logger.error("wittyhub audit poll returned %s: %s", resp.status_code, resp.text[:300])
-                time.sleep(self._poll_interval)
-                continue
-            rdata = self._unwrap_response(resp.json())
-            last_status = rdata.get("status")
-            if last_status == "done":
-                rdetails = rdata.get("details") or {}
-                signals = [
-                    {
-                        "severity": (sig.get("severity") or "unknown").lower(),
-                        "name": sig.get("name", ""),
-                        "description": sig.get("description", ""),
-                    }
-                    for sig in rdata.get("risk_signals") or []
-                ]
-                return {
-                    "name": target.get("name") or target.get("desc", ""),
-                    "desc": target.get("desc", ""),
-                    "risk_level": rdata.get("risk_level"),
-                    "risk_score": rdata.get("risk_score"),
-                    "risk_signals": signals,
-                    "report_md": rdetails.get("skillspector_report_md"),
-                    "build_number": build_number,
-                }
-            if last_status == "error":
-                logger.error("wittyhub audit build %s error: %s", build_number, rdata.get("error", ""))
-                return None
-            time.sleep(self._poll_interval)
+    def _poll_once(self, build_number, target):
+        """单个 build 单次查询审计结果（请求超时 POLL_REQUEST_TIMEOUT=10s）。
 
-        logger.error(
-            "wittyhub audit build %s timed out after %.0fs (last status %s)",
-            build_number, self._poll_timeout, last_status,
+        返回 (status, result)：
+        - ("done", dict) 拿到审计结果
+        - ("error", None) 审计失败（status=error）
+        - ("pending", None) 尚无结果，调用方下一轮继续轮询
+        """
+        result_url = "{}/api/v1/skills/audit-by-url/result?build_number={}".format(self._api_url, build_number)
+        try:
+            resp = requests.get(result_url, headers=self._headers(), timeout=self.POLL_REQUEST_TIMEOUT)
+        except requests.RequestException as exc:
+            logger.error("wittyhub audit poll failed: %s", exc)
+            return "pending", None
+        if resp.status_code != 200:
+            logger.error("wittyhub audit poll returned %s: %s", resp.status_code, resp.text[:300])
+            return "pending", None
+        rdata = self._unwrap_response(resp.json())
+        status = rdata.get("status")
+        if status == "done":
+            rdetails = rdata.get("details") or {}
+            signals = [
+                {
+                    "severity": (sig.get("severity") or "unknown").lower(),
+                    "name": sig.get("name", ""),
+                    "description": sig.get("description", ""),
+                }
+                for sig in rdata.get("risk_signals") or []
+            ]
+            return "done", {
+                "name": target.get("name") or target.get("desc", ""),
+                "desc": target.get("desc", ""),
+                "risk_level": rdata.get("risk_level"),
+                "risk_score": rdata.get("risk_score"),
+                "risk_signals": signals,
+                "report_md": rdetails.get("skillspector_report_md"),
+                "build_number": build_number,
+            }
+        if status == "error":
+            logger.error("wittyhub audit build %s error: %s", build_number, rdata.get("error", ""))
+            return "error", None
+        return "pending", None
+
+    def _comment_skip(self, count):
+        """目标数超过上限时评论：不做自动化安全审计，请人工审核。"""
+        try:
+            from src.proxy.gitcode_proxy import GitcodeProxy
+            gitcode_proxy = GitcodeProxy(self._community, self._repo, self._access_token)
+        except Exception as exc:
+            logger.warning("comment pr failed: %s", exc)
+            return
+        body = (
+            "**SkillHub 安全审计门禁**\n\n"
+            "本次 PR 涉及 {} 个 skill，超过单次审计目标上限（{} 个），"
+            "本次不做安全审计，请人工审核。".format(count, self.MAX_TARGETS)
         )
-        return None
+        gitcode_proxy.comment_pr(self._pr_num, body)
 
     def _comment_summary(self, audits, failed_details, block_hit, warn_hit):
         try:
