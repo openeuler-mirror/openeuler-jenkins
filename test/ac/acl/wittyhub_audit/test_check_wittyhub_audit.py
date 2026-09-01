@@ -763,6 +763,42 @@ def test_trigger_phase_runs_in_parallel(tmp_path):
     assert state["max_in_flight"] >= 2  # 3 个仓库目标并发触发，在途 POST 数应 >= 2
 
 
+def test_poll_phase_runs_in_parallel(tmp_path):
+    """轮询阶段并发：多个目标的 GET 轮询应同时并发发出（各目标独立 600s 超时，
+    互不等待），而不是串行逐个轮询."""
+    _skill_yaml(
+        tmp_path,
+        "community/sig-x/skill.yaml",
+        "skill_repos:\n"
+        "- url: https://gitcode.com/openeuler/foo\n"
+        "- url: https://gitcode.com/openeuler/bar\n"
+        "- url: https://gitcode.com/openeuler/baz\n",
+    )
+    check = _make_check(tmp_path, conf={"poll_interval": 0.01})
+    state = {"in_flight": 0, "max_in_flight": 0}
+    lock = threading.Lock()
+
+    def _post_side_effect(*args, **kwargs):
+        return mock.Mock(status_code=200, json=lambda: {"details": {"skillspector_build_number": 42}})
+
+    def _get_side_effect(*args, **kwargs):
+        # 模拟轮询耗时：让并发窗口可见，统计同一时刻在途的 GET 数
+        with lock:
+            state["in_flight"] += 1
+            state["max_in_flight"] = max(state["max_in_flight"], state["in_flight"])
+        time.sleep(0.05)
+        with lock:
+            state["in_flight"] -= 1
+        return mock.Mock(status_code=200, json=lambda: {"status": "done", "risk_level": "low", "risk_score": 10})
+
+    with _audit_ctx(check) as (mock_post, mock_get, _gp):
+        mock_post.side_effect = _post_side_effect
+        mock_get.side_effect = _get_side_effect
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+    assert result == SUCCESS
+    assert state["max_in_flight"] >= 2  # 3 个目标并发轮询，在途 GET 数应 >= 2
+
+
 def test_trigger_exception_preserves_target(tmp_path):
     """触发阶段某目标抛异常时，failed_details 应保留该目标信息（不丢失目标名），
     且不影响其他目标的正常审计."""
