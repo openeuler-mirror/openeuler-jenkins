@@ -52,3 +52,4 @@ class Entry(BaseCheck):
 | yaml文件 | package_yaml | |
 | license检查 | package_license | |
 | 代码片段检查 | sca  | 目前只针对自研项目 |
+| WittyHub安全审计 | wittyhub_audit | 调用 wittyhub 的 audit-by-url 接口对 skill 内容做安全审计并评分（仅 openEuler-skills 仓库）。功能、判定规则、部署配置见 [wittyhub_audit/README.md](acl/wittyhub_audit/README.md) |
