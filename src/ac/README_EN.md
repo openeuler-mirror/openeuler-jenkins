@@ -1,5 +1,7 @@
 # Gating Check
 
+English | [简体中文](./README.md)
+
 ## How to Add Check Items
 
 1. Create a folder in **ci_check/src/ac** to store the check item code.

@@ -1,5 +1,7 @@
 # 门禁检查
 
+简体中文 | [English](./README_EN.md)
+
 ## 如何加入检查项
 1. 在ci_check/src/ac目录下新建文件夹放置检查项代码
 2. 在ac_conf.yaml中增加配置项

@@ -1,5 +1,7 @@
 # openeuler源码仓jenkins构建脚本
 
+简体中文 | [English](./README_EN.md)
+
 > 源码仓编译种类差异，每个仓有不同的jenkins构建过程，构建脚本放在此处
 >
 > 推荐使用**sh**或者**python**编写构建过程，开头请带上**shebang**

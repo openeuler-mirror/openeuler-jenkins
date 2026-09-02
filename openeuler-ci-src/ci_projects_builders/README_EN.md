@@ -1,5 +1,7 @@
 # Configuring openEuler Code Repository Gating
 
+English | [简体中文](./README.md)
+
 openEuler contains all artifact repositories (repositories starting with src-openeuler) and code repositories (repositories starting with openeuler). Currently, all artifact repositories are configured with the pull request (PR) gating while code repositories are not configured with the PR gating by default. This document describes how to configure the PR gating for openEuler code repositories.
 
 ## Account Authorization
