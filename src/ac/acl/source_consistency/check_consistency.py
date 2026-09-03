@@ -287,7 +287,11 @@ class CheckSourceConsistency(BaseCheck):
         :param spec_file:spec文件名
         :return:
         """
-        source_path = "/home/jenkins/rpmbuild/SOURCES"
+        # 兼容 Jenkins（/home/jenkins/rpmbuild/SOURCES）和 Action runner 环境
+        # Action runner 无 /home/jenkins 目录，改用临时目录
+        source_path = os.environ.get("AC_SOURCE_PATH", "/home/jenkins/rpmbuild/SOURCES")
+        if not os.access(os.path.dirname(source_path), os.W_OK):
+            source_path = os.path.join("/tmp", "ac-rpmbuild", "SOURCES")
         os.makedirs(source_path, exist_ok=True)
         os.system(f"cp {self._work_dir}/* {source_path}")
         ret0 = os.system(f"rpmspec -P {spec_file} > tmp_{os.path.basename(spec_file)}")
@@ -295,8 +299,39 @@ class CheckSourceConsistency(BaseCheck):
             logger.info("cannot parse this spec file")
         else:
             os.system(f"mv tmp_{os.path.basename(spec_file)} {spec_file} -f")
-        ret = subprocess.check_output(["/usr/bin/spectool", "-S", spec_file], shell=False)
-        content = ret.decode('utf-8').strip()
+        # 兼容 Jenkins（spectool 来自 rpmdevtools）和 Action runner（ubuntu 无 rpmdevtools）
+        # 优先用 spectool，缺失时降级用 rpmspec -P + grep Source0（rpmspec 由 rpm 包提供）
+        spectool_bin = shutil.which("spectool")
+        if spectool_bin:
+            try:
+                ret = subprocess.check_output([spectool_bin, "-S", spec_file], shell=False)
+                content = ret.decode('utf-8').strip()
+            except subprocess.CalledProcessError as e:
+                logger.warning("spectool parse %s failed (exit %s), skip source url extraction",
+                               spec_file, e.returncode)
+                return ""
+        else:
+            # ubuntu 无 spectool，用 rpmspec -P 解析 spec 后 grep Source 行
+            rpmspec_bin = shutil.which("rpmspec")
+            if not rpmspec_bin:
+                logger.warning("spectool/rpmspec not installed, skip source url extraction")
+                return ""
+            try:
+                ret = subprocess.check_output([rpmspec_bin, "-P", spec_file], shell=False)
+                content = ret.decode('utf-8').strip()
+            except subprocess.CalledProcessError as e:
+                logger.warning("rpmspec parse %s failed (exit %s), skip source url extraction",
+                               spec_file, e.returncode)
+                return ""
+            # 从解析后的 spec 里找第一行 Source0: URL
+            for line in content.split(os.linesep):
+                line = line.strip()
+                if line.startswith("Source0:") or line.startswith("Source:"):
+                    content = line
+                    break
+            else:
+                logger.info("no Source0 found in spec file")
+                return ""
         source_url = content.split(os.linesep)[0].strip() if os.linesep in content else content.strip()
         if ":" in source_url:
             source_url = ":".join(source_url.split(":")[1:]).strip()

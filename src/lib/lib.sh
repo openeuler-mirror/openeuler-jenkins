@@ -47,6 +47,27 @@ function run_srcipt()
     log_info "Finished run $script $args at `date`"
 }
 
+function config_oecp_db()
+{
+    # 配置 oecp 的数据库连接（dbhost/dbport/dbuser）
+    # 依赖环境变量：MysqldbHost / MysqldbPort / MysqlUserPasswd / JENKINS_HOME
+    # MysqlUserPasswd 格式为 "用户名:密码"，动态替换 oecp.conf 的 dbuser（不假设固定 root）
+    # 格式守卫：缺分隔冒号时 ${MysqlUserPasswd%%:*} 与 ${MysqlUserPasswd#*:} 均退化为整串，
+    # 会把用户名当密码用（连接失败且报错指向模糊）。此处告警并跳过配置，
+    # oecp 连接失败已被调用侧容忍（|| echo continue），不影响构建主流程
+    if [[ -z "${MysqlUserPasswd:-}" ]]; then
+        log_warn "MysqlUserPasswd is empty, skip oecp db config"
+        return 1
+    fi
+    if [[ "${MysqlUserPasswd}" != *:* ]]; then
+        log_warn "MysqlUserPasswd format error (expect \"user:passwd\"), skip oecp db config"
+        return 1
+    fi
+    sed -i "s/dbhost=127.0.0.1/dbhost=${MysqldbHost}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
+    sed -i "s/dbport=3306/dbport=${MysqldbPort}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
+    sed -i "s/^dbuser=.*/dbuser=${MysqlUserPasswd%%:*}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
+}
+
 function git_clone()
 {
     url=$1

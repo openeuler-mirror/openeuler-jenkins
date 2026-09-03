@@ -109,7 +109,9 @@ class BaseCheck(object):
         kwargs = getattr(self, '_kwargs', {})
         common_args = kwargs.get("common_args", {})
         pr_num = common_args.get("pr_num", "")
-        owner = common_args.get("community", "")
+        # owner=仓库实际位置（API 调用用），fork仓场景下与 community 不同；
+        # community 是配置归属（如 src-openeuler），用它查 PR 会查错仓库。
+        owner = common_args.get("owner") or common_args.get("community", "")
         token = common_args.get("access_token", "")
 
         if not all([pr_num, owner, token]):

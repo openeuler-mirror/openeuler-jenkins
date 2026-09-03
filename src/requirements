@@ -1,14 +1,14 @@
 requests
-jenkinsapi
 colorlog
-threadpool
 PyYAML
-gevent
-jsonpath
-mock
 tldextract
 chardet
-kafka-python
-elasticsearch
 retrying
-scanoss
+# provides pyrpm.spec module (Spec/replace_macros), used by check_spec/check_binary_file/rpm_spec_adapter
+python-rpm-spec
+# provides `jenkins` module, used by src/proxy/jenkins_proxy.py (imported by gitee_comment/jenkins_job)
+python-jenkins
+# used by src/jobs/jenkins_job.py and src/tools/obs_package_build_history.py
+gevent
+# used by src/jenkinsfile/openeuler_jenkins_test.py
+mock
