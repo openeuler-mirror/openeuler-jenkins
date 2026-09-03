@@ -85,6 +85,7 @@ class CheckCode(BaseCheck):
             "pr_url": self._pr_url,
             "projectName": self._community
         }
+        logger.info("create codecheck task, post_data: %s", post_data)
         method = 'POST'
         ol_proxy = OpenlibingProxy(self.code_create_ak, self.code_create_sk)
         request = ol_proxy.create_openlibing_api_request(method, task_url, headers, json.dumps(post_data))

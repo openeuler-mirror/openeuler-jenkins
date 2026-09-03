@@ -101,9 +101,9 @@ function download_kernel_repo_soe() {
 
 # 根据tag下载kernel代码
 function download_kernel_repo_of_tag() {
-    kernel_tag=$(cat kernel/SOURCE)
-    log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
-    git clone -b $kernel_tag --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/openeuler/kernel code/kernel
+  kernel_tag=$(cat kernel/SOURCE)
+  log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
+  git clone -b $kernel_tag --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/openeuler/kernel code/kernel
 }
 
 download_kernel_times=0 # 避免下载多次kernel
@@ -202,7 +202,7 @@ function build_packages() {
     fi
 FEOF
     log_debug "check install"
-    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch  --obs_rpm_host ${obs_rpm_host} --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
+    python3 ${SCRIPT_PATCH}/extra_work.py checkinstall -a ${arch} -r $tbranch --obs_rpm_host ${obs_rpm_host} --install-root=${WORKSPACE}/install_root/${commentid} -e $WORKSPACE/${comment_file} || echo "continue although run check install failed"
 
     log_debug "pkgship notify"
     if [[ "x$item" == "xpkgship" ]]; then
@@ -251,11 +251,10 @@ function compare_package() {
       cp binaries/*.rpm $old_dir
     fi
   fi
-  if [[ "$(ls -A $new_dir | grep '.rpm')" &&  "$(ls -A $old_dir | grep '.rpm')" ]]; then
-    sed -i "s/dbhost=127.0.0.1/dbhost=${MysqldbHost}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
-    sed -i "s/dbport=3306/dbport=${MysqldbPort}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
-    python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -s $tbranch-${arch} --spec $BUILD_ROOT/home/abuild/rpmbuild/SOURCES --db-password ${MysqlUserPasswd:5} --pull-request-id ${repo}-${prid} || echo "continue although run oecp failed"
-    cat $result_dir/report-$old_dir-$new_dir/osv.json 
+  if [[ "$(ls -A $new_dir | grep '.rpm')" && "$(ls -A $old_dir | grep '.rpm')" ]]; then
+    config_oecp_db
+    python3 ${JENKINS_HOME}/oecp/cli.py $old_dir $new_dir -o $result_dir -w $result_dir -n 2 -s $tbranch-${arch} --spec $BUILD_ROOT/home/abuild/rpmbuild/SOURCES --db-password ${MysqlUserPasswd#*:} --pull-request-id ${repo}-${prid} || echo "continue although run oecp failed"
+    cat $result_dir/report-$old_dir-$new_dir/osv.json
   fi
 
   pr_link='https://gitcode.com/${repo_owner}/'${repo}'/pull/'${prid}
@@ -326,16 +325,16 @@ EOF
   fi
 
   python3 ${shell_path}/src/utils/oemaker_analyse.py --branch ${tbranch} --arch ${arch} \
-	--oecp_json_path "$result_dir/report-$old_dir-$new_dir/osv.json" --owner "src-openeuler" \
-	--repo ${repo} --gitcode_token $gitcodeToken --prid ${prid}
+    --oecp_json_path "$result_dir/report-$old_dir-$new_dir/osv.json" --owner "src-openeuler" \
+    --repo ${repo} --gitcode_token $gitcodeToken --prid ${prid}
   log_info "***** End to compare package diff *****"
 }
 
-function print_job(){
-    job_name=`echo $JOB_NAME|sed -e 's#/#/job/#g'`
-    job_path="https://ci.openeuler.openatom.cn/job/${job_name}/$BUILD_ID/console"
-    body_str="${arch}架构构建及构建后检查：<a href=${job_path}>${JOB_NAME}/${BUILD_ID}/console</a>"
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.gitcode.com/api/v5/repos/src-openeuler/'${repo}'/pulls/'${prid}'/comments' -d '{"access_token":"'"${gitcodeToken}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+function print_job() {
+  job_name=$(echo $JOB_NAME | sed -e 's#/#/job/#g')
+  job_path="https://ci.openeuler.openatom.cn/job/${job_name}/$BUILD_ID/console"
+  body_str="${arch}架构构建及构建后检查：<a href=${job_path}>${JOB_NAME}/${BUILD_ID}/console</a>"
+  curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.gitcode.com/api/v5/repos/src-openeuler/'${repo}'/pulls/'${prid}'/comments' -d '{"access_token":"'"${gitcodeToken}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
 # 执行入口
@@ -351,9 +350,8 @@ function main() {
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:/repo/soe${repo_server_test_tail}/support_arch/${support_arch_file} . || echo "${support_arch_file}" not exist
   ls -l .
   if [[ -e ${support_arch_file} ]]; then
-    support_arch=`cat ${support_arch_file}`
-    if [[ $support_arch != *$arch* ]]
-    then
+    support_arch=$(cat ${support_arch_file})
+    if [[ $support_arch != *$arch* ]]; then
       exclusive_arch=""
     fi
   fi

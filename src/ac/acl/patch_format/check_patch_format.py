@@ -85,37 +85,42 @@ class CheckPatchFormat(BaseCheck):
         if not patch_list:
             return SUCCESS
 
+        # checkpatch.pl 以相对路径执行，先进入 repo 目录；检查完恢复原 CWD，
+        # 避免污染进程 CWD 影响后续检查项/产物收集（如 gate_entry 的 support_arch 上传）
+        base_path = os.getcwd()
         os.chdir(self._repo)
+        try:
+            if not os.path.exists("scripts/checkpatch.pl"):
+                return SUCCESS
 
-        if not os.path.exists("scripts/checkpatch.pl"):
-            return SUCCESS
+            failed_num = 0
+            warning_num = 0
+            details = []
+            for patch in patch_list:
+                logger.info(f"check {patch}")
+                ret, description = self.do_checkpatch(patch)
+                if ret == 1:
+                    logger.error(f"check {patch} failed")
+                    logger.error(description)
+                    details.append("patch '{}' 格式检查失败".format(patch))
+                    failed_num = failed_num + 1
+                elif ret == 2:
+                    logger.warning(f"check {patch} warning")
+                    logger.warning(description)
+                    details.append("patch '{}' 格式检查有警告".format(patch))
+                    warning_num += 1
+                else:
+                    logger.info(f"check {patch} success")
+                    logger.info(description)
 
-        failed_num = 0
-        warning_num = 0
-        details = []
-        for patch in patch_list:
-            logger.info(f"check {patch}")
-            ret, description = self.do_checkpatch(patch)
-            if ret == 1:
-                logger.error(f"check {patch} failed")
-                logger.error(description)
-                details.append("patch '{}' 格式检查失败".format(patch))
-                failed_num = failed_num + 1
-            elif ret == 2:
-                logger.warning(f"check {patch} warning")
-                logger.warning(description)
-                details.append("patch '{}' 格式检查有警告".format(patch))
-                warning_num += 1
+            if failed_num > 0:
+                return ACResult(FAILED.val, details=details)
+            elif warning_num > 0:
+                return ACResult(WARNING.val, details=details)
             else:
-                logger.info(f"check {patch} success")
-                logger.info(description)
-
-        if failed_num > 0:
-            return ACResult(FAILED.val, details=details)
-        elif warning_num > 0:
-            return ACResult(WARNING.val, details=details)
-        else:
-            return SUCCESS
+                return SUCCESS
+        finally:
+            os.chdir(base_path)
 
     def __call__(self, *args, **kwargs):
         """

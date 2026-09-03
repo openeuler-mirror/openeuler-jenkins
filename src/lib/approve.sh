@@ -4,9 +4,9 @@
 # 64k variant support
 variant="${variant:-""}"
 if [[ -n "$variant" ]]; then
-    variant_suffix="_${variant}"
+  variant_suffix="_${variant}"
 else
-    variant_suffix=""
+  variant_suffix=""
 fi
 
 # debug测试变量
@@ -111,9 +111,8 @@ EOF
   echo "https://gitcode.com/src-openeuler/${gitcodeRepoName}/pull/${gitcodePullRequestId}"
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_place_cmd"
 
-  sed -i "s/dbhost=127.0.0.1/dbhost=${MysqldbHost}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
-  sed -i "s/dbport=3306/dbport=${MysqldbPort}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
-  python3 ${JENKINS_HOME}/oecp/cli.py -s ${gitcodeTargetBranch} --db-password ${MysqlUserPasswd:5} --pull-request-id ${gitcodeRepoName}-${gitcodePullRequestId} --submit-symbol
+  config_oecp_db
+  python3 ${JENKINS_HOME}/oecp/cli.py -s ${gitcodeTargetBranch} --db-password ${MysqlUserPasswd#*:} --pull-request-id ${gitcodeRepoName}-${gitcodePullRequestId} --submit-symbol
 
   log_info "***** End to save build result *****"
 }
