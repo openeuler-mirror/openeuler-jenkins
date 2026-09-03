@@ -25,7 +25,7 @@ from datetime import datetime
 import yaml
 
 from src.proxy.gitcode_proxy import GitcodeProxy
-from src.proxy.kafka_proxy import KafkaProducerProxy
+
 from src.logger import logger
 
 
