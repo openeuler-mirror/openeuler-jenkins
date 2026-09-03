@@ -273,8 +273,6 @@ if "__main__" == __name__:
     from src.utils.dist_dataset import DistDataset
     from src.proxy.git_proxy import GitProxy
     from src.proxy.obs_proxy import OBSProxy
-    from src.proxy.es_proxy import ESProxy
-    from src.proxy.kafka_proxy import KafkaProducerProxy
     from src.utils.shell_cmd import shell_cmd_live
 
     dd = DistDataset()
