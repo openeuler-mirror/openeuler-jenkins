@@ -81,6 +81,7 @@ class CheckSCA(BaseCheck):
                 "projectName": self._community,
                 "prUrl": self._pr_url
             }
+            logger.info("create sca task, post_data: %s", post_data)
             method = "POST"
             ol_proxy = OpenlibingProxy(self.sca_create_ak, self.sca_create_sk)
             request = ol_proxy.create_openlibing_api_request(method, task_url, headers, json.dumps(post_data))

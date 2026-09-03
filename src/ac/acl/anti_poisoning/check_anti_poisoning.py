@@ -80,8 +80,9 @@ class CheckAntiPoisoning(BaseCheck):
             headers = {"Content-Type": "application/json"}
             post_data = {
                 "projectName": self._community,
-                "prUrl": self._pr_url,
+                "prUrl": self._pr_url
             }
+            logger.info("create antipoison task, post_data: %s", post_data)
             ol_proxy = OpenlibingProxy(self.anti_create_ak, self.anti_create_sk)
             request = ol_proxy.create_openlibing_api_request(method, task_url, headers, json.dumps(post_data))
             rs = do_requests(

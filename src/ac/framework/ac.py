@@ -18,6 +18,7 @@ import argparse
 import datetime
 import importlib
 import json
+import logging
 import logging.config
 import os
 import sys
@@ -30,10 +31,10 @@ from src.proxy.git_proxy import GitProxy
 from src.proxy.gitcode_proxy import GitcodeProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
-from src.proxy.jenkins_proxy import JenkinsProxy
-from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.utils.dist_dataset import DistDataset
 from src.constant import Constant
+
+logger = logging.getLogger("ac")
 
 
 class AC(object):
@@ -346,6 +347,8 @@ if "__main__" == __name__:
     dd.set_attr_stime("access_control.build.stime")
 
     if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
+        # 延迟导入：Action 场景下不依赖 Jenkins，避免 import 时拉起 jenkins 模块
+        from src.proxy.jenkins_proxy import JenkinsProxy
         jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
         AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
     # gitee pr tag
