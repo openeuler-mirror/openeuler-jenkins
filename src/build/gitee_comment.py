@@ -56,10 +56,10 @@ class Comment(object):
     comments process
     """
 
-    def __init__(self, pr, jenkins_proxy, *check_item_comment_files):
+    def __init__(self, pr, jenkins_proxy=None, *check_item_comment_files):
         """
-
         :param pr: pull request number
+        :param jenkins_proxy: JenkinsProxy object（可选，无 Jenkins 环境时传 None，见 set_compile_build）
         """
         self._pr = pr
         self._check_item_comment_files = check_item_comment_files
@@ -106,21 +106,34 @@ class Comment(object):
         return value
 
     @staticmethod
-    def _match(name, comment_file):
-        # 64k variant cross-check: if one side has 64k and the other doesn't, no match
-        is_name_64k = "64k" in name
-        is_file_64k = "64k" in comment_file
-        if is_name_64k != is_file_64k:
-            return False, ""
+    def _match(name, comment_file, arch=None):
+        """
+        判断 comment 文件是否属于该构建，返回 (是否匹配, 规范化架构名)。
 
-        if "aarch64" in name and "aarch64" in comment_file:
-            arch = "aarch64_64k" if is_file_64k else "aarch64"
-            return True, arch
-        if "x86-64" in name and "x86_64" in comment_file:
-            return True, "x86_64"
-        if "riscv64" in name and "riscv64" in comment_file:
-            return True, "riscv64"
-        return False, ""
+        :param name: 构建标识（GitCode Action 场景为显式 arch；Jenkins 场景为 job name）
+        :param comment_file: comment 文件名（内含 arch 片段，如 foo_aarch64_64k_comment）
+        :param arch: 显式架构名（GitCode Action 场景注入；Jenkins 场景为 None，从 name 解析）
+        """
+        arch_name = arch or ""
+        if not arch_name:
+            # Jenkins 场景：从 job name 解析架构
+            if "aarch64" in name:
+                arch_name = "aarch64_64k" if "64k" in name else "aarch64"
+            elif "x86-64" in name:
+                arch_name = "x86_64"
+            elif "riscv64" in name:
+                arch_name = "riscv64"
+            else:
+                return False, ""
+
+        # 64k variant cross-check：一边有 64k 一边没有则不匹配
+        if ("64k" in arch_name) != ("64k" in comment_file):
+            return False, ""
+        # 基础架构校验：arch 与文件名须一致（防止多文件场景下错配到其他架构的文件）
+        base_arch = arch_name.replace("-", "_").split("_64k")[0]
+        if base_arch not in comment_file.replace("-", "_"):
+            return False, ""
+        return True, arch_name
 
     @staticmethod
     def _filter_focus_on_rpms(content):
@@ -275,9 +288,14 @@ class Comment(object):
 
         :param gitcode_proxy:
         :param check_result_file:
+        :param tbranch:
         :return:
         """
         comments = self._comment_of_compare_package_details(check_result_file, tbranch)
+        if not comments:
+            # 空内容直接评论会被 API 拒绝（400: body is null），跳过
+            logger.info("compare comment content is empty, skip commenting")
+            return ""
         gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
 
         return "\n".join(comments)
@@ -423,17 +441,35 @@ class Comment(object):
             logger.exception("invalid ac result format")
         return acl
 
+    def set_compile_build(self, url, number, result, arch):
+        """
+        直接注入单条编译构建结果（GitCode Action 场景，替代 Jenkins 查询）。
+        每个 build job 对应一个架构、一次构建，结果已知。
+
+        :param url: 本 build job 流水线链接（Build Details 跳转）
+        :param number: Action 执行编号（链接显示 #N）
+        :param result: 构建结果（如 "SUCCESS"/"FAILURE"）
+        :param arch: 编译架构（x86_64 / aarch64 / aarch64_64k / riscv64）
+        """
+        self._compile_builds.append({
+            "url": url,
+            "number": number,
+            "result": result,
+            "arch": arch,
+        })
+
     def _get_compile_builds(self, jenkins_proxy):
         # 这个环境变量由comment的Jenkins工程传下来
-        if "ARCH_BUILD_INFO" in os.environ:
-            compile_builds_info = os.environ.get("ARCH_BUILD_INFO")
-            logger.info("get compile builds info: {}".format(compile_builds_info))
-            for info in compile_builds_info.split("\n"):
-                info = info.strip()
-                logger.info("get compile build info: {}".format(info))
-                compile_build = jenkins_proxy.get_build_info(info.split(",")[0], info.split(",")[1])
-                self._compile_builds.append(compile_build)
-            logger.info("self._compile_builds is: {}".format(self._compile_builds))
+        if not jenkins_proxy or "ARCH_BUILD_INFO" not in os.environ:
+            return
+        compile_builds_info = os.environ.get("ARCH_BUILD_INFO")
+        logger.info("get compile builds info: {}".format(compile_builds_info))
+        for info in compile_builds_info.split("\n"):
+            info = info.strip()
+            logger.info("get compile build info: {}".format(info))
+            compile_build = jenkins_proxy.get_build_info(info.split(",")[0], info.split(",")[1])
+            self._compile_builds.append(compile_build)
+        logger.info("self._compile_builds is: {}".format(self._compile_builds))
 
     def _get_upstream_builds(self, jenkins_proxy):
         """
@@ -443,6 +479,8 @@ class Comment(object):
         """
         base_job_name = os.environ.get("JOB_NAME")
         base_build_id = os.environ.get("BUILD_ID")
+        if not jenkins_proxy or not base_job_name or not base_build_id:
+            return
         base_build_id = int(base_build_id)
         logger.info("base_job_name: %s, base_build_id: %s", base_job_name, base_build_id)
         base_build = jenkins_proxy.get_build_info(base_job_name, base_build_id)
@@ -521,9 +559,9 @@ class Comment(object):
                 continue
             for build in self._compile_builds:
                 arch_cmp_result = "SUCCESS"
-                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
+                name = build.get("arch") or JenkinsProxy.get_job_path_from_job_url(build["url"])
                 logger.info("check build %s", name)
-                arch_result, arch_name = self._match(name, result_file)
+                arch_result, arch_name = self._match(name, result_file, build.get("arch"))
                 if not arch_result:  # 找到匹配的jenkins build
                     continue
                 logger.info("build \"%s\" match", name)
@@ -561,7 +599,7 @@ class Comment(object):
                                         "<td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>"
                                         .format(len(compare_details), arch_name, check_item, "<br>".join(rpm_name),
                                                 compare_result.emoji, compare_result.hint, len(compare_details),
-                                                "{}{}".format(build["url"], "console"), "#", build["number"]))
+                                                self._format_build_url(build), "#", build["number"]))
                     else:
                         comments.append("<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
                             check_item, "<br>".join(rpm_name), compare_result.emoji, compare_result.hint))
@@ -589,10 +627,10 @@ class Comment(object):
                 logger.info("%s not exists", result_file)
                 continue
             for build in self._compile_builds:
-                name = JenkinsProxy.get_job_path_from_job_url(build["url"])
+                name = build.get("arch") or JenkinsProxy.get_job_path_from_job_url(build["url"])
                 # name: job path
                 logger.info("check build %s", name)
-                arch_result, arch_name = self._match(name, result_file)
+                arch_result, arch_name = self._match(name, result_file, build.get("arch"))
                 if not arch_result:  # 找到匹配的jenkins build
                     continue
                 logger.info("build \"%s\" match", name)
@@ -657,20 +695,6 @@ class Comment(object):
         """
         comments = []
 
-        def match(name, comment_file):
-            is_name_64k = "64k" in name
-            is_file_64k = "64k" in comment_file
-            if is_name_64k != is_file_64k:
-                return False
-
-            if "aarch64" in name and "aarch64" in comment_file:
-                return True
-            if "x86-64" in name and "x86_64" in comment_file:
-                return True
-            if "riscv64" in name and "riscv64" in comment_file:
-                return True
-            return False
-
         check_branches = None
         if os.path.exists('check_build.yaml'):
             with open('check_build.yaml', 'r') as f:
@@ -679,20 +703,24 @@ class Comment(object):
         if check_branches and tbranch not in check_branches.keys():
             return comments
         for build in builds:
-            name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
             status = build["result"]
             ac_result = ACResult.get_instance(status)
 
-            if "x86-64" in name:
-                arch = "x86_64"
-            elif "64k" in name and "aarch64" in name:
-                arch = "aarch64_64k"
-            elif "aarch64" in name:
-                arch = "aarch64"
-            elif "riscv64" in name:
-                arch = "riscv64"
+            if build.get("arch"):
+                # GitCode Action 场景：构建结果注入时带有显式 arch，直接使用
+                arch = build["arch"]
             else:
-                arch = name.split("/")[-2]
+                name, _ = JenkinsProxy.get_job_path_build_no_from_build_url(build["url"])
+                if "x86-64" in name:
+                    arch = "x86_64"
+                elif "64k" in name and "aarch64" in name:
+                    arch = "aarch64_64k"
+                elif "aarch64" in name:
+                    arch = "aarch64"
+                elif "riscv64" in name:
+                    arch = "riscv64"
+                else:
+                    arch = name.split("/")[-2]
             if check_branches:
                 arches = check_branches.get(tbranch)
                 if arches:
@@ -704,7 +732,9 @@ class Comment(object):
                 if not os.path.exists(check_item_comment_file):
                     logger.info("%s not exists", check_item_comment_file)
                     continue
-                if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
+                # 统一走 _match（此处 arch 已解析：Action 场景显式注入，Jenkins 场景从 name 解析）
+                matched, _ = self._match(arch, check_item_comment_file, arch)
+                if matched:  # 读取该架构对应的 check_item 文件
                     with open(check_item_comment_file, "r") as data:
                         try:
                             json_data = json.load(data)
@@ -741,19 +771,25 @@ class Comment(object):
             single_build_result = self._get_dict(["single_build_check", "current_result"], json_data)
             check_install_result = self._get_dict(["single_install_check", "current_result"], json_data)
             package_license_result = self._get_dict(["package_license_check", "current_result"], json_data)
-            check_item_info["check_install"] = check_install_result if check_install_result else "failed"
-            check_item_info["check_license"] = package_license_result if package_license_result else "failed"
+            # 段缺失的填充值取决于 build 阶段结果：
+            #   build 失败 → 后续阶段被短路跳过（skipped，未执行 ≠ 检测失败）；
+            #   build 成功 → 阶段本应执行，段缺失说明检查执行了但异常崩溃未写结果
+            #   （如 license 调 SBOM 服务连接重置崩溃，JSON 停留在上一阶段快照）→ failed
+            build_stage_failed = bool(single_build_result) and single_build_result != "success"
+            filler = "skipped" if build_stage_failed else "failed"
+            check_item_info["check_install"] = check_install_result if check_install_result else filler
+            check_item_info["check_license"] = package_license_result if package_license_result else filler
         elif yaml_data:
             logger.info(f"YAML DATA:{yaml_data}")
             single_build_result = build["result"]
             check_item_info["check_install"] = yaml_data[0]["result"]
         else:
             single_build_result = build["result"]
-        if check_item_info and check_item_info.get("check_install").lower() != "success":
+        if check_item_info and check_item_info.get("check_install").lower() not in ("success", "skipped"):
             self.check_install_result = False
             if 'riscv64' in arch:
                 self.check_install_result = True
-        if check_item_info and check_item_info.get("check_license").lower() != "success":
+        if check_item_info and check_item_info.get("check_license").lower() not in ("success", "skipped"):
             self.check_license_result = False
             if 'riscv64' in arch:
                 self.check_license_result = True
@@ -788,6 +824,19 @@ class Comment(object):
             if support_arch is not None and base_arch not in support_arch.split():
                 excluded_specs.append(spec)
 
+        if not excluded_specs and json_data:
+            build_detail = self._get_dict(["single_build_check", "build_detail"], json_data) or []
+            for d in build_detail:
+                if not isinstance(d, dict) or d.get("result") != "excluded":
+                    continue
+                if d.get("package"):
+                    excluded_specs.append(d["package"])
+            if excluded_specs:
+                target_pkgs = self._get_dict(["target_packages", "packages"], json_data) or []
+                detail_pkgs = [d.get("package") for d in build_detail
+                               if isinstance(d, dict) and d.get("package")]
+                changed_specs = list(dict.fromkeys(target_pkgs + detail_pkgs))
+
         if changed_specs:
             if len(excluded_specs) == len(changed_specs):
                 # 所有修改的 spec 都不支持当前 arch
@@ -815,9 +864,9 @@ class Comment(object):
             ac_result = ACResult.get_instance(1)
 
         comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> <td></td> " \
-                        "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
+                "<td rowspan={}><a href=\"{}\">#{}</a></td></tr>".format(
             item_num, arch, "check_build", ac_result.emoji, ac_result.hint, item_num,
-            "{}{}".format(build["url"], "console"), build["number"]))
+            self._format_build_url(build), build["number"]))
         arch_dict["check_build"] = ac_result.hint
 
         if ac_result.hint == "EXCLUDE":
@@ -830,6 +879,13 @@ class Comment(object):
         else:
             for check_item, check_result in check_item_info.items():
                 if check_result:
+                    if check_result.lower() == "skipped":
+                        # build 失败短路未执行：灰色 SKIPPED 样式（区别于实测 FAILED）；
+                        # 不走 get_instance（其映射表无 skipped，会误兜底为 FAILED）
+                        comments.append("<tr><td>{}</td> <td>&#9898;<strong>SKIPPED</strong></td> <td></td>"
+                                        .format(check_item))
+                        arch_dict[check_item] = "SKIPPED"
+                        continue
                     check_result = ACResult.get_instance(check_result)
                     comments.append("<tr><td>{}</td> <td>{}<strong>{}</strong></td> <td></td>".format(
                         check_item, check_result.emoji, check_result.hint))
@@ -851,6 +907,21 @@ class Comment(object):
         logger.info("check item comment: %s", comments)
 
         return comments
+
+    @staticmethod
+    def _format_build_url(build):
+        """
+        构造 Build Details 链接地址。
+        GitCode Action 场景：url 为完整流水线链接（含 actions/runs），直接使用，不拼接 console 后缀；
+        Jenkins 场景：url 为 job 基础地址，拼接 console 以跳转到控制台。
+        """
+        url = build.get("url") or ""
+        if not url:
+            # url 未注入（本地复现/workflow 漏配）时返回空串，避免渲染出 href="console" 死链
+            return ""
+        if "actions/runs" in url:
+            return url
+        return "{}console".format(url)
 
     @classmethod
     def comment_html_table_th(cls):
@@ -1003,9 +1074,9 @@ if "__main__" == __name__:
     gp.delete_tag_of_pr(args.pr, "ci_processing")
 
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
-    url, build_time, reason = jp.get_job_build_info(os.environ.get("JOB_NAME"), int(os.environ.get("BUILD_ID")))
+    job_url, build_time, reason = jp.get_job_build_info(os.environ.get("JOB_NAME"), int(os.environ.get("BUILD_ID")))
     dd.set_attr_ctime("comment.job.ctime", build_time)
-    dd.set_attr("comment.job.link", url)
+    dd.set_attr("comment.job.link", job_url)
     dd.set_attr("comment.trigger.reason", reason)
 
     dd.set_attr_stime("comment.build.stime")
@@ -1037,7 +1108,7 @@ if "__main__" == __name__:
         dd.set_attr("comment.build.tags", ["ci_failed"])
         dd.set_attr("comment.build.result", "failed")
     if args.owner != "openeuler":
-        comment.get_all_result_to_kafka(url)
+        comment.get_all_result_to_kafka(job_url)
 
     logger.info("comment: at committer......")
     comment.comment_at(args.committer, gp)
