@@ -82,7 +82,7 @@ class ACResult(object):
 
     @property
     def emoji(self):
-        return ["&#9989;", "&#9888;", "&#10060;", ":ballot_box_with_check:"][self.val]
+        return ["&#9989;", "&#9888;", "&#10060;", "&#9745;"][self.val]
 
     @property
     def details(self):
