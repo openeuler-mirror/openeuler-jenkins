@@ -1018,6 +1018,29 @@ if "__main__" == __name__:
     dd.set_attr("comment.build.content.html", comment_content)
 
     result_list = [comment.check_ac_result(), comment.check_install_result, comment.check_license_result]
+
+    # ci_block_force_merge：必须通过的检查（check_lfs/check_sca/license）任一失败
+    # 则打此标签禁止强制合 PR，全部通过则清理。comment job 是唯一能同时看到三项
+    # 结果的汇总点——check_lfsconfig/check_sca 结果在 env ACL（AC job 注入），
+    # license 在 comment_build 渲染的 check_license_result（任一架构失败即 False；
+    # riscv64 豁免与数据缺失视为 failed，均沿用既有 ci_failed 判定语义）。
+    must_go_failed = False
+    for ac_item in comment.get_acl():
+        if ac_item.get("name") in ("check_lfsconfig", "check_sca") and ac_item.get("result") == 2:
+            must_go_failed = True
+            break
+    if not comment.check_license_result:
+        must_go_failed = True
+    try:
+        if must_go_failed:
+            gp.create_tags_of_pr(args.pr, "ci_block_force_merge")
+            logger.info("must-pass 检查(check_lfs/check_sca/license)存在失败, 已设置 ci_block_force_merge")
+        else:
+            gp.delete_tag_of_pr(args.pr, "ci_block_force_merge")
+            logger.info("must-pass 检查(check_lfs/check_sca/license)全部通过, 已清理 ci_block_force_merge")
+    except Exception as ex:
+        logger.warning("更新 ci_block_force_merge 标签失败: %s", ex)
+
     if comment.check_build_result() == SUCCESS and comment.check_install_result:
         if comment.check_ac_result() and comment.check_license_result:
             gp.delete_tag_of_pr(args.pr, "ci_failed")
