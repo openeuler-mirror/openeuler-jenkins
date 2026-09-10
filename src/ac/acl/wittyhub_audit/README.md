@@ -121,3 +121,6 @@ wittyhub 侧 `security.skillspector_timeout`（默认 600 秒/10 分钟，可用
   `WITTYHUB_PUBLIC_URL`（例如 `https://skillhub.openeuler.org`）覆盖。
 - 报告来源：wittyhub 的 audit-by-url 构建产物 `reports/skillspector/report.md`，
   由 report 端点按需从 Jenkins 获取，保证链接始终是最新报告。
+- 结论判定：存在审计失败（触发/轮询 error/超时）时，结论为
+  `**结论: 审计失败，请评论 /retest 重新审计**`，失败目标在表格中显示为「审计失败」行；
+  仅命中高风险时结论为「谨慎合入」，仅 medium/unknown 时结论为「有风险提示」。

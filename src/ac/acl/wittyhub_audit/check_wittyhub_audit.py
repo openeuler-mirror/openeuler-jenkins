@@ -766,10 +766,13 @@ class CheckWittyhubAudit(BaseCheck):
         report_base = (os.environ.get("WITTYHUB_PUBLIC_URL") or self._api_url).rstrip("/")
 
         # 结论放在表格上方，便于一眼看到门禁判定
-        if block_hit:
+        # 审计失败优先：失败目标无法拿到审计结果，需评论 /retest 触发重新审批
+        if failed_details:
+            conclusion = "**结论: 审计失败，请评论 /retest 重新审计**"
+        elif block_hit:
             conclusion = "**结论: 谨慎合入（存在高风险 skill）**"
         elif warn_hit:
-            conclusion = "**结论: 有风险提示（medium 或审计失败），请关注**"
+            conclusion = "**结论: 有风险提示（存在低风险 或 风险未知 skill）**"
         else:
             conclusion = "**结论: 通过**"
 
