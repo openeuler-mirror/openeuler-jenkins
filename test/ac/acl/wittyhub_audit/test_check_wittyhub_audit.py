@@ -192,11 +192,15 @@ def test_trigger_one_slash_branch_isolation(tmp_path):
 def test_audit_api_failure_warns(tmp_path):
     _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos:\n- url: https://gitcode.com/openeuler/foo\n")
     check = _make_check(tmp_path)
-    with _audit_ctx(check) as (mock_post, _get, _gp):
+    with _audit_ctx(check) as (mock_post, _get, mock_gp):
         mock_post.return_value = mock.Mock(status_code=500, text="boom")
         result = _run(check, diff_files=["community/sig-x/skill.yaml"])
     assert result == WARNING
     assert any("审计失败" in detail for detail in result.details)
+    # 审计失败时评论结论提示 /retest 重新审计，失败行在表格中显示「审计失败」
+    body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert "**结论: 审计失败，请评论 /retest 重新审计**" in body
+    assert "| 审计失败: skill 仓库: https://gitcode.com/openeuler/foo | 审计失败 | - | - |" in body
 
 
 def test_unknown_risk_level_warns(tmp_path):
