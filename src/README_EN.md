@@ -1,5 +1,7 @@
 # Kubernetes Cluster-based Packaging Solution
 
+English | [简体中文](./README.md)
+
 ## Single package build task
 
 ### Design logic

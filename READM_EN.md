@@ -1,5 +1,7 @@
 # Introduction to Gating
 
+English | [简体中文](./README-zh-cn.md)
+
 ## 1. Gating
 
 All openEuler community code is hosted on GitCode. To ensure code submission quality, when you submit a PR on GitCode, the gating system is automatically triggered to perform code style, build, installation, and interface change checks. The results of the gating checks are then returned in the PR comments, helping you identify issues and assisting maintainers in reviewing the code.

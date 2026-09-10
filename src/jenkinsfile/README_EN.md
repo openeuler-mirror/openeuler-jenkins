@@ -1,5 +1,7 @@
 # Jenkins Build Script for openEuler Source Code Repositories
 
+English | [简体中文](./README.md)
+
 > The compilation types of the source code repositories are different. Each repository has a different Jenkins build process.
 >
 > You are advised to use **sh** or **python** to compile the build process.
