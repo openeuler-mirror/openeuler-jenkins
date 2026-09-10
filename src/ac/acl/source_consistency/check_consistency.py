@@ -134,7 +134,7 @@ class CheckSourceConsistency(BaseCheck):
             sorted_file_dict = sorted(file_dict.items(), key=lambda x: x[1], reverse=True)
             converted_dict = dict(sorted_file_dict)
             package_name = next(iter(converted_dict))
-            os.path.join(self._work_dir, package_name)
+            self.tarball_path = os.path.join(self._work_dir, package_name)
             return self.get_sha256sum(), package_name
 
     def check_source_consistency(self):
