@@ -14,6 +14,7 @@
 # Description: gitcode api proxy
 # **********************************************************************************
 import logging
+import time
 
 from src.proxy.requests_proxy import do_requests, RequestData
 
@@ -100,6 +101,40 @@ class GitcodeProxy(object):
         :return: True成功，False失败
         """
         return self.handle_tags_of_pr("DELETE", pr, tag)
+
+    def get_labels_of_pr(self, pr, retries=3):
+        """
+        获取PR当前标签名列表
+        :param pr: 本仓库PR的序数
+        :param retries: 请求失败时的最大尝试次数（网络抖动需重试，避免把失败误判为空标签）
+        :return: list[str]；重试后仍失败返回 None（调用方应跳过标签增删，以区别于"无标签"）
+        """
+        url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{number}/labels".format(
+            burl=self._base_url,
+            owner=self._owner,
+            repo=self._repo,
+            number=pr
+        )
+        for attempt in range(1, retries + 1):
+            labels = []
+            rs = do_requests(
+                "get", url,
+                RequestData(querystring={"access_token": self._token}, timeout=10, obj=labels)
+            )
+            if rs == 0:
+                names = []
+                for item in labels:
+                    if isinstance(item, dict):
+                        name = item.get("name") or item.get("title")
+                    else:
+                        name = item
+                    if name:
+                        names.append(name)
+                return names
+            logger.warning("get labels of pr %s failed (attempt %s/%s)", pr, attempt, retries)
+            if attempt < retries:
+                time.sleep(2)
+        return None
 
     def get_last_pr_committer(self, branch, state="merged"):
         """
