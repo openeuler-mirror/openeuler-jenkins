@@ -63,7 +63,7 @@ def _build_pr_comment(ac_instance, pr_number, pipeline_url=None, run_number=None
         0: ("&#9989;", "SUCCESS"),
         1: ("&#9888;", "WARNING"),
         2: ("&#10060;", "FAILED"),
-        3: (":ballot_box_with_check:", "EXCLUDE"),
+        3: ("&#9745;", "EXCLUDE"),
     }
 
     lines = [
@@ -377,17 +377,23 @@ def main():
 
     overall_failed = any(item.get("result") == 2 for item in ac._ac_check_result)  # pylint: disable=protected-access
 
-    # lfsconfig 标签（与 Jenkins 入口保持一致）
-    lfsconfig_result = ac.get_check_result("check_lfsconfig")
+    # check_lfs / check_sca 各自维护分项失败标签（check_lfs_failed / check_sca_failed），
+    # 失败即打、成功则清理自己的；ci_block_force_merge 由 ci-final 汇总这三个分项标签统一设置。
     try:
-        if lfsconfig_result == 0:
-            gp.delete_tag_of_pr(pr_number, "check_lfs_failed")
-            gp.create_tags_of_pr(pr_number, "check_lfs_success")
-        elif lfsconfig_result == 2:
-            gp.delete_tag_of_pr(pr_number, "check_lfs_success")
+        if ac.get_check_result("check_lfsconfig") == 2:
             gp.create_tags_of_pr(pr_number, "check_lfs_failed")
+            logger.info("check_lfsconfig 失败, 已设置 check_lfs_failed 到 PR #%s", pr_number)
+        else:
+            gp.delete_tag_of_pr(pr_number, "check_lfs_failed")
+            logger.info("check_lfsconfig 通过, 已清理 check_lfs_failed")
+        if ac.get_check_result("check_sca") == 2:
+            gp.create_tags_of_pr(pr_number, "check_sca_failed")
+            logger.info("check_sca 失败, 已设置 check_sca_failed 到 PR #%s", pr_number)
+        else:
+            gp.delete_tag_of_pr(pr_number, "check_sca_failed")
+            logger.info("check_sca 通过, 已清理 check_sca_failed")
     except Exception as e:
-        logger.warning("更新 lfsconfig 标签失败: %s", e)
+        logger.warning("更新 check_lfs/check_sca failed 标签失败: %s", e)
 
     dd.set_attr_etime("access_control.job.etime")
     logger.info("==== 门禁结束 ====")

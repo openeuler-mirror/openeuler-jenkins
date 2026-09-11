@@ -87,6 +87,24 @@ def main():
     except Exception as e:
         logger.warning("设置标签 %s 失败(可能已存在): %s", final_state, e)
 
+    # ci_block_force_merge：汇总三个"分项失败"标签（check_lfs_failed / check_sca_failed /
+    # check_license_failed，由 gate / build-comment 各自维护增删）。任一个存在即判
+    # must-pass 失败，打 ci_block_force_merge 禁止强制合 PR；三个都不在则清理
+    # （全部通过时自然清空）。读取标签失败（None）时跳过增删保留现状，避免网络故障误清标签。
+    must_go_failed_tags = ("check_lfs_failed", "check_sca_failed", "check_license_failed")
+    try:
+        labels = gp.get_labels_of_pr(pr_number)
+        if labels is None:
+            logger.warning("获取 PR #%s 标签失败, 跳过 ci_block_force_merge 增删(保留现状)", pr_number)
+        elif any(tag in labels for tag in must_go_failed_tags):
+            gp.create_tags_of_pr(pr_number, "ci_block_force_merge")
+            logger.info("存在分项 failed 标签, 已设置 ci_block_force_merge 到 PR #%s", pr_number)
+        else:
+            gp.delete_tag_of_pr(pr_number, "ci_block_force_merge")
+            logger.info("分项 failed 标签均不存在, 已清理 ci_block_force_merge")
+    except Exception as e:
+        logger.warning("更新 ci_block_force_merge 标签失败: %s", e)
+
     # 门禁全部完成后 @committer 通知 PR 提交者
     if committer:
         try:

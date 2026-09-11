@@ -226,12 +226,32 @@ def main():
         comment.set_compile_build(pipeline_url, run_number, build_result, build["arch_name"])
 
     # check 项汇总评论（所有架构一张表：build/install/license）
+    license_evaluated = False
     if check_files:
         try:
             comment.comment_build(gp)
+            license_evaluated = True
             logger.info("build check 汇总已评论到 PR #%s", pr_number)
         except Exception as e:  # noqa: BLE001 - 评论失败不阻断脚本
             logger.error("评论 build check 汇总失败: %s", e)
+
+    # check_license_failed：license 为多架构检查，必须在 build-comment 这个能汇总
+    # 所有架构的聚合点判定（comment_build 渲染时更新 check_license_result，任一架构
+    # 失败即 False）。失败即打、全过则清理自己的；comment_build 未执行/失败意味着
+    # license 本轮未评估，跳过增删避免误清。ci_block_force_merge 由 ci-final 汇总
+    # check_lfs/sca/license 三个分项标签统一设置。
+    if license_evaluated:
+        try:
+            if not comment.check_license_result:
+                gp.create_tags_of_pr(pr_number, "check_license_failed")
+                logger.info("license 检查失败, 已设置 check_license_failed 到 PR #%s", pr_number)
+            else:
+                gp.delete_tag_of_pr(pr_number, "check_license_failed")
+                logger.info("license 检查通过, 已清理 check_license_failed")
+        except Exception as e:
+            logger.warning("更新 check_license_failed 标签失败: %s", e)
+    else:
+        logger.info("license 本轮未评估, 跳过 check_license_failed 标签增删")
 
     # oecp compare 汇总评论（多架构分组渲染，comment_compare_package_details
     # 原生支持逗号分隔多文件；仅收集到至少一个文件时才评论）
