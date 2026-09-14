@@ -789,7 +789,9 @@ class Comment(object):
             self.check_install_result = False
             if 'riscv64' in arch:
                 self.check_install_result = True
-        if check_item_info and check_item_info.get("check_license").lower() not in ("success", "skipped"):
+        # exclude（A-guard 白名单仓豁免，license 检查必然失败的 repo）等同通过，
+        # 不打 check_license_failed，表格渲染为 ☑ EXCLUDE
+        if check_item_info and check_item_info.get("check_license").lower() not in ("success", "skipped", "exclude"):
             self.check_license_result = False
             if 'riscv64' in arch:
                 self.check_license_result = True
