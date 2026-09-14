@@ -699,12 +699,14 @@ class Comment(object):
                     if arch in arches.keys() and not arches.get(arch):
                         continue
             json_data, yaml_data = None, None
+            matched_comment_file = False
             for check_item_comment_file in self._check_item_comment_files:
                 logger.info(f"check_item_comment_file:{check_item_comment_file}")
                 if not os.path.exists(check_item_comment_file):
                     logger.info("%s not exists", check_item_comment_file)
                     continue
                 if ACResult.get_instance(status) == SUCCESS and match(name, check_item_comment_file):  # 保证build状态成功
+                    matched_comment_file = True
                     with open(check_item_comment_file, "r") as data:
                         try:
                             json_data = json.load(data)
@@ -720,6 +722,12 @@ class Comment(object):
                         else:
                             yaml_data = None
                     break
+            # 64k variant 构建：构建成功但没有任何对应的检查结果文件
+            # （该分支不支持 64k，64k 构建工程未跑 check_install/license，未上传 comment 文件），
+            # 跳过整行评论；构建失败时仍正常评论失败结果
+            if "64k" in arch and ac_result == SUCCESS and not matched_comment_file:
+                logger.info("arch %s build success but no matched check item comment file, skip it", arch)
+                continue
             comment = self._comment_of_combine_item(arch, build, ac_result, json_data=json_data, yaml_data=yaml_data)
             comments.extend(comment)
         return comments
