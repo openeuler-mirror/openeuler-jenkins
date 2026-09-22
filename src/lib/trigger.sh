@@ -57,7 +57,7 @@ function download_kernel_repo() {
   if [ "x$repo" == "xkernel" ]; then
     kernel_tag=$(cat kernel/SOURCE)
     log_info "now clone kernel source of tag ${kernel_tag} to code/kernel"
-    git clone -b $kernel_tag --depth 1 https://${gitcodeUserName}:${gitcodePassword}@gitcode.com/openeuler/kernel code/kernel
+    git clone -b $kernel_tag --depth 1 https://${gitcodeUserName}:${gitcodePassword}@atomgit.com/openeuler/kernel code/kernel
   fi
   log_info "***** End to download kernel *****"
 }

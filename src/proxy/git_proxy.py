@@ -67,7 +67,8 @@ class GitProxy(object):
         :param progress: 展示进度
         :return:
         """
-        if platform == "gitcode":
+        # gitcode 为历史平台标识，atomgit 与 gitcode 同平台同 refs 规范
+        if platform in ("gitcode", "atomgit"):
             head_prefix = "+refs/merge-requests/{}/head".format(pull_request)
         else:
             head_prefix = "+refs/pull/{}/head".format(pull_request)

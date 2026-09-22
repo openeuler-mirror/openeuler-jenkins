@@ -38,7 +38,7 @@
   },
   "remoteEnv": {
     "GITEE_TOKEN": "${localEnv:GITEE_TOKEN:}",
-    "GITCODE_TOKEN": "${localEnv:GITCODE_TOKEN:}",
+    "ATOMGIT_TOKEN": "${localEnv:ATOMGIT_TOKEN:}",
     "OBS_PASSWORD": "${localEnv:OBS_PASSWORD:}",
     "JENKINS_USER": "${localEnv:JENKINS_USER:}",
     "JENKINS_API_TOKEN": "${localEnv:JENKINS_API_TOKEN:}"

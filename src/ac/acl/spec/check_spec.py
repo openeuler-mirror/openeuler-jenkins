@@ -28,7 +28,7 @@ from src.proxy.requests_proxy import do_requests, RequestData
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING, ACResult
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
-from src.ac.common.gitcode_repo import GitcodeRepo
+from src.ac.common.atomgit_repo import AtomgitRepo
 from pyrpm.spec import Spec
 from src.constant import Constant
 
@@ -44,7 +44,7 @@ class CheckSpec(BaseCheck):
         super(CheckSpec, self).__init__(workspace, repo, conf)
 
         self._gp = GitProxy(self._work_dir)
-        self._gr = GitcodeRepo(self._repo, self._work_dir, None)  # don't care about decompress
+        self._gr = AtomgitRepo(self._repo, self._work_dir, None)  # don't care about decompress
         fp = self._gp.get_content_of_file_with_commit(self._gr.spec_file)
         self._spec = RPMSpecAdapter(fp)
         self._latest_commit = self._gp.commit_id_of_reverse_head_index(0)
@@ -252,7 +252,7 @@ class CheckSpec(BaseCheck):
         # 收集仓库中所有spec文件
         all_spec_files = []
         for filename in os.listdir(self._work_dir):
-            if os.path.isfile(os.path.join(self._work_dir, filename)) and GitcodeRepo.is_spec_file(filename):
+            if os.path.isfile(os.path.join(self._work_dir, filename)) and AtomgitRepo.is_spec_file(filename):
                 all_spec_files.append(filename)
 
         # 回退：未找到spec文件时使用默认spec

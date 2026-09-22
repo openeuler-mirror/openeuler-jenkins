@@ -12,7 +12,7 @@ English | [简体中文](./README.md)
 ```yaml
 Example =>
 spec:                       # Name of the ac project
-  hint: check_spec          # Name of the check item displayed on GitCode. The default value is "check_+project name".
+  hint: check_spec          # Name of the check item displayed on AtomGit. The default value is "check_+project name".
   module: spec.check_spec   # Module name of the ac project. The default value is "project name+check_+project name".
   entry: Entry              # Entry class name of the ac project. It inherits the BaseCheck class and can customize the __callable__ method.
   exclude: true             # Ignore the check item.

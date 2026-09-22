@@ -103,7 +103,7 @@ class BaseCheck(object):
 
     def get_pr_changed_files(self):
         """
-        通过 Gitcode API 获取本次 PR 的变更文件列表（仅文件名）。
+        通过 AtomGit API 获取本次 PR 的变更文件列表（仅文件名）。
         返回 None 表示无法获取（缺少参数或 API 失败）。
         """
         kwargs = getattr(self, '_kwargs', {})
@@ -115,8 +115,8 @@ class BaseCheck(object):
         if not all([pr_num, owner, token]):
             return None
 
-        from src.proxy.gitcode_proxy import GitcodeProxy
-        gp = GitcodeProxy(owner, self._repo, token)
+        from src.proxy.atomgit_proxy import AtomgitProxy
+        gp = AtomgitProxy(owner, self._repo, token)
         pr_files = gp.get_pr_files(pr_num)
         if pr_files is None: 
             return None

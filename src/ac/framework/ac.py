@@ -27,7 +27,7 @@ import yaml
 from yaml.error import YAMLError
 
 from src.proxy.git_proxy import GitProxy
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
@@ -122,7 +122,7 @@ class AC(object):
             check_element = self._ac_check_elements.get(element)
             logger.debug("check %s", element)
 
-            # show in gitee/gitcode, must starts with "check_"
+            # show in gitee/atomgit, must starts with "check_"
             hint = check_element.get("hint", "check_{}".format(element))
             if not hint.startswith("check_"):
                 hint = "check_{}".format(hint)
@@ -270,6 +270,9 @@ def init_args():
 
 if "__main__" == __name__:
     args = init_args()
+    # Jenkins 侧仍传 platform=gitcode，系统内统一归一化为 atomgit
+    if args.platform == "gitcode":
+        args.platform = "atomgit"
 
     # init logging
     _ = not os.path.exists("log") and os.mkdir("log")
@@ -279,10 +282,10 @@ if "__main__" == __name__:
     logger = logging.getLogger("ac")
     ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
 
-    if args.platform == "gitcode":
-        code_url = "https://gitcode.com"
+    if args.platform == "atomgit":
+        code_url = "https://atomgit.com"
         repo_url = "{}/{}/{}.git".format(code_url, args.community, args.repo)
-        gitee_proxy_inst = GitcodeProxy(args.community, args.repo, args.token)
+        gitee_proxy_inst = AtomgitProxy(args.community, args.repo, args.token)
         pull_tag="pull"
     elif args.platform == "gitee":
         code_url = "https://gitee.com"

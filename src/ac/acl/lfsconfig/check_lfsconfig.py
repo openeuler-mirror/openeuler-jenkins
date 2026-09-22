@@ -78,10 +78,10 @@ class CheckLfsconfig(BaseCheck):
         logger.error(".lfsconfig url is incorrect: %s", url)
         logger.error("expected url: %s", expected_url)
         logger.info(
-            "please refer to https://gitcode.com/openeuler/community/blob/master/zh/contributors/git-lfs.md for fix"
+            "please refer to https://atomgit.com/openeuler/community/blob/master/zh/contributors/git-lfs.md for fix"
         )
         details = [
             ".lfsconfig URL不正确: 实际值 '{}'，期望值 '{}'".format(url, expected_url),
-            "请参考 https://gitcode.com/openeuler/community/blob/master/zh/contributors/git-lfs.md 进行修复"
+            "请参考 https://atomgit.com/openeuler/community/blob/master/zh/contributors/git-lfs.md 进行修复"
         ]
         return ACResult(FAILED.val, details=details)
