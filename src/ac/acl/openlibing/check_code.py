@@ -63,6 +63,8 @@ class CheckCode(BaseCheck):
 
         self._community = codecheck_conf.get("community", "")
         self._pr_url = codecheck_conf.get("pr_url", "")
+        # openlibing暂时不支持atomgit域名，临时替换为gitcode
+        self._pr_url = self._pr_url.replace("atomgit", "gitcode")
         self.code_create_ak = os.environ["code_create_ak"]
         self.code_create_sk = os.environ["code_create_sk"]
         self.code_result_ak = os.environ["code_result_ak"]

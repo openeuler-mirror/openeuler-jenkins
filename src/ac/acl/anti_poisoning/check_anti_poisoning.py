@@ -64,6 +64,8 @@ class CheckAntiPoisoning(BaseCheck):
 
         self._community = antipoisoning_conf.get("community", "")
         self._pr_url = antipoisoning_conf.get("pr_url", "")
+        # openlibing暂时不支持atomgit域名，临时替换为gitcode
+        self._pr_url = self._pr_url.replace("atomgit", "gitcode")
         self.anti_create_ak = os.environ['anti_create_ak']
         self.anti_create_sk = os.environ['anti_create_sk']
         self.anti_result_ak = os.environ['anti_result_ak']

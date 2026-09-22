@@ -65,6 +65,8 @@ class CheckSCA(BaseCheck):
         scanoss_conf = kwargs.get("common_args", {})
         self._community = scanoss_conf.get("community", "")
         self._pr_url = scanoss_conf.get("pr_url", "")
+        # openlibing暂时不支持atomgit域名，临时替换为gitcode
+        self._pr_url = self._pr_url.replace("atomgit", "gitcode")
         self.sca_create_ak = os.environ['sca_create_ak']
         self.sca_create_sk = os.environ['sca_create_sk']
         self.sca_result_ak = os.environ['sca_result_ak']
