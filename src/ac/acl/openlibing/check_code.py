@@ -70,7 +70,7 @@ class CheckCode(BaseCheck):
         self.code_result_ak = os.environ["code_result_ak"]
         self.code_result_sk = os.environ["code_result_sk"]
 
-        if codecheck_conf.get("platform", "") == "gitcode":
+        if codecheck_conf.get("platform", "") in ["gitcode", "atomgit"]:
             self._pr_url = self._pr_url.replace("/pull/", "/merge_requests/")
 
         return self.start_check()
