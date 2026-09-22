@@ -11,10 +11,10 @@
 # See the Mulan PSL v2 for more details.
 # Author:
 # Create: 2026-08-30
-# Description: GitCode Action entry for build gate summary comment (multi-arch aggregated)
+# Description: AtomGit Action entry for build gate summary comment (multi-arch aggregated)
 # ***********************************************************************************
 """
-GitCode Action 编译门禁汇总评论入口脚本（build-comment job 入口）
+AtomGit Action 编译门禁汇总评论入口脚本（build-comment job 入口）
 
 matrix 化 build job 后，各架构实例不再直接评论 PR（原每架构 2 条评论 × N 架构，
 评论多且分散），改为仅把结果文件随 artifact 上传；本脚本在 build-comment 汇总
@@ -34,7 +34,7 @@ job 中运行，download-artifact 拉取全部架构制品后：
     ACTION_PR_NUMBER:       PR 编号
     ACTION_REPO:            仓库名
     ACTION_OWNER:           仓库 owner（API 调用用，如 src-openeuler）
-    ACTION_GITCODE_TOKEN:   GitCode API token
+    ACTION_GITCODE_TOKEN:   AtomGit API token
     ACTION_TARGET_BRANCH:   目标分支（compare 差异评论用）
     ACTION_ARTIFACT_DIR:    制品下载根目录（各架构制品子目录的父目录）
     ACTION_PIPELINE_URL:    本 run 流水线链接（各架构 Build Details 跳转）
@@ -49,7 +49,7 @@ import sys
 
 from src.action_context import MissingActionEnvError, load_action_context, setup_action_logging
 from src.build.gitee_comment import Comment
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 
 logger = logging.getLogger("build")
 
@@ -158,7 +158,7 @@ def _restore_ac_spec_files(artifact_dir):
 
 
 def main():
-    """GitCode Action build 门禁汇总评论主入口"""
+    """AtomGit Action build 门禁汇总评论主入口"""
     setup_action_logging("build_action.log")
 
     try:
@@ -178,7 +178,7 @@ def main():
     run_number = ctx.run_number
     artifact_dir = os.environ.get("ACTION_ARTIFACT_DIR", "")
 
-    logger.info("==== GitCode Action build 汇总评论启动 ====")
+    logger.info("==== AtomGit Action build 汇总评论启动 ====")
     logger.info("PR #%s, repo=%s, owner=%s, artifact_dir=%s", pr_number, repo, owner, artifact_dir)
 
     # 还原 AC spec 清单到 cwd（EXCLUDE 渲染数据源），失败不阻断汇总评论
@@ -197,7 +197,7 @@ def main():
     import src.build.gitee_comment as gitee_comment  # noqa: PLC0415 - 延迟赋值模块 logger
     gitee_comment.logger = logger
 
-    gp = GitcodeProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, token)
 
     # 收集各架构产物文件，构造单实例 Comment 一次成型：
     # check_item_comment_files（构造参数）供 _comment_of_check_item 渲染，

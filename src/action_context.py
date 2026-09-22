@@ -11,10 +11,10 @@
 # See the Mulan PSL v2 for more details.
 # Author:
 # Create: 2026-08-26
-# Description: Shared PR context and logging setup for GitCode Action entries
+# Description: Shared PR context and logging setup for AtomGit Action entries
 # ***********************************************************************************
 """
-GitCode Action 入口公共模块
+AtomGit Action 入口公共模块
 
 三个 Action 入口共用的 PR 上下文解析与日志初始化：
     - src/ac/gate_entry.py            （gate 门禁入口）
@@ -60,12 +60,12 @@ _FIELD_ENV = {
 @dataclasses.dataclass
 class ActionContext:
     """
-    GitCode Action PR 上下文（ACTION_* 环境变量的解析结果）
+    AtomGit Action PR 上下文（ACTION_* 环境变量的解析结果）
 
     :param pr_number: PR 编号
     :param repo: 仓库名（如 openEuler-repos）
     :param owner: 仓库实际 owner（API 调用用，如 src-openeuler）
-    :param token: GitCode API token
+    :param token: AtomGit API token
     :param target_branch: PR 目标分支
     :param workspace: 工作目录（产物所在）
     :param pipeline_url: 本 job 流水线链接（Build Details 跳转）

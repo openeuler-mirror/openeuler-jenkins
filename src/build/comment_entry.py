@@ -11,10 +11,10 @@
 # See the Mulan PSL v2 for more details.
 # Author:
 # Create: 2026-08-14
-# Description: GitCode Action entry for build gate comment
+# Description: AtomGit Action entry for build gate comment
 # ***********************************************************************************
 """
-GitCode Action 编译门禁评论入口脚本
+AtomGit Action 编译门禁评论入口脚本
 
 与 Jenkins 时代的独立 comment job（comment.sh + gitee_comment.py __main__）对应，
 但从环境变量获取 PR 上下文，读取 build job 本地产物，直接评论 PR。
@@ -26,7 +26,7 @@ GitCode Action 编译门禁评论入口脚本
     ACTION_PR_NUMBER:       PR 编号
     ACTION_REPO:            仓库名
     ACTION_OWNER:           仓库 owner（API 调用用，如 src-openeuler）
-    ACTION_GITCODE_TOKEN:   GitCode API token
+    ACTION_GITCODE_TOKEN:   AtomGit API token
     ACTION_ARCH:            编译架构（x86_64 / aarch64）
     ACTION_VARIANT:         构建变体（可选，如 64k）
     ACTION_WORKSPACE:       工作目录（产物所在）
@@ -42,7 +42,7 @@ import sys
 
 from src.action_context import MissingActionEnvError, load_action_context, setup_action_logging
 from src.build.gitee_comment import Comment
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 
 logger = logging.getLogger("build")
 
@@ -66,7 +66,7 @@ def _locate_artifacts(workspace, repo, pr_number, arch, variant):
 
 
 def main():
-    """GitCode Action 编译门禁评论主入口"""
+    """AtomGit Action 编译门禁评论主入口"""
     setup_action_logging("build_action.log")
 
     # 从环境变量读取 PR 上下文（解析与校验见 src/action_context.py）
@@ -90,7 +90,7 @@ def main():
     token = ctx.token
     build_rc = int(os.environ.get("ACTION_BUILD_RESULT", "0"))
 
-    logger.info("==== GitCode Action build 门禁评论启动 ====")
+    logger.info("==== AtomGit Action build 门禁评论启动 ====")
     logger.info("PR #%s, repo=%s, owner=%s, arch=%s, build_rc=%s",
                 pr_number, repo, owner, arch, build_rc)
 
@@ -102,7 +102,7 @@ def main():
     import src.build.gitee_comment as gitee_comment  # noqa: PLC0415 - 延迟赋值模块 logger
     gitee_comment.logger = logger
 
-    gp = GitcodeProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, token)
 
     # 定位本地产物（check 项评论文件 + compare 差异结果文件）
     check_file, compare_file = _locate_artifacts(workspace, repo, pr_number, arch, variant)

@@ -11,10 +11,10 @@
 # See the Mulan PSL v2 for more details.
 # Author:
 # Create: 2026-08-14
-# Description: GitCode Action entry for final gate summary (result label + committer notify)
+# Description: AtomGit Action entry for final gate summary (result label + committer notify)
 # ***********************************************************************************
 """
-GitCode Action 门禁最终汇总脚本（ci-final job 入口）
+AtomGit Action 门禁最终汇总脚本（ci-final job 入口）
 
 职责：在所有门禁 job（gate / build 双架构 matrix）结束后统一：
 1. 汇总各 job 结果，判定最终标签 ci_successful / ci_failed；
@@ -26,7 +26,7 @@ GitCode Action 门禁最终汇总脚本（ci-final job 入口）
 job 退出码即聚合结果，compare 不纳入统计；AC 的 warning/exclude 不计失败）。
 否则判定 ci_failed。
 
-本脚本只做最终标签与 @committer，故从 ci-final 的 needs.<job>.result 读取各 job 结果。
+本脚本只做最终标签与 @committer，故从 ci-final 的 jobs.<job_id>.result 读取各 job 结果
 """
 
 import logging
@@ -34,13 +34,13 @@ import os
 import sys
 
 from src.action_context import MissingActionEnvError, load_action_context, setup_action_logging
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 
 logger = logging.getLogger("build.final")
 
 
 def main():
-    """GitCode Action 门禁最终标签汇总主入口"""
+    """AtomGit Action 门禁最终标签汇总主入口"""
     setup_action_logging("finalize_action.log")
 
     # 从环境变量读取 PR 上下文（解析与校验见 src/action_context.py）
@@ -60,11 +60,11 @@ def main():
     gate_result = os.environ.get("ACTION_GATE_RESULT", "")
     build_result = os.environ.get("ACTION_BUILD_RESULT", "")
 
-    logger.info("==== GitCode Action 门禁最终汇总启动 ====")
+    logger.info("==== AtomGit Action 门禁最终汇总启动 ====")
     logger.info("PR #%s, repo=%s, gate=%s, build=%s",
                 pr_number, repo, gate_result, build_result)
 
-    gp = GitcodeProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, token)
 
     if gate_result == "success" and build_result == "success":
         final_state = "ci_successful"

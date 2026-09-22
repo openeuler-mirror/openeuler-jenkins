@@ -11,10 +11,10 @@
 # See the Mulan PSL v2 for more details.
 # Author:
 # Create: 2026-07-06
-# Description: GitCode Action entry for access control
+# Description: AtomGit Action entry for access control
 # ***********************************************************************************
 """
-GitCode Action 门禁入口脚本
+AtomGit Action 门禁入口脚本
 
 与 Jenkins 入口（ac.py __main__）对应，但从环境变量获取 PR 上下文，
 复用 AC 框架执行检查项，最后将结果以评论形式反馈到 PR。
@@ -24,7 +24,7 @@ GitCode Action 门禁入口脚本
     ACTION_REPO:            仓库名（如 openEuler-repos）
     ACTION_OWNER:           PR 目标仓实际 owner（API/clone 用；community 由映射表推导）
     ACTION_TARGET_BRANCH:   PR 目标分支
-    ACTION_TOKEN:           GitCode API token
+    ACTION_TOKEN:           AtomGit API token
     ACTION_WORKSPACE:       工作目录（已 checkout 的仓库根目录）
     ACTION_PR_URL:          PR 链接（可选，用于评论展示）
     ACTION_COMMITTER:       PR 提交者（可选）
@@ -43,7 +43,7 @@ from src.ac.common.ai_summary import AISummarizer, load_ai_config
 from src.ac.framework.ac import AC
 from src.action_context import MissingActionEnvError, load_action_context, setup_action_logging
 from src.proxy.git_proxy import GitProxy
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 from src.proxy.llm_proxy import LLMProxy
 from src.utils.dist_dataset import DistDataset
 
@@ -114,14 +114,14 @@ def _build_pr_comment(ac_instance, pr_number, pipeline_url=None, run_number=None
     return "\n".join(lines)
 
 
-def _comment_ai_summary(gitcode_proxy, ac_instance, pr_number, repo, target_branch):
+def _comment_ai_summary(atomgit_proxy, ac_instance, pr_number, repo, target_branch):
     """
     AI 智能摘要：调用 LLM 对门禁结果生成自然语言分析，作为独立评论发布。
     仅在存在失败或告警项时触发；任何异常只记录 warning 日志，不影响门禁主流程。
 
     与 src/build/gitee_comment.py:_comment_ai_summary 保持一致（Action 入口版本）。
 
-    :param gitcode_proxy: GitcodeProxy 实例
+    :param atomgit_proxy: AtomgitProxy 实例
     :param ac_instance: AC 实例
     :param pr_number: PR 编号
     :param repo: 仓库名
@@ -159,7 +159,7 @@ def _comment_ai_summary(gitcode_proxy, ac_instance, pr_number, repo, target_bran
         if success and summary:
             ai_comment = "**PR门禁 AI 智能分析（仅供参考）**\n\n" + summary
             logger.info("[AI] ai summary generated, posting comment")
-            gitcode_proxy.comment_pr(pr_number, ai_comment)
+            atomgit_proxy.comment_pr(pr_number, ai_comment)
         else:
             logger.warning("[AI] LLM call failed or returned empty, skip comment")
 
@@ -244,7 +244,7 @@ def _upload_support_arch(base_dir):
 
 def main():
     """
-    GitCode Action 门禁主入口
+    AtomGit Action 门禁主入口
     """
     setup_action_logging("ac_action.log")
 
@@ -269,7 +269,7 @@ def main():
     run_number = ctx.run_number
     committer = ctx.committer
 
-    logger.info("==== GitCode Action 门禁启动 ====")
+    logger.info("==== AtomGit Action 门禁启动 ====")
     logger.info(
         "PR #%s, repo=%s, owner=%s, target_branch=%s", pr_number, repo, owner, target_branch
     )
@@ -297,13 +297,13 @@ def main():
     now = datetime.datetime.now(datetime.timezone.utc).astimezone().strftime("%Y-%m-%dT%H:%M:%S")
     dd.set_attr("pull_request.ctime", now)
     dd.set_attr("access_control.trigger.link", pr_url)
-    dd.set_attr("access_control.trigger.reason", "gitcode_action")
+    dd.set_attr("access_control.trigger.reason", "atomgit_action")
     # dist_dataset 内部 stime/ctime 运算基于 naive datetime，此处须剥离 tzinfo
     dd.set_attr_ctime("access_control.job.ctime",
                       datetime.datetime.now(datetime.timezone.utc).astimezone().replace(tzinfo=None))
 
-    # GitCode proxy（用于评论和标签）——用仓库实际 owner，不是 community
-    gp = GitcodeProxy(owner, repo, token)
+    # AtomGit proxy（用于评论和标签）——用仓库实际 owner，不是 community
+    gp = AtomgitProxy(owner, repo, token)
 
     # 标记门禁进行中
     try:
@@ -313,7 +313,7 @@ def main():
     except Exception as e:
         logger.warning("设置 ci_processing 标签失败: %s", e)
 
-    code_url = "https://gitcode.com"
+    code_url = "https://atomgit.com"
     pull_tag = "pull"
     common_args = {
         "pr_url": "{}/{}/{}/{}/{}".format(code_url, owner, repo, pull_tag, pr_number),
@@ -321,7 +321,7 @@ def main():
         "community": community,
         "pr_num": pr_number,
         "access_token": token,
-        "platform": "gitcode",
+        "platform": "atomgit",
     }
 
     # 下载被检查仓库的 PR 代码（与 Jenkins 入口 ac.py __main__ 保持一致）
@@ -333,7 +333,7 @@ def main():
     dd.set_attr_stime("access_control.scm.stime")
     git_proxy = GitProxy.init_repository(repo, work_dir=workspace)
     if not git_proxy or not git_proxy.fetch_pull_request(
-        repo_url, pr_number, depth=4, platform="gitcode"
+        repo_url, pr_number, depth=4, platform="atomgit"
     ):
         dd.set_attr("access_control.scm.result", "failed")
         dd.set_attr_etime("access_control.scm.etime")

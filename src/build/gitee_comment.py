@@ -736,7 +736,15 @@ class Comment(object):
                     continue
                 # 统一走 _match（此处 arch 已解析：Action 场景显式注入，Jenkins 场景从 name 解析）
                 matched, _ = self._match(arch, check_item_comment_file, arch)
-                if ACResult.get_instance(status) == SUCCESS and matched:  # 保证build状态成功
+                # Action 场景（arch 显式注入）：comment 文件与本次 run 的 artifact 同源，内容可信，
+                # 只要存在且匹配即读取——build 阶段聚合 rc 会因 install/license 失败而为 FAILURE，
+                # 但文件内仍含 build/install/license 明细，必须读取才能如实渲染
+                # （否则 install/license 行丢失，只剩一条 check_build FAILED）。
+                # 注：br_pipeline 原本就是 `if matched:`（无 SUCCESS 守卫），rebase 到 master 时
+                # 被解成 master 的旧守卫，导致 rc=1 时明细整体丢失（2026-09-22 回归）。
+                # Jenkins 场景：沿用原守卫，仅构建成功时读取（文件服务器上的文件可能为历史残留）。
+                trusted = bool(build.get("arch"))
+                if matched and (trusted or ACResult.get_instance(status) == SUCCESS):  # 保证build状态成功
                     matched_comment_file = True
                     with open(check_item_comment_file, "r") as data:
                         try:
