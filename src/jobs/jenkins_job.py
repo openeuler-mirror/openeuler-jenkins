@@ -68,12 +68,13 @@ class JenkinsJobs(object):
         logger.info("%s jobs %s", action, jobs)
         exclude_jobs_list = exclude_jobs if exclude_jobs else []
         if action == "create" and self._organization == "src-openeuler":
-            jobs_in_gitcode, jobs_in_github = self.get_real_target_jobs(target_jobs_dir, jobs, exclude_jobs_list, action)
-            logger.info("jobs_in_gitcode: %s, job_in_github:%s", jobs_in_gitcode, jobs_in_github)
+            jobs_in_atomgit, jobs_in_github = self.get_real_target_jobs(target_jobs_dir, jobs,
+                                                                        exclude_jobs_list, action)
+            logger.info("jobs_in_atomgit: %s, job_in_github:%s", jobs_in_atomgit, jobs_in_github)
             if self._platform == "github":
                 real_jobs = [os.path.join(target_jobs_dir, item) for item in jobs_in_github]
             else:
-                real_jobs = [os.path.join(target_jobs_dir, item) for item in jobs_in_gitcode]
+                real_jobs = [os.path.join(target_jobs_dir, item) for item in jobs_in_atomgit]
             logger.info("real_jobs:%s", real_jobs)
             logger.info("now %s %s jobs", action, len(real_jobs))
         else:
@@ -176,20 +177,20 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
     src-openEuler 仓库
     """
 
-    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, platform, gitcode_token):
+    def __init__(self, template_jobs_dir, template_job, jenkins_proxy, organization, platform, atomgit_token):
         super(SrcOpenEulerJenkinsJobs, self).__init__(template_jobs_dir, template_job, organization, platform, jenkins_proxy)
 
         self._platform = platform
-        self._all_community_jobs = self.get_all_repos(organization, gitcode_token)
+        self._all_community_jobs = self.get_all_repos(organization, atomgit_token)
         logger.info("%s exist %s jobs", organization, len(self._all_community_jobs))
         self._config_table = self.load_exclusive_soe_config(organization)
 
     @staticmethod
-    def get_all_repos(organization, gitcode_token):
+    def get_all_repos(organization, atomgit_token):
         """
         Get all repositories belong openeuler or src-openeuler through file directories
         :param organization: openeuler/src-openeuler
-        :param gitcode_token:
+        :param atomgit_token:
         :return: A list of all repositories
         """
         # download community repo
@@ -200,7 +201,7 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                 logger.error("%s", out)
                 return []
 
-        fetch_cmd = 'git clone -b master --depth 1 https://%s@gitcode.com/openeuler/community' % gitcode_token
+        fetch_cmd = 'git clone -b master --depth 1 https://%s@atomgit.com/openeuler/community' % atomgit_token
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
             logger.error("git fetch failed, %s", ret)
@@ -241,9 +242,9 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                                 jobs_in_github.append(repo_name)
                                 continue
 
-        jobs_in_gitcode = list(set(create_list).difference(set(jobs_in_github)))
-        logger.info("jobs_in_gitcode: %s, job_in_github:%s", jobs_in_gitcode, jobs_in_github)
-        return jobs_in_gitcode, jobs_in_github
+        jobs_in_atomgit = list(set(create_list).difference(set(jobs_in_github)))
+        logger.info("jobs_in_atomgit: %s, job_in_github:%s", jobs_in_atomgit, jobs_in_github)
+        return jobs_in_atomgit, jobs_in_github
 
     def get_real_target_jobs(self, target_jobs_dir, jobs, exclude_jobs, action):
         """
@@ -278,8 +279,8 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             exists_jobs_list2 = self._jenkins_proxy.get_jobs_list(target_jobs_dir2)
             logger.info("%s exist %s jobs", target_jobs_dir2, len(exists_jobs_list2))
             to_create_list = list(set(to_create_list).difference(set(exists_jobs_list2)))
-            jobs_in_gitcode, jobs_in_github = self.get_github_real_target_jobs(to_create_list)
-            return [jobs_in_gitcode, jobs_in_github]
+            jobs_in_atomgit, jobs_in_github = self.get_github_real_target_jobs(to_create_list)
+            return [jobs_in_atomgit, jobs_in_github]
         else:
             logger.debug("illegal action: %s", action)
             return []
@@ -432,7 +433,7 @@ if "__main__" == __name__:
     args.add_argument("-o", type=int, dest="jenkins_timeout", default=10, help="jenkins api timeout")
     args.add_argument("-u", type=str, dest="jenkins_user", help="jenkins user name")
     args.add_argument("-t", type=str, dest="jenkins_api_token", help="jenkins api token")
-    args.add_argument("--gitcode_token", type=str, dest="gitcode_token", help="gitcode token")
+    args.add_argument("--gitcode_token", type=str, dest="atomgit_token", help="atomgit token")
     args.add_argument("--jenkins_url", type=str, dest="jenkins_url", help="jenkins url")
     args.add_argument("-m", type=str, dest="template_job", help="template job name")
     args.add_argument("-s", type=str, dest="template_jobs_dir", help="jenkins dir of template job")
@@ -451,10 +452,10 @@ if "__main__" == __name__:
             "comment" in args.target_jobs_dir, args.action == "create"]):
         if args.organization == "src-openeuler":
             jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, 
-                    args.organization, args.platform, args.gitcode_token)
+                    args.organization, args.platform, args.atomgit_token)
         else:
             jenkins_jobs = OpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, args.organization,
-                    args.platform, args.gitcode_token)
+                    args.platform, args.atomgit_token)
         jenkins_jobs.run(args.action, args.target_jobs_dir, args.target_jobs, exclude_jobs=args.exclude_jobs,
                          concurrency=args.concurrency, retry=args.retry, interval=args.interval)
     else:

@@ -1,7 +1,7 @@
 # WittyHub 安全审计门禁（wittyhub_audit）
 
 该检查项**仅用于 `openEuler-skills` 仓库**：当有人向该仓库提交 PR 时，调用
-[wittyhub](https://gitcode.com/openeuler/wittyhub) 的
+[wittyhub](https://atomgit.com/openeuler/wittyhub) 的
 `POST /api/v1/skills/audit-by-url` 接口对 skill 内容做安全审计并评分，
 结果评论到 PR 上，作为合入门禁之一。
 
@@ -26,7 +26,7 @@
 另外两点健壮性说明：
 
 - **SSRF 防护**：门禁在 `git clone` 前校验仓库 URL 是否在白名单内的公开代码托管
-  域名（与 wittyhub `validate_git_url` 一致：仅允许 github.com / gitcode.com 等
+  域名（与 wittyhub `validate_git_url` 一致：仅允许 github.com / gitcode.com / atomgit.com 等
   公开域名、标准端口、非私网 IP，拒绝携带凭据/控制字符/编码路径穿越的 URL），
   防止 PR 提交者通过 skill.yaml 填入内网地址探测网络。
 - **斜杠分支回退**：仓库默认分支或 `skill_repos[].branch` 含 `/`（如

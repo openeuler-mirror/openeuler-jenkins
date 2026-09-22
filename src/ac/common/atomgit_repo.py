@@ -12,7 +12,7 @@
 # See the Mulan PSL v2 for more details.
 # Author: 
 # Create: 2025-11-19
-# Description: Gitcode api proxy
+# Description: AtomGit api proxy
 # ***********************************************************************************/
 """
 
@@ -25,7 +25,7 @@ from src.utils.shell_cmd import shell_cmd_live
 logger = logging.getLogger("ac")
 
 
-class GitcodeRepo(object):
+class AtomgitRepo(object):
     """
     analysis src-openeuler repo
     """
@@ -217,9 +217,9 @@ class GitcodeRepo(object):
         参数：文件名
         返回值：bool
         """
-        return GitcodeRepo.is_py_file(filename) \
-               or GitcodeRepo.is_go_file(filename) \
-               or GitcodeRepo.is_c_cplusplus_file(filename)
+        return AtomgitRepo.is_py_file(filename) \
+               or AtomgitRepo.is_go_file(filename) \
+               or AtomgitRepo.is_c_cplusplus_file(filename)
 
     @staticmethod
     def is_patch_file(filename):
@@ -237,7 +237,7 @@ class GitcodeRepo(object):
         参数：文件名
         返回值：bool
         """
-        return GitcodeRepo._is_compress_tar_file(filename) or GitcodeRepo._is_compress_zip_file(filename)
+        return AtomgitRepo._is_compress_tar_file(filename) or AtomgitRepo._is_compress_zip_file(filename)
 
     @staticmethod
     def _is_compress_zip_file(filename):

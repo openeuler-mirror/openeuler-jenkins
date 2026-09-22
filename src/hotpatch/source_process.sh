@@ -130,7 +130,7 @@ function get_patch(){
     cd $gitcodeRepoName
     if [[ ${openeuler_support} =~ ${gitcodeRepoName} ]]; then
         log_info "***********get openeuler pr patch file*********"
-        wget https://gitcode.com/$giteeTargetNamespace/kernel/pull/$gitcodePullRequestId.patch
+        wget https://atomgit.com/$giteeTargetNamespace/kernel/pull/$gitcodePullRequestId.patch
         patch_list="$gitcodePullRequestId.patch"
     else
         echo

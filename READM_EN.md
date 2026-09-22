@@ -4,9 +4,9 @@ English | [简体中文](./README-zh-cn.md)
 
 ## 1. Gating
 
-All openEuler community code is hosted on GitCode. To ensure code submission quality, when you submit a PR on GitCode, the gating system is automatically triggered to perform code style, build, installation, and interface change checks. The results of the gating checks are then returned in the PR comments, helping you identify issues and assisting maintainers in reviewing the code.
+All openEuler community code is hosted on AtomGit. To ensure code submission quality, when you submit a PR on AtomGit, the gating system is automatically triggered to perform code style, build, installation, and interface change checks. The results of the gating checks are then returned in the PR comments, helping you identify issues and assisting maintainers in reviewing the code.
 
-For the open-source gating code, see openeuler-jenkins on GitCode.
+For the open-source gating code, see openeuler-jenkins on AtomGit.
 
 ## 2. Gating Checks for src-openeuler
 
@@ -38,16 +38,16 @@ The basic gating checks include six items, as shown in Table 1. Interface change
 
 | Check Item                 | Description              | Main Code Location                                                |
 | ----------------------- | ---------------------- | ------------------------------------------------------------ |
-| check_binary_file       | Binary file check        | [check_binary_file.py] on GitCode|
-| check_package_license   | License compliance check     | [check_license.py], [check_openeuler_license.py], and [package_license.py] on GitCode|
-| check_package_yaml_file | YAML file format check      | [check_yaml.py] and [check_repo.py] on GitCode|
-| check_spec_file         | SPEC file format check      | [check_spec.py] on GitCode|
-| check_consistency       | Source code consistency check    | [check_consistency.py] on GitCode|
-| check_build             | Package build check                | [osc_build_k8s.py] on GitCode|
-| check_install           | Package installation verification| [extra_work.py] on GitCode|
-| compare_package         | Interface change check          | [compare_package.py] on GitCode|
+| check_binary_file       | Binary file check        | [check_binary_file.py] on AtomGit|
+| check_package_license   | License compliance check     | [check_license.py], [check_openeuler_license.py], and [package_license.py] on AtomGit|
+| check_package_yaml_file | YAML file format check      | [check_yaml.py] and [check_repo.py] on AtomGit|
+| check_spec_file         | SPEC file format check      | [check_spec.py] on AtomGit|
+| check_consistency       | Source code consistency check    | [check_consistency.py] on AtomGit|
+| check_build             | Package build check                | [osc_build_k8s.py] on AtomGit|
+| check_install           | Package installation verification| [extra_work.py] on AtomGit|
+| compare_package         | Interface change check          | [compare_package.py] on AtomGit|
 
-Additionally, the gating system currently supports selective configuration for some check items (check_code_style, check_package_license, check_package_yaml_file, and check_spec_file). The configuration file is stored in [ac.yaml] on GitCode. The code responsible for displaying PR output of check results is stored in [gitee_comment.py] on GitCode.
+Additionally, the gating system currently supports selective configuration for some check items (check_code_style, check_package_license, check_package_yaml_file, and check_spec_file). The configuration file is stored in [ac.yaml] on AtomGit. The code responsible for displaying PR output of check results is stored in [gitee_comment.py] on AtomGit.
 
 ### 2.5 Basic Checks Description
 
@@ -87,15 +87,15 @@ Additionally, the gating system currently supports selective configuration for s
 
 | Check Item               | Description                       | Main Code Location                                                |
 | --------------------- | ------------------------------- | ------------------------------------------------------------ |
-| check_code            | Coding specification check                   | [check_code.py] on GitCode|
-| check_package_license | Check the license validity.              | [check_license.py], [check_openeuler_license.py], and [package_license.py] on GitCode|
-| check_sca             | Code snippet scan                   | [check_sca.py] on GitCode|
+| check_code            | Coding specification check                   | [check_code.py] on AtomGit|
+| check_package_license | Check the license validity.              | [check_license.py], [check_openeuler_license.py], and [package_license.py] on AtomGit|
+| check_sca             | Code snippet scan                   | [check_sca.py] on AtomGit|
 | x86-64/*repository_name*        | Package build and post-build checks in x86-64 environment | Implemented by maintainers and not part of the gating code                              |
 | aarch64/*repository_name*       | Package build and post-build check in the AArch64 environment| Same as above                                                        |
 
-In addition, the access control system supports the optional configuration of check items (check_openlibing and check_sca). The configuration file is stored in [ac.yaml] on GitCode. The code responsible for displaying PR output of check results is stored in [gitee_comment.py] on GitCode.
+In addition, the access control system supports the optional configuration of check items (check_openlibing and check_sca). The configuration file is stored in [ac.yaml] on AtomGit. The code responsible for displaying PR output of check results is stored in [gitee_comment.py] on AtomGit.
 
-Currently, both [check_openlibing] and [check_sca] on GitCode rely on remote services for implementation.
+Currently, both [check_openlibing] and [check_sca] on AtomGit rely on remote services for implementation.
 
 # Q&A and False Positive Feedback for Gating Results
 
@@ -103,23 +103,23 @@ Currently, both [check_openlibing] and [check_sca] on GitCode rely on remote ser
 
 | Responsibility                                                      | Maintainer                                                   |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| Overall gating contact                                                | [wanghuan158] on GitCode|
-| community repository maintainers                                       | [georgecao], [liuqi469227928], and [dakang_siji] on GitCode|
-| obs_meta repository maintainer                                        | [dongjie110] on GitCode|
-| release_management repository maintainer                              | [dongjie110] on GitCode|
-| Maintainer of the single-repository gating of software packages                                      | [wanghuan158] and [MementoMoriCheng] on GitCode|
-| Infrastructure maintenance personnel (including OBS, GitCode, Jenkins basic services, as well as hardware and network)| [georgecao], [liuqi469227928], and [dakang_siji] on GitCode|
-| OBS project maintainer                                             | [wangchong1995924], [small_leek], and [dongjie110] on GitCode|
+| Overall gating contact                                                | [wanghuan158] on AtomGit|
+| community repository maintainers                                       | [georgecao], [liuqi469227928], and [dakang_siji] on AtomGit|
+| obs_meta repository maintainer                                        | [dongjie110] on AtomGit|
+| release_management repository maintainer                              | [dongjie110] on AtomGit|
+| Maintainer of the single-repository gating of software packages                                      | [wanghuan158] and [MementoMoriCheng] on AtomGit|
+| Infrastructure maintenance personnel (including OBS, AtomGit, Jenkins basic services, as well as hardware and network)| [georgecao], [liuqi469227928], and [dakang_siji] on AtomGit|
+| OBS project maintainer                                             | [wangchong1995924], [small_leek], and [dongjie110] on AtomGit|
 | Majun platform maintainer                                               | [openlibing@163.com](openlibing@163.com)                     |
 
 Notes:
 
 1. The code snippet scan (check_sca) and coding style check (check_code) in the single-repository gating of software packages are implemented by calling the Majun platform service.
-2. The maintainers of the single-repository gating of software packages serve as the point of contact for both openEuler and src-openeuler single-repository gating issues. For issues related to OBS or infrastructure services, the corresponding maintainers should be contacted. For common problems and solutions, see [Gating Troubleshooting Manual] on GitCode.
+2. The maintainers of the single-repository gating of software packages serve as the point of contact for both openEuler and src-openeuler single-repository gating issues. For issues related to OBS or infrastructure services, the corresponding maintainers should be contacted. For common problems and solutions, see [Gating Troubleshooting Manual] on AtomGit.
 
 ## 2. Gating Results
 
-If you have questions about the gating results or believe the results are inaccurate, you can report the issue to the responsible maintainer. We will resolve it as soon as possible. For issues that cannot be resolved quickly, you can submit an issue to [openeuler-jenkins](https://GitCode.com/openeuler/openeuler-jenkins) to track progress. After that, you can also report false positives through PR comments. Collecting these statistics helps us improve the gating system over time.
+If you have questions about the gating results or believe the results are inaccurate, you can report the issue to the responsible maintainer. We will resolve it as soon as possible. For issues that cannot be resolved quickly, you can submit an issue to [openeuler-jenkins](https://atomgit.com/openeuler/openeuler-jenkins) to track progress. After that, you can also report false positives through PR comments. Collecting these statistics helps us improve the gating system over time.
 
 Format for marking false positives in comments: **/ci_unmistake build_no** or **/ci_mistake build_no <mistake_type> <ci_mistake_stage>**
 
@@ -133,11 +133,11 @@ Notes:
 
 # Gating Code Release Process
 
-The release process for gating code consists of three steps in sequence: 1. Submit a PR to the gating code repository and have it merged (contact the maintainer). 2. Create a tag for the submission (contact the maintainer). 3. Update the container image (contact the gating personnel: [wanghuan158] and [MementoMoriCheng] on GitCode. In a few cases, the gating personnel need to modify the Jenkins configuration.
+The release process for gating code consists of three steps in sequence: 1. Submit a PR to the gating code repository and have it merged (contact the maintainer). 2. Create a tag for the submission (contact the maintainer). 3. Update the container image (contact the gating personnel: [wanghuan158] and [MementoMoriCheng] on AtomGit. In a few cases, the gating personnel need to modify the Jenkins configuration.
 
 ## 1. Submitting and Merging a PR
 
-The gating code is hosted at [openeuler-jenkins](https://GitCode.com/openeuler/openeuler-jenkins). Contact the maintainer to merge the code.
+The gating code is hosted at [openeuler-jenkins](https://atomgit.com/openeuler/openeuler-jenkins). Contact the maintainer to merge the code.
 
 ## 2. Generating a Tag
 
@@ -174,9 +174,9 @@ Some tasks may require customizing gating running nodes.
 
 ### 2.1 Basic Image Lacks Dependencies and Dependency Installation Is Time-Consuming at Runtime
 
-The gating container environment allows installing dependencies at runtime. For a small number of missing packages, it is advised to install them directly using the **sudo yum install -y xxx** command. If you need to install a large number of dependencies, submit a dockerfile to [openeuler-jenkins](https://GitCode.com/openeuler/openeuler-jenkins) on GitCode. The access control side reviews and integrates the dockerfile, creates an image, and then creates a running node.
+The gating container environment allows installing dependencies at runtime. For a small number of missing packages, it is advised to install them directly using the **sudo yum install -y xxx** command. If you need to install a large number of dependencies, submit a dockerfile to [openeuler-jenkins](https://atomgit.com/openeuler/openeuler-jenkins) on AtomGit. The access control side reviews and integrates the dockerfile, creates an image, and then creates a running node.
 
-For details about the dockerfile format, see release-tools-dockerfile on GitCode. Generally, you only need to modify the first two statements.
+For details about the dockerfile format, see release-tools-dockerfile on AtomGit. Generally, you only need to modify the first two statements.
 
 ```shell
 FROM swr.cn-north-4.myhuaweicloud.com/openeuler/openjdk/OPENJDK:TAG

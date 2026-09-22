@@ -8,7 +8,7 @@
 | --- | --- |
 | 编辑/调试门禁代码（`src/ac/framework/ac.py`、`src/ac/acl/*`） | Kafka / Elasticsearch / Jenkins 全栈编排（compose 不引入） |
 | 运行 `test/` 下离线 unittest（网络用例被 `ACCESS2INTERNET=False` 跳过） | 特权或 GPU 能力（`--privileged` / `--gpus=all`） |
-| 本地运行门禁 CLI 的语法级检查与试跑 | 门禁流水线端到端联调（依赖内网 gitee/gitcode/OBS 与真实凭据） |
+| 本地运行门禁 CLI 的语法级检查与试跑 | 门禁流水线端到端联调（依赖内网 gitee/atomgit/OBS 与真实凭据） |
 | ruff 检查、pre-commit（可选，见下文） | 生产部署/运行镜像（本配置只做开发环境） |
 
 ## 启动方式
@@ -51,7 +51,7 @@
    devcontainer 通过 dnf `python3-pyrpm` 提供。注意 PyPI 的 `pyrpm` 是另一个包（只含 `pyrpm.rpm`），
    不要用 pip 安装。建议后续在文档/依赖清单中补明对 `python3-pyrpm` 的依赖。
 2. **网络用例跳过**：`test/` 中依赖外网/内网服务的用例被 `ACCESS2INTERNET=False` 跳过，属预期。
-3. **完整门禁不可本地跑通**：CLI 会克隆 gitee/gitcode 仓库并调用 OBS/Jenkins/ES/Kafka/openlibing 等，容器只保证工具链一致，"容器化 ≠ 可运行"。
+3. **完整门禁不可本地跑通**：CLI 会克隆 gitee/atomgit 仓库并调用 OBS/Jenkins/ES/Kafka/openlibing 等，容器只保证工具链一致，"容器化 ≠ 可运行"。
 4. **spectool 未预装**：`check_consistency` 等检查需要 `spectool`，按需 `sudo dnf install -y rpmdevtools`。
 5. **Python 版本**：22.03 自带 Python 3.9；如需更新版本（如 3.11），把基础镜像换成 24.03-lts 并重新验证依赖兼容性。
 6. **存量坏测试**：`test/ac/acl/license` 与 `test/ac/acl/openlibing` 在干净环境必然失败

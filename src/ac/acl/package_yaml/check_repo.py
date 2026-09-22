@@ -501,16 +501,17 @@ class GiteeReleaseTags(GitReleaseTags):
         """
         return urlparse.urljoin("https://gitee.com/", repo) if repo else ""
 
-class GitcodeReleaseTags(GitReleaseTags):
+
+class AtomgitReleaseTags(GitReleaseTags):
     """
-    获取gitcode上游社区release tags
+    获取atomgit上游社区release tags
     """
     def url(self, repo):
         """
         通过src_repo生成url
         return: str
         """
-        return urlparse.urljoin("https://gitcode.com/", repo) if repo else ""
+        return urlparse.urljoin("https://atomgit.com/", repo) if repo else ""
 
 
 class GitlabReleaseTags(GitReleaseTags):
@@ -546,7 +547,7 @@ class ReleaseTagsFactory(object):
         "pypi": PypiReleaseTags,
         "rubygem": RubygemReleaseTags,
         "gitee": GiteeReleaseTags,
-        "gitcode": GitcodeReleaseTags,
+        "gitcode": AtomgitReleaseTags,
         "gnu-ftp": GnuftpReleaseTags,
         "ftp": FtpReleaseTags
     }

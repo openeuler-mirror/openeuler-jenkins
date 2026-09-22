@@ -45,7 +45,7 @@ def _mock_async_audit(mock_post, mock_get, result, build_number=42, poll_pending
 
 @contextmanager
 def _audit_ctx(check, discover=None):
-    """组合门禁审计测试通用 mock：env + requests.post/get + GitcodeProxy + discover.
+    """组合门禁审计测试通用 mock：env + requests.post/get + AtomgitProxy + discover.
 
     discover=None 表示 _discover_repo_skills 返回 None（回退整仓库审计），传列表则
     展开逐 skill；返回 (mock_post, mock_get, mock_gp)。
@@ -56,7 +56,7 @@ def _audit_ctx(check, discover=None):
         )
         mock_post = stack.enter_context(mock.patch("src.ac.acl.wittyhub_audit.check_wittyhub_audit.requests.post"))
         mock_get = stack.enter_context(mock.patch("src.ac.acl.wittyhub_audit.check_wittyhub_audit.requests.get"))
-        mock_gp = stack.enter_context(mock.patch("src.proxy.gitcode_proxy.GitcodeProxy"))
+        mock_gp = stack.enter_context(mock.patch("src.proxy.atomgit_proxy.AtomgitProxy"))
         stack.enter_context(mock.patch.object(check, "_discover_repo_skills", return_value=discover))
         yield mock_post, mock_get, mock_gp
 
@@ -690,7 +690,7 @@ def test_discover_rejects_non_whitelisted_url(tmp_path):
         mock.patch("src.ac.acl.wittyhub_audit.check_wittyhub_audit.requests.post") as mock_post,
         mock.patch("src.ac.acl.wittyhub_audit.check_wittyhub_audit.requests.get") as mock_get,
         mock.patch("src.ac.acl.wittyhub_audit.check_wittyhub_audit.subprocess.run") as mock_run,
-        mock.patch("src.proxy.gitcode_proxy.GitcodeProxy"),
+        mock.patch("src.proxy.atomgit_proxy.AtomgitProxy"),
     ):
         _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
         result = _run(check, diff_files=["community/sig-x/skill.yaml"])

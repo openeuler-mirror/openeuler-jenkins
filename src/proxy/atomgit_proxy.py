@@ -11,7 +11,7 @@
 # See the Mulan PSL v2 for more details.
 # Author:
 # Create: 2025-11-18
-# Description: gitcode api proxy
+# Description: atomgit api proxy
 # **********************************************************************************
 import logging
 
@@ -19,12 +19,13 @@ from src.proxy.requests_proxy import do_requests, RequestData
 
 logger = logging.getLogger("common")
 
-class GitcodeProxy(object):
+
+class AtomgitProxy(object):
     def __init__(self, owner, repo, token):
         self._owner = owner
         self._repo = repo
         self._token = token
-        self._base_url = "https://api.gitcode.com"
+        self._base_url = "https://api.atomgit.com"
 
     def comment_pr(self, pr, comment):
         """
@@ -129,7 +130,7 @@ class GitcodeProxy(object):
                 logger.debug("get last pr committer: %s", committer)
                 return committer
             except KeyError:
-                logger.exception("extract committer info from gitcode exception")
+                logger.exception("extract committer info from atomgit exception")
         return None
 
     def get_issue(self, cve_issue, enterprises="open_euler"):
@@ -163,7 +164,7 @@ class GitcodeProxy(object):
         :return: 请求response
         """
         resp = {}
-        issue_url = "https://api.gitcode.com/api/v5/repos/{}/issues".format(owner)
+        issue_url = "https://api.atomgit.com/api/v5/repos/{}/issues".format(owner)
 
         rs = do_requests("post", issue_url, RequestData(body=data, timeout=10, obj=resp))
         if rs != 0:
@@ -186,7 +187,7 @@ class GitcodeProxy(object):
         :return: 请求response
         """
         resp = {}
-        issue_url = "https://api.gitcode.com/api/v5/repos/{}/issues/{}".format(owner, number)
+        issue_url = "https://api.atomgit.com/api/v5/repos/{}/issues/{}".format(owner, number)
 
         rs = do_requests("patch", issue_url, RequestData(body=data, timeout=10, obj=resp))
         if rs != 0:

@@ -21,7 +21,7 @@ import os
 import shutil
 
 from src.ac.acl.package_license.package_license import PkgLicense
-from src.ac.common.gitcode_repo import GitcodeRepo
+from src.ac.common.atomgit_repo import AtomgitRepo
 from src.ac.common.rpm_spec_adapter import RPMSpecAdapter
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, WARNING, SUCCESS, ACResult
@@ -40,7 +40,7 @@ class CheckLicense(BaseCheck):
 
         self._gp = GitProxy(self._work_dir)
         self._work_tar_dir = os.path.join(workspace, "code")
-        self._gr = GitcodeRepo(self._repo, self._work_dir, self._work_tar_dir)
+        self._gr = AtomgitRepo(self._repo, self._work_dir, self._work_tar_dir)
         if self._gr.spec_file:
             self._spec = RPMSpecAdapter(os.path.join(self._work_dir, self._gr.spec_file))
         else:

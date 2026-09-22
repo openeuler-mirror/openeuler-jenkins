@@ -31,7 +31,7 @@ from html import escape as html_escape
 import yaml
 from yaml.error import YAMLError
 from src.ac.framework.ac_result import ACResult, SUCCESS
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
@@ -180,16 +180,16 @@ class Comment(object):
         return html_str
 
     @staticmethod
-    def get_target_milestone_id(gitcode_proxy, branch):
+    def get_target_milestone_id(atomgit_proxy, branch):
         """
         获取pr提交分支对应的milestone id
         @committer
-        :param gitcode_proxy:
+        :param atomgit_proxy:
         :param branch: pr branch名称
         :return:
         """
         title = branch + '-whole'
-        milestones = gitcode_proxy.get_milestone_id()
+        milestones = atomgit_proxy.get_milestone_id()
         for milestone_info in milestones:
             query_title = milestone_info['title']
             if query_title == title:
@@ -197,11 +197,11 @@ class Comment(object):
 
         return False
 
-    def comment_build(self, gitcode_proxy):
+    def comment_build(self, atomgit_proxy):
         """
         构建结果
         :param jenkins_proxy:
-        :param gitcode_proxy:
+        :param atomgit_proxy:
         :return:
         """
         comments = self._comment_build_html_format()
@@ -211,19 +211,19 @@ class Comment(object):
             if item.get("name") == "check_lfsconfig" and item.get("result") == 2:
                 comments.append(
                     '<p>LFS配置文件有错误，请参考文档的要求进行修复： '
-                    '<a href="https://gitcode.com/openeuler/community/blob/master/zh/contributors/git-lfs.md">'
+                    '<a href="https://atomgit.com/openeuler/community/blob/master/zh/contributors/git-lfs.md">'
                     'git-lfs.md</a></p>'
                 )
                 break
 
-        gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
+        atomgit_proxy.comment_pr(self._pr, "\n".join(comments))
 
         # AI 智能摘要（独立评论，失败不影响主流程）
-        self._comment_ai_summary(gitcode_proxy, acl)
+        self._comment_ai_summary(atomgit_proxy, acl)
 
         return "\n".join(comments)
 
-    def _comment_ai_summary(self, gitcode_proxy, acl):
+    def _comment_ai_summary(self, atomgit_proxy, acl):
         """
         AI 智能摘要：调用 LLM 对门禁结果生成自然语言分析。
         作为独立评论发布，任何异常只记录 warning 日志，不影响门禁主流程。
@@ -262,23 +262,23 @@ class Comment(object):
             if success and summary:
                 ai_comment = "**PR门禁 AI 智能分析（仅供参考）**\n\n" + summary
                 logger.info("[AI] ai summary generated, posting comment")
-                gitcode_proxy.comment_pr(self._pr, ai_comment)
+                atomgit_proxy.comment_pr(self._pr, ai_comment)
             else:
                 logger.warning("[AI] LLM call failed or returned empty, skip comment")
 
         except Exception as e:
             logger.warning("[AI] AI summary failed (non-critical): %s", e)
 
-    def comment_compare_package_details(self, gitcode_proxy, check_result_file, tbranch):
+    def comment_compare_package_details(self, atomgit_proxy, check_result_file, tbranch):
         """
         compare package结果上报
 
-        :param gitcode_proxy:
+        :param atomgit_proxy:
         :param check_result_file:
         :return:
         """
         comments = self._comment_of_compare_package_details(check_result_file, tbranch)
-        gitcode_proxy.comment_pr(self._pr, "\n".join(comments))
+        atomgit_proxy.comment_pr(self._pr, "\n".join(comments))
 
         return "\n".join(comments)
 
@@ -321,15 +321,15 @@ class Comment(object):
         else:
             logger.info(f"Not found the branch {branch} related milestone")
 
-    def comment_at(self, committer, gitcode_proxy):
+    def comment_at(self, committer, atomgit_proxy):
         """
         通知committer
         @committer
         :param committer:
-        :param gitcode_proxy:
+        :param atomgit_proxy:
         :return:
         """
-        gitcode_proxy.comment_pr(self._pr, "@{}".format(committer))
+        atomgit_proxy.comment_pr(self._pr, "@{}".format(committer))
 
     def get_target_pr_data(self, gp, pr_id):
         """
@@ -969,9 +969,9 @@ def init_args():
     parser.add_argument("-p", type=int, dest="pr", help="pull request number")
     parser.add_argument("-m", type=str, dest="comment_id", help="uniq comment id")
     parser.add_argument("-c", type=str, dest="committer", help="commiter")
-    parser.add_argument("-o", type=str, dest="owner", help="gitcode owner")
+    parser.add_argument("-o", type=str, dest="owner", help="atomgit owner")
     parser.add_argument("-r", type=str, dest="repo", help="repo name")
-    parser.add_argument("-t", type=str, dest="gitcode_token", help="gitcode api token")
+    parser.add_argument("-t", type=str, dest="atomgit_token", help="atomgit api token")
 
     parser.add_argument("-b", type=str, dest="jenkins_base_url", default="https://ci.openeuler.openatom.cn/",
                         help="jenkins base url")
@@ -1006,11 +1006,11 @@ if "__main__" == __name__:
 
     # gitee pr tag
     if args.platform == "github":
-        gp = GithubProxy(args.owner, args.repo, args.gitcode_token)
+        gp = GithubProxy(args.owner, args.repo, args.atomgit_token)
     elif args.platform == "gitee":
-        gp = GiteeProxy(args.owner, args.repo, args.gitcode_token)
+        gp = GiteeProxy(args.owner, args.repo, args.atomgit_token)
     else:
-        gp =GitcodeProxy(args.owner, args.repo, args.gitcode_token)
+        gp = AtomgitProxy(args.owner, args.repo, args.atomgit_token)
     gp.delete_tag_of_pr(args.pr, "ci_processing")
 
     jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)

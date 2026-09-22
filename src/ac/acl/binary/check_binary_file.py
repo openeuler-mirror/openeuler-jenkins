@@ -20,7 +20,7 @@ import logging
 
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import WARNING, SUCCESS, ACResult
-from src.ac.common.gitcode_repo import GitcodeRepo
+from src.ac.common.atomgit_repo import AtomgitRepo
 from src.proxy.git_proxy import GitProxy
 from pyrpm.spec import Spec, replace_macros
 
@@ -39,7 +39,7 @@ class CheckBinaryFile(BaseCheck):
     def __init__(self, workspace, repo, conf):
         super(CheckBinaryFile, self).__init__(workspace, repo, conf)
         self._work_tar_dir = os.path.join(workspace, "code")  # 解压缩目标目录
-        self._gr = GitcodeRepo(self._repo, self._work_dir, self._work_tar_dir)
+        self._gr = AtomgitRepo(self._repo, self._work_dir, self._work_tar_dir)
         self._tarball_in_spec = set()
         self._upstream_community_tarball_in_spec()
         self._gp = GitProxy(self._work_dir)
@@ -62,7 +62,7 @@ class CheckBinaryFile(BaseCheck):
 
     def check_pr_files(self):
         """
-        通过 Gitcode API 获取本次 PR 的变更文件列表，检查是否包含二进制文件。
+        通过 AtomGit API 获取本次 PR 的变更文件列表，检查是否包含二进制文件。
         """
         diff_files = self.get_pr_changed_files()
         if diff_files is None:

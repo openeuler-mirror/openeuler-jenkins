@@ -24,7 +24,7 @@ from src.constant import Constant
 from src.logger import logger
 from src.utils.file_operator import FileOperator
 from src.utils.shell_cmd import shell_cmd_live
-from src.proxy.gitcode_proxy import GitcodeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 
 
 class OemakerAnalyse(object):
@@ -112,12 +112,12 @@ class OemakerAnalyse(object):
         return deny_dict
 
     @staticmethod
-    def get_deny_delete_list(branch, arch, gitcode_token, oecp_json_path):
+    def get_deny_delete_list(branch, arch, atomgit_token, oecp_json_path):
         """
         获取oecp删除包列表中被禁止删除的包列表
         :param branch: 分支
         :param arch: 架构
-        :param gitcode_token: gitcode token
+        :param atomgit_token: atomgit token
         :param oecp_json_path: oecp结果文件
         :return: list
         """
@@ -148,7 +148,8 @@ class OemakerAnalyse(object):
         if branch.startswith("Multi-Version"):
             branch = "openEuler" + branch.split("openEuler")[-1]
 
-        fetch_cmd = 'git clone -b {} --depth 1 https://{}@gitcode.com/src-openeuler/oemaker'.format(branch, gitcode_token)
+        fetch_cmd = 'git clone -b {} --depth 1 ' \
+                    'https://{}@atomgit.com/src-openeuler/oemaker'.format(branch, atomgit_token)
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
             logger.error("git fetch failed, %s\n%s", ret, out)
@@ -180,7 +181,7 @@ if "__main__" == __name__:
     parser.add_argument("--oecp_json_path", type=str, dest="oecp_json_path", help="oecp_json_path")
     parser.add_argument("--owner", type=str, dest="owner", help="owner")
     parser.add_argument("--repo", type=str, dest="repo", help="repo")
-    parser.add_argument("--gitcode_token", type=str, dest="gitcode_token", help="gitcode_token")
+    parser.add_argument("--atomgit_token", type=str, dest="atomgit_token", help="atomgit_token")
     parser.add_argument("--prid", type=str, dest="prid", help="prid")
 
     args = parser.parse_args()
@@ -188,12 +189,12 @@ if "__main__" == __name__:
     logger.info("check oemaker rpm-delete start")
 
     deny_delete_list = OemakerAnalyse.get_deny_delete_list(args.branch, args.arch,
-                                                           args.gitcode_token, args.oecp_json_path)
+                                                           args.atomgit_token, args.oecp_json_path)
     if not deny_delete_list:
         logger.info("check oemaker rpm-delete pass")
     else:
         logger.info("check oemaker rpm-delete not pass")
-        gp = GitcodeProxy(args.owner, args.repo, args.gitcode_token)
+        gp = AtomgitProxy(args.owner, args.repo, args.atomgit_token)
         gp.comment_pr(args.prid, "Forbidden delete rpm(s) {} in {}, which is/are list in oemaker. "
                                  "You should contact sig-release before merge this pull request.".format(
             ", ".join(deny_delete_list), args.arch))

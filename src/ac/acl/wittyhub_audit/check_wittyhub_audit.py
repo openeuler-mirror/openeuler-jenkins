@@ -56,7 +56,7 @@ class CheckWittyhubAudit(BaseCheck):
     # 与 wittyhub validate_git_url 白名单一致：仅允许公开代码托管域名，clone 前先校验防 SSRF
     ALLOWED_GIT_HOSTS = frozenset({
         "github.com", "gitlab.com", "bitbucket.org", "gitea.io",
-        "gitee.com", "gitcode.com", "codeberg.org", "git.sr.ht",
+        "gitee.com", "gitcode.com", "atomgit.com", "codeberg.org", "git.sr.ht",
     })
     # 与 skillcrawler.should_skip_relative_path 一致：跳过样本/模板/测试/文档目录
     SKIP_SAMPLE_DIRS = frozenset({
@@ -511,8 +511,8 @@ class CheckWittyhubAudit(BaseCheck):
         result = {}
         pr_files = []
         try:
-            from src.proxy.gitcode_proxy import GitcodeProxy
-            files = GitcodeProxy(self._community, self._repo, self._access_token).get_pr_files(self._pr_num) or []
+            from src.proxy.atomgit_proxy import AtomgitProxy
+            files = AtomgitProxy(self._community, self._repo, self._access_token).get_pr_files(self._pr_num) or []
             if isinstance(files, list):
                 pr_files = files
         except Exception as exc:
@@ -525,7 +525,7 @@ class CheckWittyhubAudit(BaseCheck):
             name = f.get("filename") or ""
             raw_patch = f.get("patch")
             if isinstance(raw_patch, dict):
-                patch = raw_patch.get("diff") or ""  # GitCode 返回 {"diff": "<unified diff>"}
+                patch = raw_patch.get("diff") or ""  # AtomGit 返回 {"diff": "<unified diff>"}
             elif isinstance(raw_patch, str):
                 patch = raw_patch
             else:
@@ -602,10 +602,10 @@ class CheckWittyhubAudit(BaseCheck):
         return body
 
     def _pr_head(self):
-        """获取 PR 头分支的仓库 URL 与 ref（GitCode PR 信息）。"""
+        """获取 PR 头分支的仓库 URL 与 ref（AtomGit PR 信息）。"""
         try:
-            from src.proxy.gitcode_proxy import GitcodeProxy
-            info = GitcodeProxy(self._community, self._repo, self._access_token).get_pr_info(self._pr_num) or {}
+            from src.proxy.atomgit_proxy import AtomgitProxy
+            info = AtomgitProxy(self._community, self._repo, self._access_token).get_pr_info(self._pr_num) or {}
         except Exception as exc:
             logger.warning("get pr info failed: %s", exc)
             return "", ""
@@ -616,9 +616,9 @@ class CheckWittyhubAudit(BaseCheck):
         if not html_url:
             full_name = repo.get("full_name") or ""
             if full_name:
-                html_url = "https://gitcode.com/{}".format(full_name)
+                html_url = "https://atomgit.com/{}".format(full_name)
         if not html_url:
-            html_url = "https://gitcode.com/{}/{}".format(self._community, self._repo)  # 同仓库 PR 时用目标仓库兜底
+            html_url = "https://atomgit.com/{}/{}".format(self._community, self._repo)  # 同仓库 PR 时用目标仓库兜底
         return html_url, ref
 
     def _headers(self):
@@ -743,8 +743,8 @@ class CheckWittyhubAudit(BaseCheck):
     def _comment_skip(self, count):
         """目标数超过上限时评论：不做自动化安全审计，请人工审核。"""
         try:
-            from src.proxy.gitcode_proxy import GitcodeProxy
-            gitcode_proxy = GitcodeProxy(self._community, self._repo, self._access_token)
+            from src.proxy.atomgit_proxy import AtomgitProxy
+            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
         except Exception as exc:
             logger.warning("comment pr failed: %s", exc)
             return
@@ -753,12 +753,12 @@ class CheckWittyhubAudit(BaseCheck):
             "本次 PR 涉及 {} 个 skill，超过单次审计目标上限（{} 个），"
             "本次不做安全审计，请人工审核。".format(count, self.MAX_TARGETS)
         )
-        gitcode_proxy.comment_pr(self._pr_num, body)
+        atomgit_proxy.comment_pr(self._pr_num, body)
 
     def _comment_summary(self, audits, failed_details, block_hit, warn_hit):
         try:
-            from src.proxy.gitcode_proxy import GitcodeProxy
-            gitcode_proxy = GitcodeProxy(self._community, self._repo, self._access_token)
+            from src.proxy.atomgit_proxy import AtomgitProxy
+            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
         except Exception as exc:
             logger.warning("comment pr failed: %s", exc)
             return
@@ -816,7 +816,7 @@ class CheckWittyhubAudit(BaseCheck):
         body = "\n".join(lines)
         if len(body) > self.MAX_COMMENT_CHARS:
             body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
-        gitcode_proxy.comment_pr(self._pr_num, body)
+        atomgit_proxy.comment_pr(self._pr_num, body)
 
     @staticmethod
     def _escape_table_cell(value):

@@ -16,7 +16,7 @@ English | [简体中文](./README.md)
 
 #### trigger
 
-- GitCode triggering
+- AtomGit triggering
 - The gating task is executed at the same time. The CPU architecture is not limited. If the task fails, the task is stopped and a comment is added to the PR.
 - Parameters are successfully transferred to the downstream **job**.
   - Project name (**repo**)
@@ -28,12 +28,12 @@ English | [简体中文](./README.md)
 
 - The x86_64 and AArch64 architectures are supported.
 - Triggered after the trigger task is successful.
-- Run the osc_build_k8s.py on GitCode for building.
+- Run the osc_build_k8s.py on AtomGit for building.
 
 #### comment
 
 - Collect the gating and build results.
-- Call the API [**Submit a comment on the pull request**] to send the result to GitCode.
+- Call the API [**Submit a comment on the pull request**] to send the result to AtomGit.
 - The CPU architecture is not limited.
 
 ## Creating a Jenkins/obs image

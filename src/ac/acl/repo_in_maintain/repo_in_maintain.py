@@ -39,7 +39,7 @@ class CheckRepoInMaintain(BaseCheck):
         return self.start_check_with_order("repo_in_maintain")
 
     def load_yml(self):
-        base_url = "https://api.gitcode.com/api/v5/repos/openeuler/release-management/raw"
+        base_url = "https://api.atomgit.com/api/v5/repos/openeuler/release-management/raw"
         url = f"{base_url}/{self._branch}/delete/pckg-mgmt.yaml?access_token={self._token}"
 
         response = requests.get(url)
