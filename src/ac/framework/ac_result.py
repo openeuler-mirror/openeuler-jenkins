@@ -60,6 +60,8 @@ class ACResult(object):
         :param val: 0/1/2/3/True/False/success/fail/warn
         :return: instance of ACResult
         """
+        if val is None:
+            return FAILED
         if isinstance(val, int):
             return {0: SUCCESS, 1: WARNING, 2: FAILED, 3: EXCLUDE}.get(val)
         if isinstance(val, bool):

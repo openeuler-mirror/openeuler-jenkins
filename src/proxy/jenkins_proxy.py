@@ -140,6 +140,7 @@ class JenkinsProxy(object):
             logger.exception("get job build exception, %s", e)
             return None
 
+
     @staticmethod
     def get_build_trigger_reason(build_info):
         """
@@ -147,16 +148,25 @@ class JenkinsProxy(object):
         :param build_info: 当前任务构建信息
         :return: None if cause build not exist
         """
+        if not build_info or not isinstance(build_info, dict):
+            return None, None, None
         causes = []
-        for action in build_info["actions"]:
-            if action["_class"] == "hudson.model.CauseAction":
-                causes = action["causes"]
+        for action in build_info.get("actions", []):
+            if not isinstance(action, dict):
+                continue
+            if action.get("_class") == "hudson.model.CauseAction":
+                causes = action.get("causes", [])
                 break
         for cause in causes:
-            if cause["_class"] == "hudson.model.Cause$UpstreamCause":
-                cause_description = cause["shortDescription"]
-                cause_job_path = cause["upstreamProject"]
-                cause_build_no = int(cause["upstreamBuild"])
+            if not isinstance(cause, dict):
+                continue
+            if cause.get("_class") == "hudson.model.Cause$UpstreamCause":
+                cause_description = cause.get("shortDescription")
+                cause_job_path = cause.get("upstreamProject")
+                try:
+                    cause_build_no = int(cause.get("upstreamBuild"))
+                except (TypeError, ValueError):
+                    cause_build_no = None
                 return cause_description, cause_job_path, cause_build_no
         return None, None, None
 
