@@ -23,8 +23,9 @@ AtomGit Action 门禁最终汇总脚本（ci-final job 入口）
 
 判定规则：ci_successful 要求 AC（gate）与各架构 build / install / license 全部通过，
 即 gate.result / build.result 均为 success（matrix job 任一架构实例失败即 failure；
-job 退出码即聚合结果，compare 不纳入统计；AC 的 warning/exclude 不计失败）。
-否则判定 ci_failed。
+job 退出码即聚合结果，compare 不纳入统计；AC 的 warning/exclude 不计失败）；
+启用 64k 变体的仓（kernel）额外要求 build-64k.result 为 success，未启用的仓该 job
+为 skipped，按通过处理。否则判定 ci_failed。
 
 本脚本只做最终标签与 @committer，故从 ci-final 的 jobs.<job_id>.result 读取各 job 结果
 """
@@ -59,14 +60,17 @@ def main():
     committer = ctx.committer
     gate_result = os.environ.get("ACTION_GATE_RESULT", "")
     build_result = os.environ.get("ACTION_BUILD_RESULT", "")
+    # 64k 变体 job：仅 kernel 等启用仓存在；未启用仓为 skipped（或平台未回填空串），按通过处理
+    build_64k_result = os.environ.get("ACTION_BUILD_64K_RESULT", "")
 
     logger.info("==== AtomGit Action 门禁最终汇总启动 ====")
-    logger.info("PR #%s, repo=%s, gate=%s, build=%s",
-                pr_number, repo, gate_result, build_result)
+    logger.info("PR #%s, repo=%s, gate=%s, build=%s, build-64k=%s",
+                pr_number, repo, gate_result, build_result, build_64k_result)
 
     gp = AtomgitProxy(owner, repo, token)
 
-    if gate_result == "success" and build_result == "success":
+    build_64k_ok = build_64k_result in ("success", "skipped", "")
+    if gate_result == "success" and build_result == "success" and build_64k_ok:
         final_state = "ci_successful"
     else:
         final_state = "ci_failed"
