@@ -484,14 +484,14 @@ class Comment(object):
                 detail_display = "<br/>".join(["&#8226; " + html_escape(d) for d in item["details"]])
 
             if index == 0:
-                build_url = build["url"]
+                build_url = JenkinsProxy.get_log_url_from_job_url(build["url"])
                 comments.append(self.__class__.comment_html_table_tr(
                     TableRowData(
                         name=item["name"],
                         detail=detail_display,
                         icon=ac_result.emoji,
                         status=ac_result.hint,
-                        href="{}{}".format(build_url, "console"),
+                        href=build_url,
                         build_no=build["number"],
                         rowspan=len(acl)
                     )))
@@ -561,7 +561,8 @@ class Comment(object):
                                         "<td>{}<strong>{}</strong></td> <td rowspan={}><a href={}>{}{}</a></td></tr>"
                                         .format(len(compare_details), arch_name, check_item, "<br>".join(rpm_name),
                                                 compare_result.emoji, compare_result.hint, len(compare_details),
-                                                "{}{}".format(build["url"], "console"), "#", build["number"]))
+                                                JenkinsProxy.get_log_url_from_job_url(build["url"]),
+                                                "#", build["number"]))
                     else:
                         comments.append("<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td></tr>".format(
                             check_item, "<br>".join(rpm_name), compare_result.emoji, compare_result.hint))
@@ -640,7 +641,8 @@ class Comment(object):
                 split_details_content = json.dumps(recomponent_detail, indent=4)
                 file_content = "<br>".join(split_details_content.split("\n")[:20])
                 detail_comments.append(
-                    f"<tr><td>{arch_name}</td><td>{file_content}<br><a href={build['url']}/console>......</a></td>"
+                    f"<tr><td>{arch_name}</td><td>{file_content}<br>"
+                    f"<a href={JenkinsProxy.get_log_url_from_job_url(build['url'])}>......</a></td>"
                     f"<td><a href={url.replace('replace__arch', arch_name)}>#details-{arch_name}</a></td>")
 
         logger.info(f"compare package comment: \n {comments}")
@@ -828,7 +830,7 @@ class Comment(object):
         comments.append("<tr><td rowspan={}>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> <td></td> " \
                         "<td rowspan={}><a href={}>#{}</a></td></tr>".format(
             item_num, arch, "check_build", ac_result.emoji, ac_result.hint, item_num,
-            "{}{}".format(build["url"], "console"), build["number"]))
+            JenkinsProxy.get_log_url_from_job_url(build["url"]), build["number"]))
         arch_dict["check_build"] = ac_result.hint
 
         if ac_result.hint == "EXCLUDE":

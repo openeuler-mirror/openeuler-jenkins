@@ -32,6 +32,8 @@ class JenkinsProxy(object):
     Jenkins 代理，实现常见的jenkins操作
     """
 
+    LOG_JENKINS_BASE_URL = "https://log-ci.openeuler.openatom.cn"
+
     def __init__(self, base_url, username, token, timeout=10):
         """
 
@@ -176,6 +178,21 @@ class JenkinsProxy(object):
         sp = [item for item in sp if item != ""]
         job_path = "/".join(sp)
         return job_path
+
+    @classmethod
+    def get_log_url_from_job_url(cls, job_url):
+        """
+        从jenkins job/build url生成日志服务url（log-ci域名，路径压平，即去掉第一个job以外的job层级关键字）
+        :param job_url: 当前工程或构建url, for example https://domain/job/A/job/B/job/C/
+                        或 https://domain/job/A/job/B/job/C/1/
+        :return: for example, https://log-ci.openeuler.openatom.cn/job/A/B/C/
+                 或 https://log-ci.openeuler.openatom.cn/job/A/B/C/1/
+        """
+        url = re.sub(r"/$", "", job_url)
+        last_seg = url.rsplit("/", 1)[-1]
+        build_no = "/" + last_seg if last_seg.isdigit() else ""
+        job_path = cls.get_job_path_from_job_url(job_url)
+        return "{}/job/{}{}/".format(cls.LOG_JENKINS_BASE_URL, job_path, build_no)
 
     @staticmethod
     def get_job_path_build_no_from_build_url(build_url):
