@@ -80,8 +80,9 @@ class AC(object):
         trigger_build_id = os.environ.get("BUILD_ID")
         trigger_job_info = jp.get_job_info(trigger_job_name)
         trigger_job_url = trigger_job_info.get("url")
-        comments.append("门禁入口及编码规范检查: <a href={}/{}/console>{}/{}/console</a>".format(
-            trigger_job_url, trigger_build_id, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
+        log_job_url = jp.get_log_url_from_job_url(trigger_job_url)
+        comments.append("门禁入口及编码规范检查: <a href={}{}/>{}/{}</a>".format(
+            log_job_url, trigger_build_id, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
 
         gp.comment_pr(pr, "\n".join(comments))
 
