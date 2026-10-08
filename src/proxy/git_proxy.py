@@ -17,9 +17,9 @@
 """
 
 import os
+import time
 import logging
 from io import StringIO
-import retrying
 
 from src.utils.shell_cmd import shell_cmd_live
 
@@ -56,16 +56,28 @@ class GitProxy(object):
 
         return cls(repo_dir)
 
-    @retrying.retry(retry_on_result=lambda result: result is False,
-                    stop_max_attempt_number=3, wait_fixed=2)
     def fetch_pull_request(self, url, pull_request, depth=1, platform="gitcode", progress=False):
         """
         fetch pr
         :param url: 仓库地址
         :param pull_request: pr编号
         :param depth: 深度
+        :param platform: 平台标识
         :param progress: 展示进度
-        :return:
+        :return: bool，重试后仍失败返回 False，不抛异常
+        """
+        for attempt in range(1, 4):
+            if self._fetch_pull_request_once(url, pull_request, depth, platform, progress):
+                return True
+            if attempt < 3:
+                time.sleep(2)
+
+        return False
+
+    def _fetch_pull_request_once(self, url, pull_request, depth, platform, progress):
+        """
+        单次 fetch pr
+        :return: bool
         """
         # gitcode 为历史平台标识，atomgit 与 gitcode 同平台同 refs 规范
         if platform in ("gitcode", "atomgit"):
