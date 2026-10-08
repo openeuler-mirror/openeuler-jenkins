@@ -473,36 +473,36 @@ class Comment(object):
         self._trigger_builds = jenkins_proxy.get_upstream_builds(base_build)
 
     @staticmethod
-    def _parse_arch_from_url(url):
+    def _parse_arch_from_url(job_url):
         """
         从 job URL 中解析架构标识，映射关系与 _comment_of_check_item 保持一致：
         x86-64(目录) -> x86_64(展示)，aarch64+64k -> aarch64_64k。
-        :param url: job url, e.g. https://ci.openeuler.openatom.cn/job/multiarch/job/openeuler/job/x86-64/job/foo/
+        :param job_url: job url, e.g. https://ci.openeuler.openatom.cn/job/multiarch/job/openeuler/job/x86-64/job/foo/
         :return: "x86_64" / "aarch64_64k" / "aarch64" / "riscv64" / None（非 arch 构建任务返回 None）
         """
-        if "x86-64" in url or "x86_64" in url:
+        if "x86-64" in job_url or "x86_64" in job_url:
             return "x86_64"
-        if "64k" in url and "aarch64" in url:
+        if "64k" in job_url and "aarch64" in job_url:
             return "aarch64_64k"
-        if "aarch64" in url:
+        if "aarch64" in job_url:
             return "aarch64"
-        if "riscv64" in url:
+        if "riscv64" in job_url:
             return "riscv64"
         return None
 
     @staticmethod
-    def _parse_job_label_from_url(url, project_name=""):
+    def _parse_job_label_from_url(job_url, project_name=""):
         """
         从 job URL 中解析任务标签（用于评论显示和追踪）。
         arch 构建任务返回架构名；其他任务（如 pre-commit）返回 job path 中的标识。
-        :param url: job url
+        :param job_url: job url
         :param project_name: Jenkins downstreamProjects 中的 name 字段
         :return: 标签字符串，如 "x86_64" / "aarch64" / "pre-commit"
         """
-        arch = Comment._parse_arch_from_url(url)
+        arch = Comment._parse_arch_from_url(job_url)
         if arch:
             return arch
-        job_path = JenkinsProxy.get_job_path_from_job_url(url)
+        job_path = JenkinsProxy.get_job_path_from_job_url(job_url)
         parts = [p for p in job_path.split("/") if p]
         if len(parts) >= 2:
             return parts[-2]
