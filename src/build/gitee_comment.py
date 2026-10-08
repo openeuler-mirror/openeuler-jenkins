@@ -511,24 +511,47 @@ class Comment(object):
         return job_path
 
     @staticmethod
-    def _find_build_by_upstream(jenkins_proxy, arch_job_path, trigger_job_path, trigger_build_no):
+    def _find_build_by_upstream(jenkins_proxy, arch_job_path, trigger_job_path, trigger_build_no,
+                                trigger_timestamp=None):
         """
-        在 arch_job_path 的最近构建中查找由指定 trigger build 触发的那次构建
+        在 arch_job_path 的构建中查找由指定 trigger build 触发的那次构建。
+        从新到旧遍历：目标构建必然在 trigger 启动之后才开始，提供了 trigger_timestamp 时
+        遇到早于 trigger 启动时间的构建即可终止；trigger_timestamp 为空时全量扫描。
+        :param trigger_timestamp: trigger build 启动时间戳（毫秒），None 时全量扫描
         :return: build_info dict or None if not found
         """
         arch_job_info = jenkins_proxy.get_job_info(arch_job_path)
         if not arch_job_info:
             return None
 
-        for build_summary in arch_job_info.get("builds", [])[:10]:
+        if trigger_timestamp:
+            scan_mode = "time-bounded scan, trigger start ts={}".format(trigger_timestamp)
+        else:
+            scan_mode = "full scan, trigger start timestamp missing"
+        logger.info("finding build of %s triggered by %s #%s, %s",
+                    arch_job_path, trigger_job_path, trigger_build_no, scan_mode)
+
+        scanned = []
+        for build_summary in arch_job_info.get("builds", []):
             build_no = build_summary["number"]
+            scanned.append(build_no)
             build_info = jenkins_proxy.get_build_info(arch_job_path, build_no)
             if not build_info or "actions" not in build_info:
                 continue
+            build_ts = build_info.get("timestamp")
+            if trigger_timestamp and build_ts is not None and build_ts < trigger_timestamp:
+                logger.info("build #%s of %s (ts=%s) is older than trigger start (ts=%s), "
+                            "time bound reached, stop scanning",
+                            build_no, arch_job_path, build_ts, trigger_timestamp)
+                break
             _, cause_job, cause_build_no = JenkinsProxy.get_build_trigger_reason(build_info)
             if cause_build_no == trigger_build_no and cause_job == trigger_job_path:
+                logger.info("build #%s of %s is triggered by %s #%s, scanned builds: %s",
+                            build_no, arch_job_path, trigger_job_path, trigger_build_no, scanned)
                 return build_info
 
+        logger.info("no build of %s is triggered by %s #%s, scanned builds: %s",
+                    arch_job_path, trigger_job_path, trigger_build_no, scanned)
         return None
 
     def _discover_and_complete_builds(self, jenkins_proxy):
@@ -547,10 +570,16 @@ class Comment(object):
             logger.warning("invalid trigger build info, skip discovering")
             return
 
-        trigger_job_path, trigger_build_no_str = JenkinsProxy.get_job_path_build_no_from_build_url(
-            trigger_build["url"])
-        trigger_build_no = int(trigger_build_no_str)
+        try:
+            trigger_job_path, trigger_build_no_str = JenkinsProxy.get_job_path_build_no_from_build_url(
+                trigger_build["url"])
+            trigger_build_no = int(trigger_build_no_str)
+        except (TypeError, ValueError) as ex:
+            logger.warning("invalid trigger build url %s, skip discovering downstream builds: %s",
+                           trigger_build.get("url"), ex)
+            return
         trigger_result = trigger_build.get("result")
+        trigger_timestamp = trigger_build.get("timestamp")
 
         if trigger_result != "ABORTED":
             logger.info("trigger build %s #%s result=%s (not ABORTED), "
@@ -578,7 +607,7 @@ class Comment(object):
             label = self._parse_job_label_from_url(project_url, project_name)
             job_path = JenkinsProxy.get_job_path_from_job_url(project_url)
             found_build = self._find_build_by_upstream(
-                jenkins_proxy, job_path, trigger_job_path, trigger_build_no)
+                jenkins_proxy, job_path, trigger_job_path, trigger_build_no, trigger_timestamp)
 
             if found_build is None:
                 logger.warning("job %s (label=%s) was not triggered by trigger #%s",
