@@ -506,7 +506,7 @@ class Comment(object):
         """
         从 job URL 中解析架构标识，映射关系与 _comment_of_check_item 保持一致：
         x86-64(目录) -> x86_64(展示)，aarch64+64k -> aarch64_64k。
-        :param project_url: job url, e.g. https://ci.openeuler.openatom.cn/job/multiarch/job/openeuler/job/x86-64/job/foo/
+        :param project_url: job url, e.g. https://ci.openeuler.openatom.cn/job/x86-64/job/foo/
         :return: "x86_64" / "aarch64_64k" / "aarch64" / "riscv64" / None（非 arch 构建任务返回 None）
         """
         if "x86-64" in project_url or "x86_64" in project_url:
