@@ -574,9 +574,9 @@ class Comment(object):
             trigger_job_path, trigger_build_no_str = JenkinsProxy.get_job_path_build_no_from_build_url(
                 trigger_build["url"])
             trigger_build_no = int(trigger_build_no_str)
-        except (TypeError, ValueError) as ex:
+        except (TypeError, ValueError) as parse_ex:
             logger.warning("invalid trigger build url %s, skip discovering downstream builds: %s",
-                           trigger_build.get("url"), ex)
+                           trigger_build.get("url"), parse_ex)
             return
         trigger_result = trigger_build.get("result")
         trigger_timestamp = trigger_build.get("timestamp")
