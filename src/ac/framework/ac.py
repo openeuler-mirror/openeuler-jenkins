@@ -18,6 +18,7 @@ import argparse
 import datetime
 import importlib
 import json
+import logging
 import logging.config
 import os
 import sys
@@ -30,10 +31,10 @@ from src.proxy.git_proxy import GitProxy
 from src.proxy.atomgit_proxy import AtomgitProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
-from src.proxy.jenkins_proxy import JenkinsProxy
-from src.proxy.kafka_proxy import KafkaProducerProxy
 from src.utils.dist_dataset import DistDataset
 from src.constant import Constant
+
+logger = logging.getLogger("ac")
 
 
 class AC(object):
@@ -80,8 +81,9 @@ class AC(object):
         trigger_build_id = os.environ.get("BUILD_ID")
         trigger_job_info = jp.get_job_info(trigger_job_name)
         trigger_job_url = trigger_job_info.get("url")
-        comments.append("门禁入口及编码规范检查: <a href={}/{}/console>{}/{}/console</a>".format(
-            trigger_job_url, trigger_build_id, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
+        log_job_url = jp.get_log_url_from_job_url(trigger_job_url)
+        comments.append("门禁入口及编码规范检查: <a href={}{}/>{}/{}</a>".format(
+            log_job_url, trigger_build_id, jp.get_job_path_from_job_url(trigger_job_url), trigger_build_id))
 
         gp.comment_pr(pr, "\n".join(comments))
 
@@ -349,6 +351,8 @@ if "__main__" == __name__:
     dd.set_attr_stime("access_control.build.stime")
 
     if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
+        # 延迟导入：Action 场景下不依赖 Jenkins，避免 import 时拉起 jenkins 模块
+        from src.proxy.jenkins_proxy import JenkinsProxy
         jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
         AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
     # gitee pr tag
