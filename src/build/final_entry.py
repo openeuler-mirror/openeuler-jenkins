@@ -64,7 +64,7 @@ def main():
     logger.info("PR #%s, repo=%s, gate=%s, build=%s",
                 pr_number, repo, gate_result, build_result)
 
-    gp = AtomgitProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, token, tag_token=ctx.tag_token)
 
     if gate_result == "success" and build_result == "success":
         final_state = "ci_successful"

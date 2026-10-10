@@ -303,7 +303,7 @@ def main():
                       datetime.datetime.now(datetime.timezone.utc).astimezone().replace(tzinfo=None))
 
     # AtomGit proxy（用于评论和标签）——用仓库实际 owner，不是 community
-    gp = AtomgitProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, token, tag_token=ctx.tag_token)
 
     # 标记门禁进行中
     try:
