@@ -30,7 +30,7 @@ from html import escape as html_escape
 
 import yaml
 from yaml.error import YAMLError
-from src.ac.framework.ac_result import ACResult, SUCCESS
+from src.ac.framework.ac_result import ACResult, SUCCESS, FAILED
 from src.proxy.atomgit_proxy import AtomgitProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
@@ -64,9 +64,11 @@ class Comment(object):
         self._pr = pr
         self._check_item_comment_files = check_item_comment_files
         self._compile_builds = []
-        self._get_compile_builds(jenkins_proxy)
+        self._missing_arches = []
+        self._aborted_arches = []
         self._trigger_builds = []
         self._get_upstream_builds(jenkins_proxy)
+        self._get_compile_builds(jenkins_proxy)
         self.ac_result = {}
         self.compare_package_result = {}
         self.check_item_result = {}
@@ -395,10 +397,21 @@ class Comment(object):
         build result check
         :return:
         """
-        
+        # Aborted or not-triggered jobs cause FAILED (riscv64 stays non-blocking
+        # to match the original filter_no_success semantics)
+        blocking_aborted = [j for j in self._missing_arches + self._aborted_arches
+                            if "riscv64" not in j]
+        if blocking_aborted:
+            logger.warning("build result: FAILED due to missing/aborted jobs "
+                           "(missing=%s, aborted=%s)",
+                           self._missing_arches, self._aborted_arches)
+            return FAILED
+
         def filter_no_success(arch):
             results = []
             for build in self._compile_builds:
+                if not build or not build.get("url"):
+                    continue
                 name = JenkinsProxy.get_job_path_from_job_url(build["url"])
                 result = ACResult.get_instance(build["result"])
                 if arch in name and result != SUCCESS:
@@ -471,6 +484,8 @@ class Comment(object):
             self._compile_builds.append(compile_build)
         logger.info("self._compile_builds is: {}".format(self._compile_builds))
 
+        self._discover_and_complete_builds(jenkins_proxy)
+
     def _get_upstream_builds(self, jenkins_proxy):
         """
         get upstream builds
@@ -485,6 +500,169 @@ class Comment(object):
         logger.info("base_job_name: %s, base_build_id: %s", base_job_name, base_build_id)
         base_build = jenkins_proxy.get_build_info(base_job_name, base_build_id)
         self._trigger_builds = jenkins_proxy.get_upstream_builds(base_build)
+
+    @staticmethod
+    def _parse_arch_from_url(project_url):
+        """
+        从 job URL 中解析架构标识，映射关系与 _comment_of_check_item 保持一致：
+        x86-64(目录) -> x86_64(展示)，aarch64+64k -> aarch64_64k。
+        :param project_url: job url, e.g. https://ci.openeuler.openatom.cn/job/x86-64/job/foo/
+        :return: "x86_64" / "aarch64_64k" / "aarch64" / "riscv64" / None（非 arch 构建任务返回 None）
+        """
+        if "x86-64" in project_url or "x86_64" in project_url:
+            return "x86_64"
+        if "64k" in project_url and "aarch64" in project_url:
+            return "aarch64_64k"
+        if "aarch64" in project_url:
+            return "aarch64"
+        if "riscv64" in project_url:
+            return "riscv64"
+        return None
+
+    @staticmethod
+    def _parse_job_label_from_url(project_url, project_name=""):
+        """
+        从 job URL 中解析任务标签（用于评论显示和追踪）。
+        arch 构建任务返回架构名；其他任务（如 pre-commit）返回 job path 中的标识。
+        :param project_url: job url
+        :param project_name: Jenkins downstreamProjects 中的 name 字段
+        :return: 标签字符串，如 "x86_64" / "aarch64" / "pre-commit"
+        """
+        arch = Comment._parse_arch_from_url(project_url)
+        if arch:
+            return arch
+        job_path = JenkinsProxy.get_job_path_from_job_url(project_url)
+        parts = [p for p in job_path.split("/") if p]
+        if len(parts) >= 2:
+            return parts[-2]
+        if parts:
+            return project_name or parts[-1]
+        return job_path
+
+    @staticmethod
+    def _find_build_by_upstream(jenkins_proxy, arch_job_path, trigger_job_path, trigger_build_no,
+                                trigger_timestamp=None):
+        """
+        在 arch_job_path 的构建中查找由指定 trigger build 触发的那次构建。
+        从新到旧遍历：目标构建必然在 trigger 启动之后才开始，提供了 trigger_timestamp 时
+        遇到早于 trigger 启动时间的构建即可终止；trigger_timestamp 为空时全量扫描。
+        :param trigger_timestamp: trigger build 启动时间戳（毫秒），None 时全量扫描
+        :return: build_info dict or None if not found
+        """
+        arch_job_info = jenkins_proxy.get_job_info(arch_job_path)
+        if not arch_job_info:
+            return None
+
+        if trigger_timestamp:
+            scan_mode = "time-bounded scan, trigger start ts={}".format(trigger_timestamp)
+        else:
+            scan_mode = "full scan, trigger start timestamp missing"
+        logger.info("finding build of %s triggered by %s #%s, %s",
+                    arch_job_path, trigger_job_path, trigger_build_no, scan_mode)
+
+        scanned = []
+        for build_summary in arch_job_info.get("builds", []):
+            build_no = build_summary["number"]
+            scanned.append(build_no)
+            build_info = jenkins_proxy.get_build_info(arch_job_path, build_no)
+            if not build_info or "actions" not in build_info:
+                continue
+            build_ts = build_info.get("timestamp")
+            if trigger_timestamp and build_ts is not None and build_ts < trigger_timestamp:
+                logger.info("build #%s of %s (ts=%s) is older than trigger start (ts=%s), "
+                            "time bound reached, stop scanning",
+                            build_no, arch_job_path, build_ts, trigger_timestamp)
+                break
+            _, cause_job, cause_build_no = JenkinsProxy.get_build_trigger_reason(build_info)
+            if cause_build_no == trigger_build_no and cause_job == trigger_job_path:
+                logger.info("build #%s of %s is triggered by %s #%s, scanned builds: %s",
+                            build_no, arch_job_path, trigger_job_path, trigger_build_no, scanned)
+                return build_info
+
+        logger.info("no build of %s is triggered by %s #%s, scanned builds: %s",
+                    arch_job_path, trigger_job_path, trigger_build_no, scanned)
+        return None
+
+    def _discover_and_complete_builds(self, jenkins_proxy):
+        """
+        通过 Jenkins API 主动发现所有由 trigger build 触发的下游构建任务。
+        补充 ARCH_BUILD_INFO 中可能缺失的构建（如 trigger 超时导致的遗漏），
+        并标记被中止或从未触发的任务为 ABORTED。
+        覆盖所有下游任务：arch 构建任务（x86-64/aarch64/riscv64）及自定义检查任务（如 pre-commit）。
+        """
+        if not self._trigger_builds:
+            logger.warning("no trigger builds, skip discovering downstream builds")
+            return
+
+        trigger_build = self._trigger_builds[0]
+        if not trigger_build or "url" not in trigger_build:
+            logger.warning("invalid trigger build info, skip discovering")
+            return
+
+        try:
+            trigger_job_path, trigger_build_no_str = JenkinsProxy.get_job_path_build_no_from_build_url(
+                trigger_build["url"])
+            trigger_build_no = int(trigger_build_no_str)
+        except (TypeError, ValueError) as parse_ex:
+            logger.warning("invalid trigger build url %s, skip discovering downstream builds: %s",
+                           trigger_build.get("url"), parse_ex)
+            return
+        trigger_result = trigger_build.get("result")
+        trigger_timestamp = trigger_build.get("timestamp")
+
+        if trigger_result != "ABORTED":
+            logger.info("trigger build %s #%s result=%s (not ABORTED), "
+                        "keep original build info, skip discovery",
+                        trigger_job_path, trigger_build_no, trigger_result)
+            return
+
+        logger.info("discovering downstream builds for aborted trigger %s #%s",
+                    trigger_job_path, trigger_build_no)
+
+        trigger_job_info = jenkins_proxy.get_job_info(trigger_job_path)
+        if not trigger_job_info:
+            logger.warning("failed to get trigger job info for %s", trigger_job_path)
+            return
+
+        existing_urls = {b.get("url") for b in self._compile_builds if b and b.get("url")}
+
+        for project in trigger_job_info.get("downstreamProjects", []):
+            project_url = project.get("url", "")
+            project_name = project.get("name", "")
+
+            if "/comment/" in project_url:
+                continue
+
+            label = self._parse_job_label_from_url(project_url, project_name)
+            job_path = JenkinsProxy.get_job_path_from_job_url(project_url)
+            found_build = self._find_build_by_upstream(
+                jenkins_proxy, job_path, trigger_job_path, trigger_build_no, trigger_timestamp)
+
+            if found_build is None:
+                logger.warning("job %s (label=%s) was not triggered by trigger #%s",
+                               job_path, label, trigger_build_no)
+                self._missing_arches.append(label)
+                continue
+
+            found_url = found_build.get("url", "")
+
+            if found_build.get("building") or found_build.get("result") == "ABORTED":
+                logger.warning("job %s build %s is still running or aborted, marking as aborted",
+                               label, found_url)
+                self._aborted_arches.append(label)
+                if found_url in existing_urls:
+                    self._compile_builds = [
+                        b for b in self._compile_builds
+                        if b and b.get("url") != found_url]
+                    existing_urls.discard(found_url)
+                continue
+
+            if found_url in existing_urls:
+                logger.info("job %s build already in _compile_builds, skip", label)
+                continue
+
+            self._compile_builds.append(found_build)
+            existing_urls.add(found_url)
 
 
     def _comment_build_html_format(self):
@@ -501,7 +679,22 @@ class Comment(object):
         if self._compile_builds:
             comments.extend(self._comment_of_check_item(self._compile_builds))
 
+        comments.extend(self._comment_of_aborted_arches())
+
         comments.append("</table>")
+        return comments
+
+    def _comment_of_aborted_arches(self):
+        """
+        Generate comment rows for aborted or not-triggered downstream jobs.
+        """
+        comments = []
+        for arch in self._missing_arches + self._aborted_arches:
+            logger.info("arch %s was aborted or not triggered, commenting as aborted", arch)
+            comments.append(
+                "<tr><td>{}</td> <td>{}</td> <td>{}<strong>{}</strong></td> <td></td> <td></td></tr>".format(
+                    arch, "check_build", "&#10060;", "ABORTED"))
+            self.check_item_result[arch] = {"check_build": "ABORTED"}
         return comments
 
     def _comment_of_ac(self, build):
