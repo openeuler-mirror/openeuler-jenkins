@@ -197,7 +197,7 @@ def main():
     import src.build.gitee_comment as gitee_comment  # noqa: PLC0415 - 延迟赋值模块 logger
     gitee_comment.logger = logger
 
-    gp = AtomgitProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, token, tag_token=ctx.tag_token)
 
     # 收集各架构产物文件，构造单实例 Comment 一次成型：
     # check_item_comment_files（构造参数）供 _comment_of_check_item 渲染，

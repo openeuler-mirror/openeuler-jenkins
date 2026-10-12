@@ -54,6 +54,7 @@ _FIELD_ENV = {
     "arch": "ACTION_ARCH",
     "variant": "ACTION_VARIANT",
     "pr_url": "ACTION_PR_URL",
+    "tag_token": "ACTION_GITCODE_TAG_TOKEN",
 }
 
 
@@ -66,6 +67,8 @@ class ActionContext:
     :param repo: 仓库名（如 openEuler-repos）
     :param owner: 仓库实际 owner（API 调用用，如 src-openeuler）
     :param token: AtomGit API token
+    :param tag_token: 标签（labels）增删/读取专用 token（缺省回退 token，
+                      Jenkins 统一 token 流程下两者相同）
     :param target_branch: PR 目标分支
     :param workspace: 工作目录（产物所在）
     :param pipeline_url: 本 job 流水线链接（Build Details 跳转）
@@ -80,6 +83,7 @@ class ActionContext:
     repo: str
     owner: str
     token: str
+    tag_token: str = ""
     target_branch: str = ""
     workspace: str = ""
     pipeline_url: str = ""
@@ -127,11 +131,15 @@ def load_action_context(entry_name, required=(), token_env="ACTION_GITCODE_TOKEN
     # ACTION_OWNER 为正式环境变量名（装 PR 目标仓实际 owner，API 调用用）；
     # ACTION_COMMUNITY 为改名前的旧名，过渡期回退读取（三仓 ci.yml 全量切换后删除）
     owner = os.environ.get("ACTION_OWNER") or os.environ.get("ACTION_COMMUNITY", "")
+    token = os.environ.get(token_env, "")
     ctx = ActionContext(
         pr_number=os.environ.get("ACTION_PR_NUMBER", ""),
         repo=os.environ.get("ACTION_REPO", ""),
         owner=owner,
-        token=os.environ.get(token_env, ""),
+        token=token,
+        # 标签操作专用 token：secret 未配置时平台注入空串，须用 or 回退主 token
+        # （os.environ.get 的默认值挡不住"key 存在但值为空"的情况）
+        tag_token=os.environ.get("ACTION_GITCODE_TAG_TOKEN", "") or token,
         target_branch=os.environ.get("ACTION_TARGET_BRANCH", ""),
         workspace=os.environ.get("ACTION_WORKSPACE", os.getcwd()),
         pipeline_url=os.environ.get("ACTION_PIPELINE_URL", ""),
