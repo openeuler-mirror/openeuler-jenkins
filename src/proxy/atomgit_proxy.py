@@ -22,13 +22,10 @@ logger = logging.getLogger("common")
 
 
 class AtomgitProxy(object):
-    def __init__(self, owner, repo, token, tag_token=None):
+    def __init__(self, owner, repo, token):
         self._owner = owner
         self._repo = repo
         self._token = token
-        # 标签（labels）增删/读取专用 token，缺省回退主 token
-        # （secret 未配置/Jenkins 统一 token 流程下两者相同）
-        self._tag_token = tag_token or token
         self._base_url = "https://api.atomgit.com"
 
     def comment_pr(self, pr, comment):
@@ -69,10 +66,10 @@ class AtomgitProxy(object):
             number=pr
         )
         if oper == "DELETE":
-            url = url + "/{}?access_token={}".format(tags[0], self._tag_token)
+            url = url + "/{}?access_token={}".format(tags[0], self._token)
             rs = do_requests("delete", url, RequestData(timeout=10))
         else:
-            url = url + "?access_token={}".format(self._tag_token)
+            url = url + "?access_token={}".format(self._token)
             rs = do_requests(oper.lower(), url, RequestData(body=list(tags), timeout=10))
         if rs != 0:
             logger.warning("{oper} tags:{tags} failed".format(oper=oper, tags=tags))
@@ -123,7 +120,7 @@ class AtomgitProxy(object):
             labels = []
             rs = do_requests(
                 "get", url,
-                RequestData(querystring={"access_token": self._tag_token}, timeout=10, obj=labels)
+                RequestData(querystring={"access_token": self._token}, timeout=10, obj=labels)
             )
             if rs == 0:
                 names = []
