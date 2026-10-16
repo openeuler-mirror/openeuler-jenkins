@@ -138,6 +138,24 @@ class Comment(object):
         return True, arch_name
 
     @staticmethod
+    def _comment_file_is_fresh(comment_file, build):
+        """
+        判断 Jenkins 场景的 comment 文件是否为本次构建上传（防历史残留）。
+        :param comment_file: comment 文件本地路径
+        :param build: Jenkins 构建信息（含 timestamp，epoch 毫秒）
+        :return: True 表示本次构建上传，可读取；False 按残留处理
+        """
+        build_ts = build.get("timestamp")
+        if not build_ts:
+            return False
+        try:
+            file_mtime = os.path.getmtime(comment_file)
+        except OSError:
+            return False
+        # 300s 容忍文件服务器与 Jenkins 的时钟偏移，宁可保守漏判也不误信残留
+        return file_mtime >= build_ts / 1000.0 - 300
+
+    @staticmethod
     def _filter_focus_on_rpms(content):
         filter_result = {}
         map_rpm_level = content.get("rpm level")
@@ -929,15 +947,22 @@ class Comment(object):
                     continue
                 # 统一走 _match（此处 arch 已解析：Action 场景显式注入，Jenkins 场景从 name 解析）
                 matched, _ = self._match(arch, check_item_comment_file, arch)
+
                 # Action 场景（arch 显式注入）：comment 文件与本次 run 的 artifact 同源，内容可信，
                 # 只要存在且匹配即读取——build 阶段聚合 rc 会因 install/license 失败而为 FAILURE，
                 # 但文件内仍含 build/install/license 明细，必须读取才能如实渲染
                 # （否则 install/license 行丢失，只剩一条 check_build FAILED）。
-                # 注：br_pipeline 原本就是 `if matched:`（无 SUCCESS 守卫），rebase 到 master 时
-                # 被解成 master 的旧守卫，导致 rc=1 时明细整体丢失（2026-09-22 回归）。
-                # Jenkins 场景：沿用原守卫，仅构建成功时读取（文件服务器上的文件可能为历史残留）。
+                # Jenkins 场景：原守卫"仅构建成功时读取"覆盖的是 job FAILURE = 文件未上传 = 残留；
+                # ci_guard 流程下 install/license 失败也会使整体 job FAILURE，但 comment 文件
+                # 在每次检查后都会重新上传（内容准确），沿用原守卫会丢失明细、错把 install/license
+                # 失败渲染成 check_build FAILED。故在 SUCCESS 之外放行"新鲜文件"（本地 mtime 不早
+                # 于本次构建开始，见 _comment_file_is_fresh）；硬杀/首写前崩溃/上传失败留下的残留
+                # 仍被挡住，维持原有保守渲染。
                 trusted = bool(build.get("arch"))
-                if matched and (trusted or ACResult.get_instance(status) == SUCCESS):  # 保证build状态成功
+                # 放行条件先求值到局部变量（or 保持短路），避免 if 中布尔表达式过多（G.CTL.03）
+                readable = trusted or ACResult.get_instance(status) == SUCCESS \
+                    or self._comment_file_is_fresh(check_item_comment_file, build)
+                if matched and readable:
                     matched_comment_file = True
                     with open(check_item_comment_file, "r") as data:
                         try:

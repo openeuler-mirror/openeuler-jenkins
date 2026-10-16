@@ -111,9 +111,11 @@ function scp_comment_file() {
   detail_result_file_aarch64="${repo}_aarch64.json"
   detail_result_file_x86_64="${repo}_x86_64.json"
   detail_result_file_riscv64="${repo}_riscv64.json"
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64} . || log_info "file ${check_item_comment_aarch64} not exist"
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_x86} . || log_info "file ${check_item_comment_x86} not exist"
-  scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_riscv64} . || log_info "file ${check_item_comment_riscv64} not exist"
+  # comment 文件 scp 带 -p 保留远端上传 mtime，gitee_comment.py 以此判定文件
+  # 是否为本次构建上传（防 job 硬杀/上传失败留下的上一轮残留被误读）
+  scp -rp -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64} . || log_info "file ${check_item_comment_aarch64} not exist"
+  scp -rp -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_x86} . || log_info "file ${check_item_comment_x86} not exist"
+  scp -rp -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_riscv64} . || log_info "file ${check_item_comment_riscv64} not exist"
   #ls $WORKSPACE/${comment}
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:"/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/aarch64/${prid}/${repo}_*.json" ${detail_result_file_aarch64} || log_info "file ${detail_result_file_aarch64} not exist"
   scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:"/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/x86_64/${prid}/${repo}_*.json" ${detail_result_file_x86_64} || log_info "file ${detail_result_file_x86_64} not exist"
@@ -143,7 +145,7 @@ function scp_comment_file() {
   # variant files
   if [[ -n "${variant_suffix}" ]]; then
     detail_result_file_aarch64_variant="${repo}_aarch64${variant_suffix}.json"
-    scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64_variant} . || log_info "file ${check_item_comment_aarch64_variant} not exist"
+    scp -rp -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${check_item_comment_aarch64_variant} . || log_info "file ${check_item_comment_aarch64_variant} not exist"
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:"/repo/openeuler/src-openeuler${repo_server_test_tail}/${tbranch}/${committer}/${repo}/aarch64${variant_suffix}/${prid}/${repo}_*.json" ${detail_result_file_aarch64_variant} || log_info "file ${detail_result_file_aarch64_variant} not exist"
     scp -r -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${repo_server}:$fileserver_tmpfile_path/${compare_package_result_aarch64_variant} . || log_info "file ${compare_package_result_aarch64_variant} not exist"
   fi
