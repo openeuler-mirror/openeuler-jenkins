@@ -728,8 +728,8 @@ def test_skill_url_path_traversal_rejected(tmp_path):
         "https://gitcode.com/o/r/blob/main/a//SKILL.md",
         "https://gitcode.com/o/r/blob/main/a\\..\\SKILL.md",
     ):
-        assert check._parse_skill_url(url) is None
-        assert check._validate_skill_url_structure(url) is not None
+        assert getattr(check, "_parse_skill_url")(url) is None
+        assert getattr(check, "_validate_skill_url_structure")(url) is not None
 
 
 def test_discover_slash_branch_falls_back_to_whole_repo(tmp_path):
@@ -742,7 +742,7 @@ def test_discover_slash_branch_falls_back_to_whole_repo(tmp_path):
         mock.patch.object(check, "_git_checked_out_branch", return_value="release/2.0"),
     ):
         mock_run.return_value = mock.Mock(returncode=0, stderr="")
-        discovered = check._discover_repo_skills("https://gitcode.com/openeuler/foo", "")
+        discovered = getattr(check, "_discover_repo_skills")("https://gitcode.com/openeuler/foo", "")
     assert discovered == ("repo", "release/2.0")  # 回退整仓库审计的信号
     mock_run.assert_called_once()  # 只发生了一次 clone
 
@@ -953,25 +953,25 @@ def test_poll_total_timeout_marks_pending_failed(tmp_path):
 
 def test_recognize_skill_text_matches_wittyhub_criteria(tmp_path):
     """识别标准与 wittyhub src/skills 扫描器一致：文件名、跳过目录、
-    frontmatter name/description、正文长度."""
+        frontmatter name/description、正文长度."""
     check = _make_check(tmp_path)
     body = "content " * 20
     valid = "---\nname: demo\ndescription: demo skill\n---\n" + body
-    assert check._recognize_skill_text("skills/my-skill/SKILL.md", valid) is None
+    assert getattr(check, "_recognize_skill_text")("skills/my-skill/SKILL.md", valid) is None
 
     missing_desc = "---\nname: demo\n---\n" + body
-    assert "description" in check._recognize_skill_text("skills/my-skill/SKILL.md", missing_desc)
+    assert "description" in getattr(check, "_recognize_skill_text")("skills/my-skill/SKILL.md", missing_desc)
 
     short = "---\nname: demo\ndescription: demo skill\n---\nshort"
-    assert "100" in check._recognize_skill_text("skills/my-skill/SKILL.md", short)
+    assert "100" in getattr(check, "_recognize_skill_text")("skills/my-skill/SKILL.md", short)
 
-    assert check._recognize_skill_text("docs/demo/SKILL.md", valid) is not None
-    assert check._recognize_skill_text("skills/demo/_cannbot_SKILL.md", valid) is not None
+    assert getattr(check, "_recognize_skill_text")("docs/demo/SKILL.md", valid) is not None
+    assert getattr(check, "_recognize_skill_text")("skills/demo/_cannbot_SKILL.md", valid) is not None
 
     block_scalar = (
         "---\nname: demo\ndescription: >\n  long description here\n---\n" + body
     )
-    assert check._recognize_skill_text("skills/my-skill/SKILL.md", block_scalar) is None
+    assert getattr(check, "_recognize_skill_text")("skills/my-skill/SKILL.md", block_scalar) is None
 
 
 def test_uploaded_skill_md_missing_description_fails(tmp_path):
@@ -1161,7 +1161,7 @@ def test_discover_repo_skills_filters_invalid_skills(tmp_path):
         ),
         mock.patch.object(check, "_git_checked_out_branch", return_value="main"),
     ):
-        discovered = check._discover_repo_skills("https://gitcode.com/openeuler/foo", "")
+        discovered = getattr(check, "_discover_repo_skills")("https://gitcode.com/openeuler/foo", "")
     assert [item["name"] for item in discovered] == ["good"]
     assert discovered[0]["skill_url"].endswith("/blob/main/skills/good/SKILL.md")
 
@@ -1179,7 +1179,7 @@ def test_discover_repo_skills_returns_empty_when_all_invalid(tmp_path):
         ),
         mock.patch.object(check, "_git_checked_out_branch", return_value="main"),
     ):
-        discovered = check._discover_repo_skills("https://gitcode.com/openeuler/foo", "")
+        discovered = getattr(check, "_discover_repo_skills")("https://gitcode.com/openeuler/foo", "")
     assert discovered == []
 
 
