@@ -27,7 +27,7 @@ import requests
 import yaml
 
 from src.ac.framework.ac_base import BaseCheck
-from src.ac.framework.ac_result import SUCCESS, WARNING, ACResult
+from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING, ACResult
 from src.proxy.git_proxy import GitProxy
 
 # git 可执行文件绝对路径（运行时解析，兼容不同镜像），避免依赖 PATH 查找
@@ -40,10 +40,18 @@ class CheckWittyhubAudit(BaseCheck):
     """对 openEuler-skills 仓库的 PR 执行 wittyhub 安全审计门禁。
 
     审计目标（调用 wittyhub audit-by-url，不要求 skill 已入库）：
-    - skill.yaml 的 skill_repos[].url 变更 -> 克隆仓库逐 SKILL.md 审计，发现失败回退整仓库
-    - skill.yaml 的 skills[].skill_url 变更 -> 扫单个 skill
-    - 直接上传的 */SKILL.md -> 扫 PR 头分支中的该 skill
-    评论：表格展示每个 skill 的名称、风险等级、风险分数与 report.md 下载链接。
+    - skill.yaml 的 skill_repos[].url 变更 -> 克隆仓库逐 skill 审计；分支名含 '/'
+      时回退整仓库审计；clone 失败时不触发整仓库审计，评论「无法识别仓库，
+      请人工审核」并返回 WARNING
+    - skill.yaml 的 skills[].skill_url 变更 -> 校验 URL 与远端内容后扫单个 skill；
+      远端 clone 失败时未完成内容识别，返回 WARNING
+    - 直接上传的 */SKILL.md -> 校验工作区文件后扫 PR 头分支中的该 skill
+    识别标准与 wittyhub src/skills 扫描器一致：文件名 SKILL.md、非跳过目录、
+    frontmatter 同时声明 name/description、正文不少于 100 字符；只有识别到 skill
+    才发起审计。存在未识别到 skill 的变更时，即使其他目标审计通过也返回 FAILED。
+    评论：表格展示每个 skill 的名称、风险等级、风险分数与 report.md 下载链接；
+    有 skill 相关变更但一个合法 skill 都没识别到时，评论「没有识别到 skill」并
+    返回 FAILED。
     汇总（ac.yaml 可用 block_levels/warn_levels 覆盖）：命中 block_levels（默认
     critical/high）-> WARNING（谨慎合入，不阻断）；命中 warn_levels（默认 medium）、
     结果 unknown 或审计失败 -> WARNING；其余 SUCCESS。
@@ -53,6 +61,10 @@ class CheckWittyhubAudit(BaseCheck):
     SKILL_MD_NAME = "SKILL.md"
     DEFAULT_BLOCK_LEVELS = ("critical", "high")
     DEFAULT_WARN_LEVELS = ("medium",)
+    # skill 识别标准与 wittyhub src/skills 扫描器保持一致：
+    # frontmatter 必须同时声明 name/description，正文长度不低于阈值
+    REQUIRED_SKILL_METADATA_FIELDS = ("name", "description")
+    MIN_SKILL_CONTENT_LENGTH = 100
     # 与 wittyhub validate_git_url 白名单一致：仅允许公开代码托管域名，clone 前先校验防 SSRF
     ALLOWED_GIT_HOSTS = frozenset({
         "github.com", "gitlab.com", "bitbucket.org", "gitea.io",
@@ -139,8 +151,31 @@ class CheckWittyhubAudit(BaseCheck):
         if not diff_files:
             return SUCCESS
 
-        targets = self._collect_targets(diff_files)
+        collected = self._collect_targets(diff_files)
+        targets = collected["targets"]
+        unrecognized = collected["unrecognized"]
         if not targets:
+            # PR 有明确不合规的 skill 候选：判定失败
+            if collected["rejected"]:
+                logger.warning("wittyhub audit: no skill recognized in PR")
+                self._comment_no_skill(collected["rejected"])
+                details = ["没有识别到 skill，未执行安全审计"]
+                details.extend(
+                    "{}: {}".format(item.get("source", ""), item.get("reason", ""))
+                    for item in collected["rejected"]
+                )
+                return ACResult(FAILED.val, details=details)
+            # 仓库/远端 clone 失败：无法识别，告警并请人工审核
+            if unrecognized:
+                logger.warning("wittyhub audit: unable to recognize skill source")
+                self._comment_unrecognized(unrecognized)
+                details = ["无法识别仓库或 skill_url，未完成内容识别，请人工审核"]
+                details.extend(
+                    "{}: {}".format(item.get("source", ""), item.get("reason", ""))
+                    for item in unrecognized
+                )
+                return ACResult(WARNING.val, details=details)
+            # PR 没有任何 skill 相关变更（如只改 README）：无需审计
             return SUCCESS
         # 目标数上限保护：超过 MAX_TARGETS 个 skill 时不做自动化审计，评论提示人工审核
         if len(targets) > self.MAX_TARGETS:
@@ -206,20 +241,47 @@ class CheckWittyhubAudit(BaseCheck):
                 warn_hit = True
         if failed_details:
             warn_hit = True
+        if unrecognized:
+            warn_hit = True
         details.extend(failed_details)
+        details.extend(
+            "未识别到 skill: {} ({})".format(item.get("source", ""), item.get("reason", ""))
+            for item in collected["rejected"]
+        )
+        details.extend(
+            "无法识别仓库或 skill_url: {} ({})".format(item.get("source", ""), item.get("reason", ""))
+            for item in unrecognized
+        )
 
-        self._comment_summary(audits, failed_details, block_hit, warn_hit)
+        self._comment_summary(
+            audits, failed_details, block_hit, warn_hit,
+            collected["rejected"], unrecognized,
+        )
 
+        # 存在未识别到 skill 的变更：即使其他 skill 审计通过，也判定失败
+        if collected["rejected"]:
+            details.insert(0, "存在未识别到 skill 的变更，门禁失败")
+            return ACResult(FAILED.val, details=details)
         if block_hit:
             details.insert(0, "存在 {} 风险的 skill，请谨慎合入".format("/".join(self._block_levels)))
             return ACResult(WARNING.val, details=details)
         if warn_hit:
-            details.insert(0, "安全审计有风险提示（medium 或审计失败），请确认后合入")
+            details.insert(0, "安全审计有风险提示（medium、审计失败或未完成内容识别），请确认后合入")
             return ACResult(WARNING.val, details=details)
         return SUCCESS
 
     def _collect_targets(self, diff_files):
+        """收集审计目标，并记录 skill 识别结果。
+
+        返回 ``{"targets", "rejected", "unrecognized"}``：
+
+        - ``targets``: 识别为合法 skill、需要审计的目标
+        - ``rejected``: 明确未识别为 skill 的候选及原因
+        - ``unrecognized``: 无法识别（仓库 clone/发现失败），WARNING，不触发整仓库审计
+        """
         targets = []
+        rejected = []
+        unrecognized = []
         skill_yamls = [
             f for f in diff_files
             if f == self.SKILL_YAML_NAME or f.endswith("/" + self.SKILL_YAML_NAME)
@@ -229,86 +291,173 @@ class CheckWittyhubAudit(BaseCheck):
         # 具体 URL（patch 缺失/解析失败）时回退为全量审计，宁多勿漏。
         changed = self._skill_yaml_changed_fields(skill_yamls)
         for yaml_file in skill_yamls:
-            content = self._load_yaml(os.path.join(self._work_dir, yaml_file))
-            if not content:
+            yaml_path = os.path.join(self._work_dir, yaml_file)
+            # 已删除的 skill.yaml 不参与识别，避免删除类 PR 被误判为失败
+            if not os.path.isfile(yaml_path):
+                continue
+            content = self._load_yaml(yaml_path)
+            if not isinstance(content, dict):
+                rejected.append({
+                    "source": yaml_file,
+                    "reason": "skill.yaml 解析失败或内容不是映射结构",
+                })
                 continue
             repo_urls, skill_urls = changed.get(yaml_file, ({}, {}))
             if repo_urls is not None:
                 if repo_urls:
                     # 直接审计 patch 中新增的具体仓库 URL；内容中有对应条目时保留其 branch
                     entry_branches = {
-                        (entry or {}).get("url"): (entry or {}).get("branch") or ""
+                        entry.get("url"): entry.get("branch") or ""
                         for entry in content.get("skill_repos") or []
-                        if (entry or {}).get("url")
+                        if isinstance(entry, dict) and entry.get("url")
                     }
                     for url in sorted(repo_urls):
-                        targets.extend(self._repo_targets(url, entry_branches.get(url, "")))
+                        repo_targets, repo_rejected, repo_unrecognized = self._repo_targets(
+                            url, entry_branches.get(url, ""),
+                        )
+                        targets.extend(repo_targets)
+                        rejected.extend(repo_rejected)
+                        unrecognized.extend(repo_unrecognized)
                 else:
-                    # 空集合：字段被改动但未定位到具体 URL -> 全量审计该字段
+                    # 空集合：字段被改动但未定位到具体 URL -> 全量识别该字段
                     for repo_entry in content.get("skill_repos") or []:
-                        url = (repo_entry or {}).get("url") or ""
+                        if not isinstance(repo_entry, dict):
+                            continue
+                        url = repo_entry.get("url") or ""
                         if url:
-                            targets.extend(self._repo_targets(url, (repo_entry or {}).get("branch") or ""))
+                            repo_targets, repo_rejected, repo_unrecognized = self._repo_targets(
+                                url, repo_entry.get("branch") or "",
+                            )
+                            targets.extend(repo_targets)
+                            rejected.extend(repo_rejected)
+                            unrecognized.extend(repo_unrecognized)
             if skill_urls is not None:
+                skill_entries = {
+                    entry.get("skill_url"): entry
+                    for entry in content.get("skills") or []
+                    if isinstance(entry, dict) and entry.get("skill_url")
+                }
                 if skill_urls:
-                    for url in sorted(skill_urls):
-                        targets.append(self._skill_target(url))
+                    declared = [
+                        {
+                            "url": url,
+                            "name": (skill_entries.get(url) or {}).get("skill_name"),
+                            "entry_found": url in skill_entries,
+                        }
+                        for url in sorted(skill_urls)
+                    ]
                 else:
-                    # 空集合：字段被改动但未定位到具体 URL -> 全量审计该字段
-                    for skill_entry in content.get("skills") or []:
-                        url = (skill_entry or {}).get("skill_url") or ""
-                        if url:
-                            targets.append(self._skill_target(url))
+                    # 空集合：字段被改动但未定位到具体 URL -> 全量识别该字段
+                    declared = [
+                        {
+                            "url": url,
+                            "name": entry.get("skill_name"),
+                            "entry_found": True,
+                        }
+                        for url, entry in skill_entries.items()
+                    ]
+                skill_targets, skill_rejected, skill_unrecognized = self._check_declared_skill_urls(declared)
+                targets.extend(skill_targets)
+                rejected.extend(skill_rejected)
+                unrecognized.extend(skill_unrecognized)
 
         uploaded_skills = [
             f for f in diff_files
             if f == self.SKILL_MD_NAME or f.endswith("/" + self.SKILL_MD_NAME)
         ]
-        if uploaded_skills:
-            head_url, head_ref = self._pr_head()
-            for skill_file in uploaded_skills:
-                targets.append({
-                    "type": "pr_skill",
-                    "url": skill_file,
-                    "name": self._skill_name_from_file_path(skill_file),
-                    "head_url": head_url,
-                    "head_ref": head_ref,
-                    "desc": "PR 上传 skill 文件: {}".format(skill_file),
+        head_url, head_ref = None, None
+        for skill_file in uploaded_skills:
+            local_path = os.path.join(self._work_dir, skill_file)
+            # 已删除/重命名的旧路径不在工作区：不算 skill 变更
+            if not os.path.isfile(local_path):
+                continue
+            # 样本/模板/文档目录下的 SKILL.md 不是 skill，直接忽略
+            if self._should_skip_skill_path(skill_file):
+                continue
+            try:
+                text = Path(local_path).read_text(encoding="utf-8", errors="replace")
+            except OSError as exc:
+                rejected.append({
+                    "source": skill_file,
+                    "reason": "文件读取失败: {}".format(exc),
                 })
-        return targets
+                continue
+            reason = self._recognize_skill_text(skill_file, text)
+            if reason:
+                rejected.append({"source": skill_file, "reason": reason})
+                continue
+            if head_url is None:
+                head_url, head_ref = self._pr_head()
+            targets.append({
+                "type": "pr_skill",
+                "url": skill_file,
+                "name": self._skill_display_name_from_text(
+                    text, self._skill_name_from_file_path(skill_file),
+                ),
+                "head_url": head_url,
+                "head_ref": head_ref,
+                "desc": "PR 上传 skill 文件: {}".format(skill_file),
+            })
+        return {
+            "targets": targets,
+            "rejected": rejected,
+            "unrecognized": unrecognized,
+        }
 
-    def _skill_target(self, url):
+    def _skill_target(self, url, name=None):
         """单个 skill 审计目标（desc 用于日志/评论展示）。"""
-        name = self._skill_name_from_url(url)
-        return {"type": "skill", "url": url, "name": name, "desc": "skill: {}".format(name)}
+        display_name = name or self._skill_name_from_url(url)
+        return {"type": "skill", "url": url, "name": display_name, "desc": "skill: {}".format(display_name)}
 
     def _repo_targets(self, repo_url, branch):
-        """新增 skill 仓库展开为逐 skill 审计目标（与 skillcrawler 一致）；
-        发现失败回退为整仓库审计（1 个目标），保证不静默通过。"""
+        """新增 skill 仓库展开为审计目标（与 skillcrawler 一致）。
+
+        返回 ``(targets, rejected, unrecognized)``：
+
+        - clone 成功且识别到合法 skill -> 逐 skill 目标
+        - 分支名含 '/'，无法构造可解析的 skill_url -> 回退整仓库审计
+        - clone 成功但没有合法 skill -> rejected（门禁失败）
+        - clone/发现失败 -> unrecognized（无法识别，WARNING，不触发整仓库审计）
+        """
         discovered = self._discover_repo_skills(repo_url, branch)
-        if discovered:
-            return [
-                {
-                    "type": "skill",
-                    "url": item["skill_url"],
-                    "name": item["name"],
-                    "desc": "skill: {}".format(item["name"] or item["skill_url"]),
-                }
-                for item in discovered
-            ]
-        return [{
-            "type": "repo",
-            "url": repo_url,
-            "branch": branch,
-            "name": repo_url,
-            "desc": "skill 仓库: {}".format(repo_url),
-        }]
+        if isinstance(discovered, tuple) and discovered[0] == "repo":
+            repo_name = (repo_url or "").rstrip("/").rsplit("/", 1)[-1]
+            if repo_name.endswith(".git"):
+                repo_name = repo_name[:-4]
+            return [{
+                "type": "repo",
+                "url": repo_url,
+                "branch": discovered[1],
+                "name": repo_name or repo_url,
+                "desc": "repo: {}@{}".format(repo_url, discovered[1]),
+            }], [], []
+        if discovered is None:
+            return [], [], [{
+                "source": repo_url,
+                "reason": "克隆仓库或识别 skill 失败，未触发整仓库审计",
+            }]
+        if not discovered:
+            return [], [{
+                "source": repo_url,
+                "reason": "仓库内未识别到符合标准的 skill",
+            }], []
+        return [
+            {
+                "type": "skill",
+                "url": item["skill_url"],
+                "name": item["name"],
+                "desc": "skill: {}".format(item["name"] or item["skill_url"]),
+            }
+            for item in discovered
+        ], [], []
 
     def _discover_repo_skills(self, repo_url, branch):
-        """克隆仓库并按 skillcrawler 相同逻辑发现其中的 SKILL.md。
+        """克隆仓库并按 skillcrawler 相同逻辑发现其中的合法 skill。
 
         返回 ``[{"name": str, "skill_url": str}]``；克隆/发现失败返回 None
-        （由 ``_repo_targets`` 回退为整仓库审计）。
+        （由 ``_repo_targets`` 转成“无法识别仓库”告警，不触发整仓库审计）；
+        分支名含 '/' 时返回 ``("repo", branch)``，由 ``_repo_targets`` 回退整仓库审计；
+        克隆成功但没有任何合法 skill 时返回空列表（由上层判定为“没有识别到 skill”）。
         """
         # SSRF 防护：clone 前校验 URL 在白名单内，防止 PR 提交者探测内网/私网
         if not self._validate_git_url(repo_url):
@@ -342,10 +491,10 @@ class CheckWittyhubAudit(BaseCheck):
             # 无法正确审计；回退整仓库审计（repo 模式把 branch 原样传 git 可处理斜杠分支）
             if "/" in resolved_branch:
                 logger.warning(
-                    "discover skills: branch %s contains '/', fall back to whole-repo audit for %s",
+                    "discover skills: branch %s contains '/', use whole-repo audit for %s",
                     resolved_branch, repo_url,
                 )
-                return None
+                return "repo", resolved_branch
             skills = []
             for skill_file in sorted(repo_root.rglob(self.SKILL_MD_NAME)):
                 if not skill_file.is_file():
@@ -353,8 +502,18 @@ class CheckWittyhubAudit(BaseCheck):
                 relative = skill_file.relative_to(repo_root).as_posix()
                 if self._should_skip_skill_path(relative):
                     continue
+                try:
+                    text = skill_file.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                # 与 wittyhub 扫描器一致：frontmatter 缺 name/description、
+                # 正文过短的 SKILL.md 不算 skill，不纳入审计
+                if self._recognize_skill_text(relative, text):
+                    continue
                 skills.append({
-                    "name": self._skill_display_name(skill_file),
+                    "name": self._skill_display_name_from_text(
+                        text, skill_file.parent.name or self.SKILL_MD_NAME,
+                    ),
                     "skill_url": "{}/blob/{}/{}".format(base_url, resolved_branch, relative),
                 })
             return skills
@@ -460,26 +619,139 @@ class CheckWittyhubAudit(BaseCheck):
 
     @classmethod
     def _should_skip_skill_path(cls, relative_path):
-        """与 skillcrawler.should_skip_relative_path 一致：跳过样本/文档/测试目录。"""
-        parts = relative_path.lower().split("/")
-        return any(part in cls.SKIP_SAMPLE_DIRS for part in parts[:-1])
+        """与 wittyhub should_skip_relative_path 一致：跳过样本/文档/测试目录。
+
+        规则支持多级目录（用 '/' 连接），按连续目录段匹配。
+        """
+        parts = relative_path.lower().split("/")[:-1]
+        for rule in cls.SKIP_SAMPLE_DIRS:
+            rule_parts = rule.strip("/").lower().split("/")
+            rule_length = len(rule_parts)
+            if any(
+                parts[index:index + rule_length] == rule_parts
+                for index in range(len(parts) - rule_length + 1)
+            ):
+                return True
+        return False
+
+    @classmethod
+    def _recognize_skill_text(cls, relative_path, text):
+        """按 wittyhub src/skills 扫描口径识别 skill。
+
+        返回 None 表示识别成功，否则返回未识别原因。
+        """
+        if not relative_path or Path(relative_path).name != cls.SKILL_MD_NAME:
+            return "文件名必须为 {}".format(cls.SKILL_MD_NAME)
+        if cls._should_skip_skill_path(relative_path):
+            return "位于 template/example/demo/test/docs 等跳过目录"
+        metadata, content = cls._parse_skill_frontmatter_text(text)
+        missing = [
+            field for field in cls.REQUIRED_SKILL_METADATA_FIELDS
+            if not str(metadata.get(field) or "").strip()
+        ]
+        if missing:
+            return "frontmatter 缺少必填字段: {}".format("/".join(missing))
+        if len(content.strip()) < cls.MIN_SKILL_CONTENT_LENGTH:
+            return "正文内容少于 {} 字符".format(cls.MIN_SKILL_CONTENT_LENGTH)
+        return None
+
+    @classmethod
+    def _parse_skill_frontmatter_text(cls, text):
+        """解析 SKILL.md frontmatter，行为与 wittyhub 扫描器保持一致。
+
+        返回 ``(metadata, content)``；没有合法 frontmatter 时返回空元数据
+        与去除首尾空白的正文。
+        """
+        stripped = (text or "").lstrip()
+        if not stripped.startswith("---"):
+            return {}, (text or "").strip()
+        parts = stripped.split("---", maxsplit=2)
+        if len(parts) < 3:
+            return {}, (text or "").strip()
+
+        raw_frontmatter = parts[1]
+        content = parts[2].lstrip("\r\n")
+
+        metadata = {}
+        current_key = None
+        block_scalar_indicator = None
+        for line in raw_frontmatter.splitlines():
+            stripped_line = line.strip()
+            if not stripped_line or stripped_line.startswith("#"):
+                continue
+
+            # YAML 块标量（| 或 >）内，缩进行都属于当前值
+            if block_scalar_indicator is not None:
+                if line[:1] in (" ", "\t"):
+                    if current_key is not None:
+                        existing = metadata.get(current_key)
+                        if isinstance(existing, str) and existing:
+                            if block_scalar_indicator == "|":
+                                metadata[current_key] = "{}\n{}".format(existing, stripped_line)
+                            else:
+                                metadata[current_key] = "{} {}".format(existing, stripped_line)
+                        else:
+                            metadata[current_key] = stripped_line
+                    continue
+                block_scalar_indicator = None
+
+            if stripped_line.startswith("- ") and current_key is not None:
+                existing = metadata.get(current_key)
+                if not isinstance(existing, list):
+                    existing = [existing] if isinstance(existing, str) and existing else []
+                    metadata[current_key] = existing
+                item = stripped_line[2:].strip()
+                if item:
+                    existing.append(item)
+                continue
+
+            if ":" not in line:
+                if current_key is not None:
+                    existing = metadata.get(current_key)
+                    if isinstance(existing, str):
+                        metadata[current_key] = "{} {}".format(existing, stripped_line).strip()
+                continue
+
+            key, value = line.split(":", 1)
+            current_key = key.strip()
+            value = value.strip()
+
+            if value in ("|", ">", "|-", ">-", "|+", ">+"):
+                block_scalar_indicator = value[0]
+                metadata[current_key] = ""
+                continue
+
+            block_scalar_indicator = None
+            metadata[current_key] = cls._parse_frontmatter_value(current_key, value)
+
+        return metadata, content.strip()
 
     @staticmethod
-    def _skill_display_name(skill_file):
-        """skill 展示名：优先 SKILL.md frontmatter 的 name，否则取父目录名。"""
-        try:
-            text = skill_file.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            text = ""
-        if text.lstrip().startswith("---") and text.count("---") >= 2:
-            body = text.split("---", 2)[1]
-            for line in body.splitlines():
-                stripped = line.strip()
-                if stripped.startswith("name:"):
-                    name = stripped[len("name:"):].strip().strip("\"'")
-                    if name:
-                        return name
-        return skill_file.parent.name or "SKILL.md"
+    def _parse_frontmatter_value(key, value):
+        if not value:
+            return [] if key == "triggers" else ""
+        if key == "triggers":
+            stripped = value.strip("\"'")
+            return [stripped] if stripped else []
+        lowered = value.lower()
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+        if value.startswith("[") and value.endswith("]"):
+            inner = value[1:-1].strip()
+            if not inner:
+                return []
+            items = [item.strip().strip("\"'") for item in inner.split(",")]
+            return [item for item in items if item] or []
+        return value.strip("\"'")
+
+    @classmethod
+    def _skill_display_name_from_text(cls, text, fallback):
+        """从 SKILL.md 文本提取 frontmatter name，缺失时使用 fallback。"""
+        metadata, _content = cls._parse_skill_frontmatter_text(text)
+        name = str(metadata.get("name") or "").strip()
+        return name or fallback
 
     @staticmethod
     def _skill_name_from_url(skill_url):
@@ -501,6 +773,151 @@ class CheckWittyhubAudit(BaseCheck):
         if len(parts) >= 2:
             return parts[-2]
         return skill_file
+
+    @classmethod
+    def _parse_skill_url(cls, skill_url):
+        """解析 skills[].skill_url -> ``(repo_url, ref, skill_path)``。
+
+        与 wittyhub parse_skill_md_url 口径一致：必须是
+        ``<repo>/blob/<ref>/<path>/SKILL.md``，且 ref 不含 '/'（无法消歧）。
+        不合法时返回 None。
+        """
+        stripped = (skill_url or "").split("#", 1)[0].split("?", 1)[0].strip()
+        if not stripped or "/blob/" not in stripped:
+            return None
+        repo_part, _, ref_path = stripped.partition("/blob/")
+        ref, _, skill_path = ref_path.partition("/")
+        if not ref or not skill_path or "/" in ref:
+            return None
+        if skill_path != cls.SKILL_MD_NAME and not skill_path.endswith("/" + cls.SKILL_MD_NAME):
+            return None
+        # skill_path 来自 PR 可写的 skill.yaml，必须拒绝绝对路径与 . / .. 段，
+        # 避免后续拼接 clone 目录时逃逸到主机任意位置
+        if skill_path.startswith("/") or "\\" in skill_path:
+            return None
+        if any(part in ("", ".", "..") for part in skill_path.split("/")):
+            return None
+        if not cls._normalize_repo_browse_url(repo_part):
+            return None
+        return repo_part, ref, skill_path
+
+    @classmethod
+    def _validate_skill_url_structure(cls, skill_url):
+        """skill_url 纯字符串校验，返回 None 表示结构合法。"""
+        parsed = cls._parse_skill_url(skill_url)
+        if parsed is None:
+            return "skill_url 必须为 <repo>/blob/<ref>/<path>/SKILL.md，且 ref 不能包含 '/'"
+        repo_url, _ref, skill_path = parsed
+        if cls._should_skip_skill_path(skill_path):
+            return "skill_url 指向 template/example/demo/test/docs 等跳过目录"
+        if not cls._validate_git_url(repo_url):
+            return "skill_url 仓库地址不在公开托管域名白名单内"
+        return None
+
+    def _check_declared_skill_urls(self, declared):
+        """校验 skill.yaml 的 skills[].skill_url，返回 ``(targets, rejected, unrecognized)``。
+
+        先做纯字符串结构校验，再按仓库/ref 分组 clone 一次，读取远端
+        SKILL.md 按 wittyhub 扫描口径校验内容：
+
+        - 内容不合规 -> rejected（门禁失败）
+        - clone 失败 -> unrecognized（无法完成内容识别，WARNING，不审计该目标）
+        """
+        targets = []
+        rejected = []
+        unrecognized = []
+        groups = {}
+        for item in declared:
+            url = item.get("url") or ""
+            error = self._validate_skill_url_structure(url)
+            if error:
+                rejected.append({"source": url, "reason": error})
+                continue
+            if item.get("entry_found") and not str(item.get("name") or "").strip():
+                rejected.append({"source": url, "reason": "skills[] 缺少必填字段: skill_name"})
+                continue
+            repo_url, ref, skill_path = self._parse_skill_url(url)
+            groups.setdefault((repo_url, ref), []).append(
+                (url, skill_path, item.get("name")),
+            )
+        for (repo_url, ref), items in groups.items():
+            results = self._remote_skill_errors(
+                repo_url, ref, [skill_path for _url, skill_path, _name in items],
+            )
+            for (url, _skill_path, name), (status, reason) in zip(items, results):
+                if status == "unavailable":
+                    unrecognized.append({"source": url, "reason": reason})
+                elif status == "invalid":
+                    rejected.append({"source": url, "reason": reason})
+                else:
+                    targets.append(self._skill_target(url, name))
+        return targets, rejected, unrecognized
+
+    def _remote_skill_errors(self, repo_url, ref, skill_paths):
+        """浅 clone 仓库并校验远端 SKILL.md 内容。
+
+        返回与 ``skill_paths`` 等长的 ``(status, reason)`` 列表：
+
+        - ``(None, None)``: 识别通过
+        - ``("invalid", reason)``: 内容/文件不合规，门禁失败
+        - ``("unavailable", reason)``: clone 失败，未完成内容识别，门禁告警
+
+        clone 失败时不再回退为按声明 URL 审计。
+        """
+        if not self._validate_git_url(repo_url):
+            return [("invalid", "仓库地址不在公开托管域名白名单内")] * len(skill_paths)
+        env = dict(os.environ)
+        env.update({
+            "GIT_TERMINAL_PROMPT": "0",
+            "GCM_INTERACTIVE": "Never",
+            "GIT_LFS_SKIP_SMUDGE": "1",
+        })
+        tmpdir = None
+        try:
+            tmpdir = tempfile.mkdtemp(prefix="wittyhub-skill-")
+            clone_url = repo_url if repo_url.endswith(".git") else repo_url + ".git"
+            command = [GIT_BIN, "clone", "--depth", "1", "--branch", ref, clone_url, tmpdir]
+            proc = subprocess.run(command, capture_output=True, text=True, env=env, timeout=120)
+            if proc.returncode != 0:
+                logger.warning(
+                    "validate skill_url: clone %s@%s failed: %s",
+                    repo_url, ref, (proc.stderr or "").strip()[-500:],
+                )
+                return [(
+                    "unavailable",
+                    "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
+                )] * len(skill_paths)
+            repo_root = Path(tmpdir)
+            root = repo_root.resolve()
+            results = []
+            for skill_path in skill_paths:
+                candidate = (root / skill_path).resolve()
+                # 兜底：即使结构校验被绕过，也拒绝读取 clone 目录之外的文件
+                try:
+                    candidate.relative_to(root)
+                except ValueError:
+                    results.append(("invalid", "skill_url 路径越界，拒绝读取 clone 目录之外的文件"))
+                    continue
+                results.append(self._recognize_remote_skill_file(candidate, skill_path))
+            return results
+        except Exception as exc:
+            logger.warning("validate skill_url %s@%s failed: %s", repo_url, ref, exc)
+            return [(
+                "unavailable",
+                "远端仓库 clone 失败，未完成 SKILL.md 内容识别: {}".format(exc),
+            )] * len(skill_paths)
+        finally:
+            if tmpdir:
+                shutil.rmtree(tmpdir, ignore_errors=True)
+
+    @classmethod
+    def _recognize_remote_skill_file(cls, skill_file, relative_path):
+        try:
+            text = Path(skill_file).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return "invalid", "远端 SKILL.md 不存在或无法读取"
+        reason = cls._recognize_skill_text(relative_path, text)
+        return ("invalid", reason) if reason else (None, None)
 
     def _skill_yaml_changed_fields(self, skill_yamls):
         """解析 PR 中每个 skill.yaml 的行级 patch，返回 {yaml_file: (repo_urls, skill_urls)}。
@@ -740,39 +1157,93 @@ class CheckWittyhubAudit(BaseCheck):
             return "error", None
         return "pending", None
 
-    def _comment_skip(self, count):
-        """目标数超过上限时评论：不做自动化安全审计，请人工审核。"""
+    def _post_comment(self, body):
+        """发表 PR 评论；评论失败只记日志，不影响门禁判定。"""
+        if len(body) > self.MAX_COMMENT_CHARS:
+            body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
         try:
             from src.proxy.atomgit_proxy import AtomgitProxy
-            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
+            AtomgitProxy(self._community, self._repo, self._access_token).comment_pr(self._pr_num, body)
         except Exception as exc:
             logger.warning("comment pr failed: %s", exc)
-            return
+
+    def _comment_skip(self, count):
+        """目标数超过上限时评论：不做自动化安全审计，请人工审核。"""
         body = (
             "**SkillHub 安全审计门禁**\n\n"
             "本次 PR 涉及 {} 个 skill，超过单次审计目标上限（{} 个），"
             "本次不做安全审计，请人工审核。".format(count, self.MAX_TARGETS)
         )
-        atomgit_proxy.comment_pr(self._pr_num, body)
+        self._post_comment(body)
 
-    def _comment_summary(self, audits, failed_details, block_hit, warn_hit):
-        try:
-            from src.proxy.atomgit_proxy import AtomgitProxy
-            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
-        except Exception as exc:
-            logger.warning("comment pr failed: %s", exc)
-            return
+    def _comment_no_skill(self, rejected):
+        """PR 有 skill 相关变更但未识别到合法 skill 时评论失败原因。"""
+        lines = [
+            "**SkillHub 安全审计门禁**",
+            "",
+            "**结论: 失败（没有识别到 skill）**",
+            "",
+            "本次 PR 包含 skill 相关变更，但未识别到符合标准的 skill，未执行安全审计。",
+            "",
+            "识别标准（与 WittyHub 扫描口径一致）：",
+            "1. 文件名必须为 `SKILL.md`",
+            "2. 不能位于 template/example/demo/test/fixture/docs/archive/legacy 目录",
+            "3. frontmatter 必须同时声明非空的 `name` 和 `description`",
+            "4. 正文内容不少于 {} 字符".format(self.MIN_SKILL_CONTENT_LENGTH),
+        ]
+        if rejected:
+            lines.extend([
+                "",
+                "| 文件/来源 | 未识别原因 |",
+                "| --- | --- |",
+            ])
+            for item in rejected:
+                lines.append("| {} | {} |".format(
+                    self._escape_table_cell(item.get("source", "")),
+                    self._escape_table_cell(item.get("reason", "")),
+                ))
+        self._post_comment("\n".join(lines))
+
+    def _comment_unrecognized(self, unrecognized):
+        """仓库 clone/发现失败或远端内容未完成识别时评论告警。"""
+        lines = [
+            "**SkillHub 安全审计门禁**",
+            "",
+            "**结论: 警告（无法识别仓库，请人工审核）**",
+            "",
+            "以下仓库或 skill_url 无法完成识别，未执行安全审计。"
+            "请人工审核，或评论 /retest 重试。",
+        ]
+        if unrecognized:
+            lines.extend([
+                "",
+                "| 来源 | 失败原因 |",
+                "| --- | --- |",
+            ])
+            for item in unrecognized:
+                lines.append("| {} | {} |".format(
+                    self._escape_table_cell(item.get("source", "")),
+                    self._escape_table_cell(item.get("reason", "")),
+                ))
+        self._post_comment("\n".join(lines))
+
+    def _comment_summary(
+        self, audits, failed_details, block_hit, warn_hit,
+        rejected=None, unrecognized=None,
+    ):
         # 评论链接使用对外可访问的地址；未配置时回退到内部 API 地址
         report_base = (os.environ.get("WITTYHUB_PUBLIC_URL") or self._api_url).rstrip("/")
 
         # 结论放在表格上方，便于一眼看到门禁判定
-        # 审计失败优先：失败目标无法拿到审计结果，需评论 /retest 触发重新审批
-        if failed_details:
+        # 未识别到 skill 属于门禁失败，优先于风险等级
+        if rejected:
+            conclusion = "**结论: 失败（存在未识别到 skill 的变更）**"
+        elif failed_details:
             conclusion = "**结论: 审计失败，请评论 /retest 重新审计**"
         elif block_hit:
             conclusion = "**结论: 谨慎合入（存在高风险 skill）**"
         elif warn_hit:
-            conclusion = "**结论: 有风险提示（存在低风险 或 风险未知 skill）**"
+            conclusion = "**结论: 有风险提示（存在低风险、风险未知或未完成内容识别）**"
         else:
             conclusion = "**结论: 通过**"
 
@@ -812,11 +1283,34 @@ class CheckWittyhubAudit(BaseCheck):
             lines.append("| {} | {} | {} | {} |".format(self._escape_table_cell(name), level_cell, score_text, link))
         for detail in failed_details:
             lines.append("| {} | 审计失败 | - | - |".format(self._escape_table_cell(detail)))
+        if rejected:
+            lines.extend([
+                "",
+                "**未识别到 skill（已跳过审计）**",
+                "",
+                "| 文件/来源 | 未识别原因 |",
+                "| --- | --- |",
+            ])
+            for item in rejected:
+                lines.append("| {} | {} |".format(
+                    self._escape_table_cell(item.get("source", "")),
+                    self._escape_table_cell(item.get("reason", "")),
+                ))
+        if unrecognized:
+            lines.extend([
+                "",
+                "**无法识别仓库或 skill_url（未完成内容识别，请人工审核）**",
+                "",
+                "| 来源 | 失败原因 |",
+                "| --- | --- |",
+            ])
+            for item in unrecognized:
+                lines.append("| {} | {} |".format(
+                    self._escape_table_cell(item.get("source", "")),
+                    self._escape_table_cell(item.get("reason", "")),
+                ))
 
-        body = "\n".join(lines)
-        if len(body) > self.MAX_COMMENT_CHARS:
-            body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
-        atomgit_proxy.comment_pr(self._pr_num, body)
+        self._post_comment("\n".join(lines))
 
     @staticmethod
     def _escape_table_cell(value):
