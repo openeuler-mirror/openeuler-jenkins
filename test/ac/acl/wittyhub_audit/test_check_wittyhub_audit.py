@@ -952,8 +952,7 @@ def test_poll_total_timeout_marks_pending_failed(tmp_path):
 
 
 def test_recognize_skill_text_matches_wittyhub_criteria(tmp_path):
-    """识别标准与 wittyhub src/skills 扫描器一致：文件名、跳过目录、
-        frontmatter name/description、正文长度."""
+    """识别标准与 wittyhub src/skills 扫描器一致：文件名、跳过目录、frontmatter name/description、正文长度."""
     check = _make_check(tmp_path)
     body = "content " * 20
     valid = "---\nname: demo\ndescription: demo skill\n---\n" + body
