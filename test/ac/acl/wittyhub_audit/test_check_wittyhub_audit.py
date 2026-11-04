@@ -436,6 +436,35 @@ def test_skill_url_only_change_scans_single_skill(tmp_path):
     })
 
 
+def test_repo_url_only_change_scans_discovered_skills(tmp_path):
+    """只改 skill_repos[].url 时，只扫新增仓库发现的 skill，不扫 skills[].skill_url."""
+    _skill_yaml(
+        tmp_path,
+        "community/sig-x/skill.yaml",
+        "skill_repos:\n"
+        "- url: https://gitcode.com/openeuler/foo\n"
+        "skills:\n"
+        "- skill_name: x\n"
+        "  skill_url: https://gitcode.com/openeuler/foo/blob/main/skills/x/SKILL.md\n",
+    )
+    check = _make_check(tmp_path)
+    patch = (
+        "@@ -3 +3 @@\n"
+        "-- url: https://gitcode.com/openeuler/old\n"
+        "+- url: https://gitcode.com/openeuler/foo\n"
+    )
+    with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
+        _mock_pr_patch(mock_gp, "community/sig-x/skill.yaml", patch)
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+    assert result == SUCCESS
+    assert mock_post.call_count == 1  # 只扫新增仓库发现的 skill
+    _assert_payload(mock_post, {
+        "skill_url": "https://gitcode.com/openeuler/foo/blob/main/skills/foo/SKILL.md",
+        "async_mode": True,
+    })
+
+
 def test_new_skill_yaml_scans_both_fields(tmp_path):
     """新登记 skill.yaml（全文件新增）时，两个字段都审计."""
     _skill_yaml(
@@ -1006,6 +1035,16 @@ def test_mixed_valid_and_invalid_uploaded_skills(tmp_path):
     assert "失败（存在未识别到 skill 的变更）" in body
 
 
+def test_comment_failure_keeps_failed_result(tmp_path):
+    """评论接口异常时不得把 FAILED 降级为 WARNING."""
+    _skill_md(tmp_path, "community/sig-x/bad-skill/SKILL.md", description="")
+    check = _make_check(tmp_path)
+    with _audit_ctx(check) as (_post, _get, mock_gp):
+        mock_gp.return_value.comment_pr.side_effect = RuntimeError("comment failed")
+        result = _run(check, diff_files=["community/sig-x/bad-skill/SKILL.md"])
+    assert result == FAILED
+
+
 def test_deleted_skill_md_is_success(tmp_path):
     """删除 SKILL.md 不属于 skill 提交，不审计也不失败."""
     check = _make_check(tmp_path)
@@ -1030,6 +1069,19 @@ def test_repo_without_recognized_skill_fails(tmp_path):
     body = mock_gp.return_value.comment_pr.call_args.args[1]
     assert "没有识别到 skill" in body
     assert "仓库内未识别到符合标准的 skill" in body
+
+
+def test_skill_yaml_parse_failure_fails(tmp_path):
+    """skill.yaml 解析失败时无法识别 skill，门禁失败并评论原因."""
+    _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos: [\n")
+    check = _make_check(tmp_path)
+    with _audit_ctx(check) as (mock_post, _get, mock_gp):
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+    assert result == FAILED
+    mock_post.assert_not_called()
+    body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert "没有识别到 skill" in body
+    assert "skill.yaml 解析失败" in body
 
 
 def test_invalid_skill_url_fails(tmp_path):
