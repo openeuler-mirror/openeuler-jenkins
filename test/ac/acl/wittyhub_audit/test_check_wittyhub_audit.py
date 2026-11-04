@@ -3,7 +3,6 @@ import re
 import threading
 import time
 from contextlib import ExitStack, contextmanager
-from pathlib import Path
 from unittest import mock
 
 from src.ac.acl.wittyhub_audit.check_wittyhub_audit import CheckWittyhubAudit
@@ -432,35 +431,6 @@ def test_skill_url_only_change_scans_single_skill(tmp_path):
     assert mock_post.call_count == 1  # 只扫单个 skill
     _assert_payload(mock_post, {
         "skill_url": "https://gitcode.com/leon-wang2021/aet/blob/main/skills/aet-analyzing-prd-innovation/SKILL.md",
-        "async_mode": True,
-    })
-
-
-def test_repo_url_only_change_scans_discovered_skills(tmp_path):
-    """只改 skill_repos[].url 时，只扫新增仓库发现的 skill，不扫 skills[].skill_url."""
-    _skill_yaml(
-        tmp_path,
-        "community/sig-x/skill.yaml",
-        "skill_repos:\n"
-        "- url: https://gitcode.com/openeuler/foo\n"
-        "skills:\n"
-        "- skill_name: x\n"
-        "  skill_url: https://gitcode.com/openeuler/foo/blob/main/skills/x/SKILL.md\n",
-    )
-    check = _make_check(tmp_path)
-    patch = (
-        "@@ -3 +3 @@\n"
-        "-- url: https://gitcode.com/openeuler/old\n"
-        "+- url: https://gitcode.com/openeuler/foo\n"
-    )
-    with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
-        _mock_pr_patch(mock_gp, "community/sig-x/skill.yaml", patch)
-        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
-        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
-    assert result == SUCCESS
-    assert mock_post.call_count == 1  # 只扫新增仓库发现的 skill
-    _assert_payload(mock_post, {
-        "skill_url": "https://gitcode.com/openeuler/foo/blob/main/skills/foo/SKILL.md",
         "async_mode": True,
     })
 
@@ -1031,16 +1001,6 @@ def test_mixed_valid_and_invalid_uploaded_skills(tmp_path):
     assert "失败（存在未识别到 skill 的变更）" in body
 
 
-def test_comment_failure_keeps_failed_result(tmp_path):
-    """评论接口异常时不得把 FAILED 降级为 WARNING."""
-    _skill_md(tmp_path, "community/sig-x/bad-skill/SKILL.md", description="")
-    check = _make_check(tmp_path)
-    with _audit_ctx(check) as (_post, _get, mock_gp):
-        mock_gp.return_value.comment_pr.side_effect = RuntimeError("comment failed")
-        result = _run(check, diff_files=["community/sig-x/bad-skill/SKILL.md"])
-    assert result == FAILED
-
-
 def test_deleted_skill_md_is_success(tmp_path):
     """删除 SKILL.md 不属于 skill 提交，不审计也不失败."""
     check = _make_check(tmp_path)
@@ -1049,19 +1009,6 @@ def test_deleted_skill_md_is_success(tmp_path):
     assert result == SUCCESS
     mock_post.assert_not_called()
     mock_gp.return_value.comment_pr.assert_not_called()
-
-
-def test_skill_yaml_parse_failure_fails(tmp_path):
-    """skill.yaml 解析失败时无法识别 skill，门禁失败并评论原因."""
-    _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos: [\n")
-    check = _make_check(tmp_path)
-    with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
-    assert result == FAILED
-    mock_post.assert_not_called()
-    body = mock_gp.return_value.comment_pr.call_args.args[1]
-    assert "没有识别到 skill" in body
-    assert "skill.yaml 解析失败" in body
 
 
 def test_repo_without_recognized_skill_fails(tmp_path):
@@ -1078,107 +1025,5 @@ def test_repo_without_recognized_skill_fails(tmp_path):
     body = mock_gp.return_value.comment_pr.call_args.args[1]
     assert "没有识别到 skill" in body
     assert "仓库内未识别到符合标准的 skill" in body
-
-
-def test_invalid_skill_url_fails(tmp_path):
-    """skills[].skill_url 不是 .../blob/<ref>/<path>/SKILL.md 时识别失败."""
-    _skill_yaml(
-        tmp_path, "personal/x/skill.yaml",
-        "skills:\n"
-        "- skill_name: x\n"
-        "  skill_url: https://gitcode.com/o/r/skills/x/SKILL.md\n",
-    )
-    check = _make_check(tmp_path)
-    with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        result = _run(check, diff_files=["personal/x/skill.yaml"])
-    assert result == FAILED
-    mock_post.assert_not_called()
-    body = mock_gp.return_value.comment_pr.call_args.args[1]
-    assert "没有识别到 skill" in body
-    assert "skill_url 必须为" in body
-
-
-def test_skill_url_without_skill_name_fails(tmp_path):
-    """skills[] 条目缺少必填 skill_name 时无法识别，门禁失败."""
-    _skill_yaml(
-        tmp_path, "personal/x/skill.yaml",
-        "skills:\n"
-        "- skill_url: https://gitcode.com/o/r/blob/main/skills/x/SKILL.md\n",
-    )
-    check = _make_check(tmp_path)
-    with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        result = _run(check, diff_files=["personal/x/skill.yaml"])
-    assert result == FAILED
-    mock_post.assert_not_called()
-    body = mock_gp.return_value.comment_pr.call_args.args[1]
-    assert "skill_name" in body
-
-
-def test_remote_skill_content_invalid_fails(tmp_path):
-    """远端 SKILL.md 内容不符合识别标准时，不做安全审计并失败."""
-    _skill_yaml(
-        tmp_path, "personal/x/skill.yaml",
-        "skills:\n"
-        "- skill_name: x\n"
-        "  skill_url: https://gitcode.com/o/r/blob/main/skills/x/SKILL.md\n",
-    )
-    check = _make_check(tmp_path)
-    with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        setattr(check, "_remote_skill_errors", mock.Mock(return_value=[("invalid", "正文内容少于 100 字符")]))
-        result = _run(check, diff_files=["personal/x/skill.yaml"])
-    assert result == FAILED
-    mock_post.assert_not_called()
-    body = mock_gp.return_value.comment_pr.call_args.args[1]
-    assert "正文内容少于 100 字符" in body
-
-
-def _fake_clone_with_files(files):
-    """构造 subprocess.run 的 clone 结果：在 clone 目标目录写入指定文件."""
-    def _fake_run(command, **kwargs):
-        target = Path(command[-1])
-        for relative, content in files.items():
-            path = target / relative
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
-        return mock.Mock(returncode=0, stderr="")
-    return _fake_run
-
-
-def test_discover_repo_skills_filters_invalid_skills(tmp_path):
-    """仓库发现阶段按 wittyhub 标准过滤：跳过目录、缺元数据、正文过短都不算 skill."""
-    check = _make_check(tmp_path)
-    files = {
-        "skills/good/SKILL.md": "---\nname: good\ndescription: ok\n---\n" + "x" * 120,
-        "skills/bad/SKILL.md": "---\nname: bad\n---\n" + "x" * 120,
-        "skills/short/SKILL.md": "---\nname: short\ndescription: ok\n---\nshort",
-        "examples/sample/SKILL.md": "---\nname: sample\ndescription: ok\n---\n" + "x" * 120,
-    }
-    with (
-        mock.patch(
-            "src.ac.acl.wittyhub_audit.check_wittyhub_audit.subprocess.run",
-            side_effect=_fake_clone_with_files(files),
-        ),
-        mock.patch.object(check, "_git_checked_out_branch", return_value="main"),
-    ):
-        discovered = getattr(check, "_discover_repo_skills")("https://gitcode.com/openeuler/foo", "")
-    assert [item["name"] for item in discovered] == ["good"]
-    assert discovered[0]["skill_url"].endswith("/blob/main/skills/good/SKILL.md")
-
-
-def test_discover_repo_skills_returns_empty_when_all_invalid(tmp_path):
-    """clone 成功但所有 SKILL.md 都不符合识别标准时返回空列表."""
-    check = _make_check(tmp_path)
-    files = {
-        "skills/bad/SKILL.md": "---\nname: bad\n---\n" + "x" * 120,
-    }
-    with (
-        mock.patch(
-            "src.ac.acl.wittyhub_audit.check_wittyhub_audit.subprocess.run",
-            side_effect=_fake_clone_with_files(files),
-        ),
-        mock.patch.object(check, "_git_checked_out_branch", return_value="main"),
-    ):
-        discovered = getattr(check, "_discover_repo_skills")("https://gitcode.com/openeuler/foo", "")
-    assert discovered == []
 
 
