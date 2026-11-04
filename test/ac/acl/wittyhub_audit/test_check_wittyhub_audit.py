@@ -115,6 +115,7 @@ def _mock_pr_patch(mock_gp, filename, diff):
 
 
 def test_no_skill_change_is_success(tmp_path):
+    """PR 不涉及 skill 相关文件时直接通过，不触发评论或审计."""
     check = _make_check(tmp_path)
     with mock.patch.dict(os.environ, {"WITTYHUB_API_URL": "http://w:8080", "WITTYHUB_ADMIN_TOKEN": "t"}):
         result = _run(check, diff_files=["README.md"])
@@ -138,6 +139,7 @@ def test_repo_high_warns(tmp_path):
 
 
 def test_skill_url_medium_warns(tmp_path):
+    """skill_url 审计结果为 medium 时返回 WARNING，提示确认后合入."""
     _skill_yaml(
         tmp_path,
         "enterprise/org/skill.yaml",
@@ -154,6 +156,7 @@ def test_skill_url_medium_warns(tmp_path):
 
 
 def test_uploaded_skill_md_uses_pr_head(tmp_path):
+    """上传的 SKILL.md 使用 PR 头分支与 fork 仓库地址构造 skill_url 审计."""
     _skill_md(tmp_path, "community/sig-x/my-skill/SKILL.md")
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
@@ -188,8 +191,8 @@ def test_trigger_one_slash_branch_isolation(tmp_path):
     """斜杠防护只作用于 pr_skill（PR 上传 SKILL.md + 斜杠 head_ref）场景；
     repo / skill 目标的斜杠分支审计不受影响，payload 正确构造."""
     check = _make_check(tmp_path)
-    check._api_url = "http://w:8080"
-    check._admin_token = "t"
+    setattr(check, "_api_url", "http://w:8080")
+    setattr(check, "_admin_token", "t")
     calls = []
 
     def _post(url, **kwargs):
@@ -230,6 +233,7 @@ def test_trigger_one_slash_branch_isolation(tmp_path):
 
 
 def test_audit_api_failure_warns(tmp_path):
+    """审计触发接口失败时返回 WARNING，评论提示 /retest 重新审计."""
     _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos:\n- url: https://gitcode.com/openeuler/foo\n")
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
@@ -317,10 +321,10 @@ def test_comment_uses_table_with_report_link(tmp_path):
 def test_comment_conclusion_above_table_sorted_by_score(tmp_path):
     """评论结论放在表格上方；表格按风险分数降序（无分数排最后）."""
     check = _make_check(tmp_path)
-    check._api_url = "http://w:8080"
-    check._admin_token = "t"
-    check._community = "openeuler"
-    check._pr_num = "1"
+    setattr(check, "_api_url", "http://w:8080")
+    setattr(check, "_admin_token", "t")
+    setattr(check, "_community", "openeuler")
+    setattr(check, "_pr_num", "1")
     audits = [
         {"name": "low-skill", "desc": "low", "risk_level": "low", "risk_score": 10, "build_number": 1},
         {"name": "high-skill", "desc": "high", "risk_level": "high", "risk_score": 65, "build_number": 2},
@@ -714,6 +718,20 @@ def test_validate_git_url_aligned_with_wittyhub(tmp_path):
     assert not check._validate_git_url("https://gitcode.com/openeuler/../foo")
 
 
+def test_skill_url_path_traversal_rejected(tmp_path):
+    """skill_url 的 skill_path 拒绝绝对路径与 . / .. 段，防止逃逸 clone 目录."""
+    check = _make_check(tmp_path)
+    for url in (
+        "https://gitcode.com/o/r/blob/main/../../etc/SKILL.md",
+        "https://gitcode.com/o/r/blob/main//etc/SKILL.md",
+        "https://gitcode.com/o/r/blob/main/a/./SKILL.md",
+        "https://gitcode.com/o/r/blob/main/a//SKILL.md",
+        "https://gitcode.com/o/r/blob/main/a\\..\\SKILL.md",
+    ):
+        assert check._parse_skill_url(url) is None
+        assert check._validate_skill_url_structure(url) is not None
+
+
 def test_discover_slash_branch_falls_back_to_whole_repo(tmp_path):
     """分支名含 '/'（如 release/2.0）时，wittyhub 无法解析逐 skill blob URL
     （owner/repo/blob/<ref>/<path>，ref 含 / 会被拆错），应回退整仓库审计；
@@ -725,8 +743,30 @@ def test_discover_slash_branch_falls_back_to_whole_repo(tmp_path):
     ):
         mock_run.return_value = mock.Mock(returncode=0, stderr="")
         discovered = check._discover_repo_skills("https://gitcode.com/openeuler/foo", "")
-    assert discovered is None  # 无法识别信号：_repo_targets 将返回 WARNING 告警
+    assert discovered == ("repo", "release/2.0")  # 回退整仓库审计的信号
     mock_run.assert_called_once()  # 只发生了一次 clone
+
+
+def test_slash_branch_falls_back_to_whole_repo_audit(tmp_path):
+    """斜杠分支回退整仓库审计：payload 使用 repo_url + branch，而不是丢弃审计."""
+    _skill_yaml(
+        tmp_path, "community/sig-x/skill.yaml",
+        "skill_repos:\n"
+        "- url: https://gitcode.com/openeuler/foo\n"
+        "  branch: release/2.0\n",
+    )
+    check = _make_check(tmp_path)
+    with _audit_ctx(
+        check, discover=lambda _url, _branch: ("repo", "release/2.0"),
+    ) as (mock_post, mock_get, _gp):
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+    assert result == SUCCESS
+    _assert_payload(mock_post, {
+        "repo_url": "https://gitcode.com/openeuler/foo",
+        "branch": "release/2.0",
+        "async_mode": True,
+    })
 
 
 def test_discover_rejects_non_whitelisted_url(tmp_path):
@@ -948,6 +988,7 @@ def test_uploaded_skill_md_missing_description_fails(tmp_path):
 
 
 def test_uploaded_skill_md_short_content_fails(tmp_path):
+    """上传的 SKILL.md 正文不足 100 字符时不算 skill，门禁失败."""
     _skill_md(tmp_path, "community/sig-x/short-skill/SKILL.md", body="too short")
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
@@ -970,7 +1011,7 @@ def test_uploaded_skill_md_in_skip_dir_ignored(tmp_path):
 
 
 def test_mixed_valid_and_invalid_uploaded_skills(tmp_path):
-    """合法与非法 SKILL.md 混合：只审计合法 skill，非法项在评论中提示已跳过."""
+    """合法与非法 SKILL.md 混合：审计合法 skill，但存在未识别项时整体失败."""
     _skill_md(tmp_path, "community/sig-x/good-skill/SKILL.md")
     _skill_md(tmp_path, "community/sig-x/bad-skill/SKILL.md", description="")
     check = _make_check(tmp_path)
@@ -983,11 +1024,22 @@ def test_mixed_valid_and_invalid_uploaded_skills(tmp_path):
             "community/sig-x/good-skill/SKILL.md",
             "community/sig-x/bad-skill/SKILL.md",
         ])
-    assert result == SUCCESS
+    assert result == FAILED
     assert mock_post.call_count == 1
     body = mock_gp.return_value.comment_pr.call_args.args[1]
     assert "未识别到 skill（已跳过审计）" in body
     assert "bad-skill/SKILL.md" in body
+    assert "失败（存在未识别到 skill 的变更）" in body
+
+
+def test_comment_failure_keeps_failed_result(tmp_path):
+    """评论接口异常时不得把 FAILED 降级为 WARNING."""
+    _skill_md(tmp_path, "community/sig-x/bad-skill/SKILL.md", description="")
+    check = _make_check(tmp_path)
+    with _audit_ctx(check) as (_post, _get, mock_gp):
+        mock_gp.return_value.comment_pr.side_effect = RuntimeError("comment failed")
+        result = _run(check, diff_files=["community/sig-x/bad-skill/SKILL.md"])
+    assert result == FAILED
 
 
 def test_deleted_skill_md_is_success(tmp_path):
@@ -1001,6 +1053,7 @@ def test_deleted_skill_md_is_success(tmp_path):
 
 
 def test_skill_yaml_parse_failure_fails(tmp_path):
+    """skill.yaml 解析失败时无法识别 skill，门禁失败并评论原因."""
     _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos: [\n")
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
@@ -1047,6 +1100,7 @@ def test_invalid_skill_url_fails(tmp_path):
 
 
 def test_skill_url_without_skill_name_fails(tmp_path):
+    """skills[] 条目缺少必填 skill_name 时无法识别，门禁失败."""
     _skill_yaml(
         tmp_path, "personal/x/skill.yaml",
         "skills:\n"
@@ -1071,7 +1125,7 @@ def test_remote_skill_content_invalid_fails(tmp_path):
     )
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        check._remote_skill_errors = mock.Mock(return_value=[("invalid", "正文内容少于 100 字符")])
+        setattr(check, "_remote_skill_errors", mock.Mock(return_value=[("invalid", "正文内容少于 100 字符")]))
         result = _run(check, diff_files=["personal/x/skill.yaml"])
     assert result == FAILED
     mock_post.assert_not_called()
@@ -1113,6 +1167,7 @@ def test_discover_repo_skills_filters_invalid_skills(tmp_path):
 
 
 def test_discover_repo_skills_returns_empty_when_all_invalid(tmp_path):
+    """clone 成功但所有 SKILL.md 都不符合识别标准时返回空列表."""
     check = _make_check(tmp_path)
     files = {
         "skills/bad/SKILL.md": "---\nname: bad\n---\n" + "x" * 120,

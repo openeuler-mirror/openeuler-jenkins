@@ -40,14 +40,15 @@ class CheckWittyhubAudit(BaseCheck):
     """对 openEuler-skills 仓库的 PR 执行 wittyhub 安全审计门禁。
 
     审计目标（调用 wittyhub audit-by-url，不要求 skill 已入库）：
-    - skill.yaml 的 skill_repos[].url 变更 -> 克隆仓库逐 skill 审计；clone 失败时
-      不触发整仓库审计，评论「无法识别仓库，请人工审核」并返回 WARNING
+    - skill.yaml 的 skill_repos[].url 变更 -> 克隆仓库逐 skill 审计；分支名含 '/'
+      时回退整仓库审计；clone 失败时不触发整仓库审计，评论「无法识别仓库，
+      请人工审核」并返回 WARNING
     - skill.yaml 的 skills[].skill_url 变更 -> 校验 URL 与远端内容后扫单个 skill；
       远端 clone 失败时未完成内容识别，返回 WARNING
     - 直接上传的 */SKILL.md -> 校验工作区文件后扫 PR 头分支中的该 skill
     识别标准与 wittyhub src/skills 扫描器一致：文件名 SKILL.md、非跳过目录、
     frontmatter 同时声明 name/description、正文不少于 100 字符；只有识别到 skill
-    才发起审计。
+    才发起审计。存在未识别到 skill 的变更时，即使其他目标审计通过也返回 FAILED。
     评论：表格展示每个 skill 的名称、风险等级、风险分数与 report.md 下载链接；
     有 skill 相关变更但一个合法 skill 都没识别到时，评论「没有识别到 skill」并
     返回 FAILED。
@@ -244,6 +245,10 @@ class CheckWittyhubAudit(BaseCheck):
             warn_hit = True
         details.extend(failed_details)
         details.extend(
+            "未识别到 skill: {} ({})".format(item.get("source", ""), item.get("reason", ""))
+            for item in collected["rejected"]
+        )
+        details.extend(
             "无法识别仓库或 skill_url: {} ({})".format(item.get("source", ""), item.get("reason", ""))
             for item in unrecognized
         )
@@ -253,6 +258,10 @@ class CheckWittyhubAudit(BaseCheck):
             collected["rejected"], unrecognized,
         )
 
+        # 存在未识别到 skill 的变更：即使其他 skill 审计通过，也判定失败
+        if collected["rejected"]:
+            details.insert(0, "存在未识别到 skill 的变更，门禁失败")
+            return ACResult(FAILED.val, details=details)
         if block_hit:
             details.insert(0, "存在 {} 风险的 skill，请谨慎合入".format("/".join(self._block_levels)))
             return ACResult(WARNING.val, details=details)
@@ -264,15 +273,13 @@ class CheckWittyhubAudit(BaseCheck):
     def _collect_targets(self, diff_files):
         """收集审计目标，并记录 skill 识别结果。
 
-        返回 ``{"targets", "candidates", "rejected", "unrecognized"}``：
+        返回 ``{"targets", "rejected", "unrecognized"}``：
 
         - ``targets``: 识别为合法 skill、需要审计的目标
-        - ``candidates``: PR 中与 skill 相关的变更（用于判断是否应失败）
         - ``rejected``: 明确未识别为 skill 的候选及原因
         - ``unrecognized``: 无法识别（仓库 clone/发现失败），WARNING，不触发整仓库审计
         """
         targets = []
-        candidates = []
         rejected = []
         unrecognized = []
         skill_yamls = [
@@ -290,7 +297,6 @@ class CheckWittyhubAudit(BaseCheck):
                 continue
             content = self._load_yaml(yaml_path)
             if not isinstance(content, dict):
-                candidates.append(yaml_file)
                 rejected.append({
                     "source": yaml_file,
                     "reason": "skill.yaml 解析失败或内容不是映射结构",
@@ -306,7 +312,6 @@ class CheckWittyhubAudit(BaseCheck):
                         if isinstance(entry, dict) and entry.get("url")
                     }
                     for url in sorted(repo_urls):
-                        candidates.append(url)
                         repo_targets, repo_rejected, repo_unrecognized = self._repo_targets(
                             url, entry_branches.get(url, ""),
                         )
@@ -320,7 +325,6 @@ class CheckWittyhubAudit(BaseCheck):
                             continue
                         url = repo_entry.get("url") or ""
                         if url:
-                            candidates.append(url)
                             repo_targets, repo_rejected, repo_unrecognized = self._repo_targets(
                                 url, repo_entry.get("branch") or "",
                             )
@@ -352,7 +356,6 @@ class CheckWittyhubAudit(BaseCheck):
                         }
                         for url, entry in skill_entries.items()
                     ]
-                candidates.extend(item["url"] for item in declared)
                 skill_targets, skill_rejected, skill_unrecognized = self._check_declared_skill_urls(declared)
                 targets.extend(skill_targets)
                 rejected.extend(skill_rejected)
@@ -371,7 +374,6 @@ class CheckWittyhubAudit(BaseCheck):
             # 样本/模板/文档目录下的 SKILL.md 不是 skill，直接忽略
             if self._should_skip_skill_path(skill_file):
                 continue
-            candidates.append(skill_file)
             try:
                 text = Path(local_path).read_text(encoding="utf-8", errors="replace")
             except OSError as exc:
@@ -398,7 +400,6 @@ class CheckWittyhubAudit(BaseCheck):
             })
         return {
             "targets": targets,
-            "candidates": candidates,
             "rejected": rejected,
             "unrecognized": unrecognized,
         }
@@ -409,15 +410,27 @@ class CheckWittyhubAudit(BaseCheck):
         return {"type": "skill", "url": url, "name": display_name, "desc": "skill: {}".format(display_name)}
 
     def _repo_targets(self, repo_url, branch):
-        """新增 skill 仓库展开为逐 skill 审计目标（与 skillcrawler 一致）。
+        """新增 skill 仓库展开为审计目标（与 skillcrawler 一致）。
 
         返回 ``(targets, rejected, unrecognized)``：
 
         - clone 成功且识别到合法 skill -> 逐 skill 目标
+        - 分支名含 '/'，无法构造可解析的 skill_url -> 回退整仓库审计
         - clone 成功但没有合法 skill -> rejected（门禁失败）
         - clone/发现失败 -> unrecognized（无法识别，WARNING，不触发整仓库审计）
         """
         discovered = self._discover_repo_skills(repo_url, branch)
+        if isinstance(discovered, tuple) and discovered[0] == "repo":
+            repo_name = (repo_url or "").rstrip("/").rsplit("/", 1)[-1]
+            if repo_name.endswith(".git"):
+                repo_name = repo_name[:-4]
+            return [{
+                "type": "repo",
+                "url": repo_url,
+                "branch": discovered[1],
+                "name": repo_name or repo_url,
+                "desc": "repo: {}@{}".format(repo_url, discovered[1]),
+            }], [], []
         if discovered is None:
             return [], [], [{
                 "source": repo_url,
@@ -443,6 +456,7 @@ class CheckWittyhubAudit(BaseCheck):
 
         返回 ``[{"name": str, "skill_url": str}]``；克隆/发现失败返回 None
         （由 ``_repo_targets`` 转成“无法识别仓库”告警，不触发整仓库审计）；
+        分支名含 '/' 时返回 ``("repo", branch)``，由 ``_repo_targets`` 回退整仓库审计；
         克隆成功但没有任何合法 skill 时返回空列表（由上层判定为“没有识别到 skill”）。
         """
         # SSRF 防护：clone 前校验 URL 在白名单内，防止 PR 提交者探测内网/私网
@@ -477,10 +491,10 @@ class CheckWittyhubAudit(BaseCheck):
             # 无法正确审计；回退整仓库审计（repo 模式把 branch 原样传 git 可处理斜杠分支）
             if "/" in resolved_branch:
                 logger.warning(
-                    "discover skills: branch %s contains '/', fall back to whole-repo audit for %s",
+                    "discover skills: branch %s contains '/', use whole-repo audit for %s",
                     resolved_branch, repo_url,
                 )
-                return None
+                return "repo", resolved_branch
             skills = []
             for skill_file in sorted(repo_root.rglob(self.SKILL_MD_NAME)):
                 if not skill_file.is_file():
@@ -777,6 +791,12 @@ class CheckWittyhubAudit(BaseCheck):
             return None
         if skill_path != cls.SKILL_MD_NAME and not skill_path.endswith("/" + cls.SKILL_MD_NAME):
             return None
+        # skill_path 来自 PR 可写的 skill.yaml，必须拒绝绝对路径与 . / .. 段，
+        # 避免后续拼接 clone 目录时逃逸到主机任意位置
+        if skill_path.startswith("/") or "\\" in skill_path:
+            return None
+        if any(part in ("", ".", "..") for part in skill_path.split("/")):
+            return None
         if not cls._normalize_repo_browse_url(repo_part):
             return None
         return repo_part, ref, skill_path
@@ -868,10 +888,18 @@ class CheckWittyhubAudit(BaseCheck):
                     "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
                 )] * len(skill_paths)
             repo_root = Path(tmpdir)
-            return [
-                self._recognize_remote_skill_file(repo_root / skill_path, skill_path)
-                for skill_path in skill_paths
-            ]
+            root = repo_root.resolve()
+            results = []
+            for skill_path in skill_paths:
+                candidate = (root / skill_path).resolve()
+                # 兜底：即使结构校验被绕过，也拒绝读取 clone 目录之外的文件
+                try:
+                    candidate.relative_to(root)
+                except ValueError:
+                    results.append(("invalid", "skill_url 路径越界，拒绝读取 clone 目录之外的文件"))
+                    continue
+                results.append(self._recognize_remote_skill_file(candidate, skill_path))
+            return results
         except Exception as exc:
             logger.warning("validate skill_url %s@%s failed: %s", repo_url, ref, exc)
             return [(
@@ -1129,29 +1157,27 @@ class CheckWittyhubAudit(BaseCheck):
             return "error", None
         return "pending", None
 
-    def _comment_skip(self, count):
-        """目标数超过上限时评论：不做自动化安全审计，请人工审核。"""
+    def _post_comment(self, body):
+        """发表 PR 评论；评论失败只记日志，不影响门禁判定。"""
+        if len(body) > self.MAX_COMMENT_CHARS:
+            body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
         try:
             from src.proxy.atomgit_proxy import AtomgitProxy
-            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
+            AtomgitProxy(self._community, self._repo, self._access_token).comment_pr(self._pr_num, body)
         except Exception as exc:
             logger.warning("comment pr failed: %s", exc)
-            return
+
+    def _comment_skip(self, count):
+        """目标数超过上限时评论：不做自动化安全审计，请人工审核。"""
         body = (
             "**SkillHub 安全审计门禁**\n\n"
             "本次 PR 涉及 {} 个 skill，超过单次审计目标上限（{} 个），"
             "本次不做安全审计，请人工审核。".format(count, self.MAX_TARGETS)
         )
-        atomgit_proxy.comment_pr(self._pr_num, body)
+        self._post_comment(body)
 
     def _comment_no_skill(self, rejected):
         """PR 有 skill 相关变更但未识别到合法 skill 时评论失败原因。"""
-        try:
-            from src.proxy.atomgit_proxy import AtomgitProxy
-            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
-        except Exception as exc:
-            logger.warning("comment pr failed: %s", exc)
-            return
         lines = [
             "**SkillHub 安全审计门禁**",
             "",
@@ -1176,19 +1202,10 @@ class CheckWittyhubAudit(BaseCheck):
                     self._escape_table_cell(item.get("source", "")),
                     self._escape_table_cell(item.get("reason", "")),
                 ))
-        body = "\n".join(lines)
-        if len(body) > self.MAX_COMMENT_CHARS:
-            body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
-        atomgit_proxy.comment_pr(self._pr_num, body)
+        self._post_comment("\n".join(lines))
 
     def _comment_unrecognized(self, unrecognized):
         """仓库 clone/发现失败或远端内容未完成识别时评论告警。"""
-        try:
-            from src.proxy.atomgit_proxy import AtomgitProxy
-            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
-        except Exception as exc:
-            logger.warning("comment pr failed: %s", exc)
-            return
         lines = [
             "**SkillHub 安全审计门禁**",
             "",
@@ -1208,27 +1225,20 @@ class CheckWittyhubAudit(BaseCheck):
                     self._escape_table_cell(item.get("source", "")),
                     self._escape_table_cell(item.get("reason", "")),
                 ))
-        body = "\n".join(lines)
-        if len(body) > self.MAX_COMMENT_CHARS:
-            body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
-        atomgit_proxy.comment_pr(self._pr_num, body)
+        self._post_comment("\n".join(lines))
 
     def _comment_summary(
         self, audits, failed_details, block_hit, warn_hit,
         rejected=None, unrecognized=None,
     ):
-        try:
-            from src.proxy.atomgit_proxy import AtomgitProxy
-            atomgit_proxy = AtomgitProxy(self._community, self._repo, self._access_token)
-        except Exception as exc:
-            logger.warning("comment pr failed: %s", exc)
-            return
         # 评论链接使用对外可访问的地址；未配置时回退到内部 API 地址
         report_base = (os.environ.get("WITTYHUB_PUBLIC_URL") or self._api_url).rstrip("/")
 
         # 结论放在表格上方，便于一眼看到门禁判定
-        # 审计失败优先：失败目标无法拿到审计结果，需评论 /retest 触发重新审批
-        if failed_details:
+        # 未识别到 skill 属于门禁失败，优先于风险等级
+        if rejected:
+            conclusion = "**结论: 失败（存在未识别到 skill 的变更）**"
+        elif failed_details:
             conclusion = "**结论: 审计失败，请评论 /retest 重新审计**"
         elif block_hit:
             conclusion = "**结论: 谨慎合入（存在高风险 skill）**"
@@ -1300,10 +1310,7 @@ class CheckWittyhubAudit(BaseCheck):
                     self._escape_table_cell(item.get("reason", "")),
                 ))
 
-        body = "\n".join(lines)
-        if len(body) > self.MAX_COMMENT_CHARS:
-            body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
-        atomgit_proxy.comment_pr(self._pr_num, body)
+        self._post_comment("\n".join(lines))
 
     @staticmethod
     def _escape_table_cell(value):
