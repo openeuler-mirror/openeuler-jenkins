@@ -213,7 +213,7 @@ class LicenseAccessList(object):
         try:
             content = yaml.safe_load(raw)
         except yaml.YAMLError as exc:
-            raise LicenseListError("license 准入清单 YAML 解析失败: {}".format(exc))
+            raise LicenseListError("license 准入清单 YAML 解析失败: {}".format(exc)) from exc
         licenses = content.get("Software Licenses") if isinstance(content, dict) else None
         if not isinstance(licenses, dict):
             raise LicenseListError("license 准入清单缺少 Software Licenses 字段")
@@ -265,7 +265,7 @@ class LicenseAccessList(object):
         try:
             response = requests.get(source, timeout=self._timeout)
         except requests.RequestException as exc:
-            raise LicenseListError("license 准入清单拉取失败: {}".format(exc))
+            raise LicenseListError("license 准入清单拉取失败: {}".format(exc)) from exc
         if response.status_code != 200:
             raise LicenseListError("license 准入清单拉取失败: HTTP {}".format(response.status_code))
         return response.content
@@ -453,7 +453,7 @@ class _ExpressionParser(object):
         if self._pos != len(self._tokens):
             raise LicenseExpressionError(
                 "license 表达式存在无法解析的内容: {}".format(
-                    " ".join(self._tokens[self._pos :]),
+                    " ".join(self._tokens[self._pos:]),
                 )
             )
         return node
@@ -700,11 +700,11 @@ class LicenseScanner(object):
         lowered = name.lower()
         for prefix in ("license", "licence", "copying", "unlicense"):
             if lowered.startswith(prefix):
-                name = name[len(prefix) :]
+                name = name[len(prefix):]
                 break
         lowered = name.lower()
         for suffix in ("license", "licence", "copying", "unlicense"):
             if lowered.endswith(suffix):
-                name = name[: -len(suffix)]
+                name = name[:-len(suffix)]
                 break
         return re.sub(r"^[-._\s]+|[-._\s]+$", "", name)
