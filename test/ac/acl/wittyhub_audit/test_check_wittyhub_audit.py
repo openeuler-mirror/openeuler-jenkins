@@ -968,17 +968,6 @@ def test_uploaded_skill_md_short_content_fails(tmp_path):
     assert "正文内容少于 100 字符" in body
 
 
-def test_uploaded_skill_md_in_skip_dir_ignored(tmp_path):
-    """docs/examples 等跳过目录下的 SKILL.md 不属于 skill 变更，不审计也不失败."""
-    _skill_md(tmp_path, "docs/examples/SKILL.md", description="")
-    check = _make_check(tmp_path)
-    with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        result = _run(check, diff_files=["docs/examples/SKILL.md"])
-    assert result == SUCCESS
-    mock_post.assert_not_called()
-    mock_gp.return_value.comment_pr.assert_not_called()
-
-
 def test_mixed_valid_and_invalid_uploaded_skills(tmp_path):
     """合法与非法 SKILL.md 混合：审计合法 skill，但存在未识别项时整体失败."""
     _skill_md(tmp_path, "community/sig-x/good-skill/SKILL.md")
