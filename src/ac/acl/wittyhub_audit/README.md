@@ -11,10 +11,18 @@
 
 - PR 变更涉及 `skill.yaml` 的 `skill_repos[].url`（skill 仓库 URL）→ 克隆该仓库，按
   与 skillcrawler **一致的发现逻辑**枚举其中的 SKILL.md（跳过 template/example/test/
-  docs 等样本目录），**每个 skill 一次独立审计、各自返回结果**；仓库无 SKILL.md 或
-  克隆/发现失败时回退为整仓库审计（1 个目标），保证不静默通过
-- PR 变更涉及 `skill.yaml` 的 `skills[].skill_url`（SKILL.md URL）→ 扫描单个 skill
-- PR 变更涉及直接上传的 `*/SKILL.md` → 扫描 PR 头分支中的该 skill
+  docs 等样本目录），**每个合法 skill 一次独立审计、各自返回结果**；仓库无合法
+  skill 时门禁失败并评论「没有识别到 skill」。仓库 clone/发现失败时无法识别其中的
+  skill，**不触发整仓库审计**，门禁返回 FAILED 并评论无法识别原因
+- PR 变更涉及 `skill.yaml` 的 `skills[].skill_url`（SKILL.md URL）→ 先校验 URL
+  结构，再按仓库/ref 分组浅 clone 读取远端 SKILL.md，内容符合识别标准后扫描
+  单个 skill；结构或内容不合规时门禁失败；远端 clone 失败时未完成内容识别，
+  门禁同样返回 FAILED
+- PR 变更涉及直接上传的 `*/SKILL.md` → 从 PR 工作区读取文件，按识别标准校验后
+  扫描 PR 头分支中的该 skill；位于跳过目录的 SKILL.md 不审计，但会在评论中提示
+  “已忽略的 SKILL.md 变更”
+- `skill.yaml` 结构异常（`skill_repos`/`skills` 不是列表、条目不是映射结构、
+  条目缺 `url`/`skill_url`/`skill_name`）→ 记为未识别，门禁 `FAILED`
 
 按**条目粒度**判断：门禁会解析 skill.yaml 的行级 diff（`pulls/{pr}/files` 的
 `patch` 字段），提取本次**新增的具体 URL 条目**，只审计这些目标——例如某 PR 只在
@@ -23,19 +31,44 @@
 时仅扫单个 skill。获取不到 patch 或无法定位到具体 URL 时回退为全量审计（该字段所有
 条目都审，宁多勿漏）。
 
-另外两点健壮性说明：
+另外几点健壮性说明：
 
 - **SSRF 防护**：门禁在 `git clone` 前校验仓库 URL 是否在白名单内的公开代码托管
   域名（与 wittyhub `validate_git_url` 一致：仅允许 github.com / gitcode.com / atomgit.com 等
   公开域名、标准端口、非私网 IP，拒绝携带凭据/控制字符/编码路径穿越的 URL），
   防止 PR 提交者通过 skill.yaml 填入内网地址探测网络。
-- **斜杠分支回退**：仓库默认分支或 `skill_repos[].branch` 含 `/`（如
+- **斜杠分支回退整仓库审计**：仓库默认分支或 `skill_repos[].branch` 含 `/`（如
   `release/2.0`）时，wittyhub 的 `.../blob/<ref>/<path>` 逐 skill URL 无法正确
-  解析 ref，门禁自动回退为整仓库审计（repo 模式把 branch 原样传给 git，可正确
-  处理斜杠分支）。
+  解析 ref，门禁改为对整个仓库发起审计（`repo_url` + `branch`），不丢弃审计目标。
 - **目标数上限**：单次 PR 审计目标（skill / 仓库）超过 `MAX_TARGETS`（默认 100）时，
   不做自动化安全审计，仅在 PR 评论提示「本次不做安全审计，请人工审核」，门禁
   WARNING 提示（不阻断合入）。
+
+## Skill 识别标准
+
+与 [wittyhub src/skills](https://atomgit.com/openeuler/wittyhub) 扫描器保持一致，
+只有同时满足以下条件的 `SKILL.md` 才被识别为 skill 并进入安全审计：
+
+1. 文件名必须精确为 `SKILL.md`（`_cannbot_SKILL.md` 等不算）；
+2. 路径不能位于 `template/templates/example/examples/demo/demos/test/tests/
+   fixture/fixtures/docs/doc/archive/archives/legacy` 目录（按连续目录段匹配）；
+3. frontmatter 必须同时声明非空的 `name` 和 `description`；
+4. frontmatter 之后的正文内容（strip 后）不少于 100 字符。
+
+判定行为：
+
+- PR 没有任何 skill 相关变更（如只改 README）→ `SUCCESS`，不审计；
+- 有 skill 相关变更且至少识别到 1 个合法 skill → 审计合法 skill；若同时存在
+  未识别项（结构/内容不合规），整体仍为 `FAILED`，未识别项在评论中单独列出；
+- 有 skill 相关变更但一个合法 skill 都没识别到 → `FAILED`，评论
+  `**结论: 失败（没有识别到 skill）**` 并附未识别原因；
+- `skill.yaml` 结构异常 → `FAILED`，评论具体结构错误；
+- 仓库 clone/发现失败、远端 `skill_url` clone 失败 → `FAILED`，评论
+  `**结论: 失败（无法识别仓库或 skill_url，未完成内容识别）**`，明确
+  “未完成内容识别”，不触发整仓库审计；即使其他 skill 审计通过也会失败；
+- 删除 `SKILL.md`、跳过目录下的 `SKILL.md` 变更不视为 skill 提交：
+  - 删除：不审计、不评论；
+  - 跳过目录：不审计，`SUCCESS` + 评论“已忽略的 SKILL.md 变更（不属于 skill）”。
 
 ## 判定规则
 
@@ -44,6 +77,10 @@
 | critical / high | WARNING | 不阻断合入，评论提示「谨慎合入」，人工确认 |
 | medium / unknown / 审计调用失败 | WARNING | 告警，人工确认 |
 | low | SUCCESS | 通过 |
+| 未识别到 skill | FAILED | 有 skill 相关变更但没有任何合法 skill，评论未识别原因 |
+| skill.yaml 结构异常 | FAILED | 字段/条目结构不合法，评论具体错误 |
+| 无法识别仓库 | FAILED | 仓库 clone/发现失败或远端 skill_url clone 失败，未完成内容识别，评论未识别原因 |
+| 跳过目录 SKILL.md 变更 | SUCCESS | 不属于 skill 变更，不审计，评论提示已忽略 |
 
 默认判定可在 `src/ac/framework/ac.yaml` 中用 `block_levels` / `warn_levels`
 覆盖（默认 `block_levels: [critical, high]`，`warn_levels: [medium]`）。
