@@ -1094,9 +1094,9 @@ def test_remote_skill_clone_failure_fails_without_audit(tmp_path):
     )
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        check._remote_skill_errors = mock.Mock(return_value=[(
+        setattr(check, "_remote_skill_errors", mock.Mock(return_value=[(
             "unavailable", "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
-        )])
+        )]))
         result = _run(check, diff_files=["personal/x/skill.yaml"])
     assert result == FAILED
     mock_post.assert_not_called()
@@ -1166,7 +1166,7 @@ def test_remote_skill_errors_reads_cloned_content(tmp_path):
         "src.ac.acl.wittyhub_audit.check_wittyhub_audit.subprocess.run",
         side_effect=_fake_clone_with_files(files),
     ):
-        errors = check._remote_skill_errors(
+        errors = getattr(check, "_remote_skill_errors")(
             "https://gitcode.com/o/r", "main", ["skills/good/SKILL.md", "skills/bad/SKILL.md"],
         )
     assert errors[0] == (None, None)
@@ -1175,20 +1175,25 @@ def test_remote_skill_errors_reads_cloned_content(tmp_path):
 
 
 def test_remote_skill_errors_missing_file_and_clone_failure(tmp_path):
+    """远端 SKILL.md 不存在返回 invalid；clone 失败返回 unavailable（未完成识别）."""
     check = _make_check(tmp_path)
     with mock.patch(
         "src.ac.acl.wittyhub_audit.check_wittyhub_audit.subprocess.run",
         side_effect=_fake_clone_with_files({}),
     ):
-        errors = check._remote_skill_errors("https://gitcode.com/o/r", "main", ["skills/x/SKILL.md"])
+        errors = getattr(check, "_remote_skill_errors")(
+            "https://gitcode.com/o/r", "main", ["skills/x/SKILL.md"],
+        )
     assert errors == [("invalid", "远端 SKILL.md 不存在或无法读取")]
 
-    # clone 失败（非内容问题）返回 unavailable，由上层转 WARNING，不再回退审计
+    # clone 失败（非内容问题）返回 unavailable，由上层转 FAILED，不再回退审计
     with mock.patch(
         "src.ac.acl.wittyhub_audit.check_wittyhub_audit.subprocess.run",
         return_value=mock.Mock(returncode=1, stderr="boom"),
     ):
-        errors = check._remote_skill_errors("https://gitcode.com/o/r", "main", ["skills/x/SKILL.md"])
+        errors = getattr(check, "_remote_skill_errors")(
+            "https://gitcode.com/o/r", "main", ["skills/x/SKILL.md"],
+        )
     assert errors[0][0] == "unavailable"
     assert "未完成 SKILL.md 内容识别" in errors[0][1]
 
@@ -1252,9 +1257,9 @@ def test_remote_clone_failure_with_valid_upload_fails(tmp_path):
     _skill_md(tmp_path, "community/sig-x/good/SKILL.md")
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
-        check._remote_skill_errors = mock.Mock(return_value=[(
+        setattr(check, "_remote_skill_errors", mock.Mock(return_value=[(
             "unavailable", "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
-        )])
+        )]))
         mock_gp.return_value.get_pr_info.return_value = {
             "head": {"ref": "feature-x", "repo": {"html_url": "https://gitcode.com/forkowner/openEuler-skills"}}
         }

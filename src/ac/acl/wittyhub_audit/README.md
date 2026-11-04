@@ -37,10 +37,9 @@
   域名（与 wittyhub `validate_git_url` 一致：仅允许 github.com / gitcode.com / atomgit.com 等
   公开域名、标准端口、非私网 IP，拒绝携带凭据/控制字符/编码路径穿越的 URL），
   防止 PR 提交者通过 skill.yaml 填入内网地址探测网络。
-- **斜杠分支无法识别**：仓库默认分支或 `skill_repos[].branch` 含 `/`（如
+- **斜杠分支回退整仓库审计**：仓库默认分支或 `skill_repos[].branch` 含 `/`（如
   `release/2.0`）时，wittyhub 的 `.../blob/<ref>/<path>` 逐 skill URL 无法正确
-  解析 ref，门禁无法识别该仓库的 skill，返回 FAILED 并评论无法识别原因，
-  不触发整仓库审计。
+  解析 ref，门禁改为对整个仓库发起审计（`repo_url` + `branch`），不丢弃审计目标。
 - **目标数上限**：单次 PR 审计目标（skill / 仓库）超过 `MAX_TARGETS`（默认 100）时，
   不做自动化安全审计，仅在 PR 评论提示「本次不做安全审计，请人工审核」，门禁
   WARNING 提示（不阻断合入）。
@@ -59,8 +58,8 @@
 判定行为：
 
 - PR 没有任何 skill 相关变更（如只改 README）→ `SUCCESS`，不审计；
-- 有 skill 相关变更且至少识别到 1 个合法 skill → 只审计合法 skill，被跳过的
-  非法项在评论中单独列出；
+- 有 skill 相关变更且至少识别到 1 个合法 skill → 审计合法 skill；若同时存在
+  未识别项（结构/内容不合规），整体仍为 `FAILED`，未识别项在评论中单独列出；
 - 有 skill 相关变更但一个合法 skill 都没识别到 → `FAILED`，评论
   `**结论: 失败（没有识别到 skill）**` 并附未识别原因；
 - `skill.yaml` 结构异常 → `FAILED`，评论具体结构错误；
