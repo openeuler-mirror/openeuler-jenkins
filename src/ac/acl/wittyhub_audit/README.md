@@ -85,6 +85,28 @@
 默认判定可在 `src/ac/framework/ac.yaml` 中用 `block_levels` / `warn_levels`
 覆盖（默认 `block_levels: [critical, high]`，`warn_levels: [medium]`）。
 
+## License 合规检查
+
+`license_check: true` 时，门禁在安全审计之外增加 license 白名单检查：
+
+- **数据来源**：优先读取 `SKILL.md` frontmatter 的 `license` 字段（SPDX 表达式，
+  如 `Apache-2.0`、`MIT OR Apache-2.0`）；其次扫描 skill 目录的
+  `LICENSE`/`LICENCE`/`COPYING`/`UNLICENSES` 及 `LICENSES/<SPDX>.txt`；skill
+  目录没有时回退到仓库根目录。
+- **准入清单**：compliance SIG 维护的
+  `Licenses_Access_List.yaml`，默认运行时从
+  `https://api.atomgit.com/api/v5/repos/openeuler/compliance/raw/doc/rule/Licenses_Access_List.yaml?ref=master`
+  拉取并缓存，可用 `license_list_url` 或环境变量 `WITTYHUB_LICENSE_LIST_URL` 覆盖。
+- **判定口径**：`black: Y` 禁止（评论展示 `blackReason`）；`oeApproved: Y` 允许；
+  `lowRisk: Y`（oE 受限使用）、未收录、未声明均不属于白名单。SPDX 表达式中
+  `AND` 要求全部分支允许，`OR` 任一分支允许即可，`WITH` 的例外条款需在清单中
+  标记为 `exception: Y`。
+- **门禁结果**：非白名单默认 `FAILED`；`license_missing` / `license_restricted` /
+  `license_unknown` 可分别配置为 `failed`、`warning`、`success`。清单拉取失败时
+  降级 `WARNING`（评论提示未执行 license 检查），不阻断 PR。
+- **检测限制**：只检查 skill 自身，不扫描依赖、lock 文件或 vendor 目录；无法
+  自动识别的 license 会按“无法识别”处理，建议在 SKILL.md 中显式声明 SPDX。
+
 ## 部署配置
 
 ### 1. openeuler-jenkins 侧

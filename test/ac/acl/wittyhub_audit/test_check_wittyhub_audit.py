@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from src.ac.acl.wittyhub_audit.check_wittyhub_audit import CheckWittyhubAudit
+from src.ac.acl.wittyhub_audit.license_access import LicenseAccessList
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 
 
@@ -27,14 +28,56 @@ def _skill_yaml(tmp_path, relative, content):
     return path
 
 
-def _skill_md(tmp_path, relative, name="my-skill", description="a valid skill description", body=None):
+def _skill_md(tmp_path, relative, name="my-skill", description="a valid skill description", body=None,
+              license_id=None):
     """写入一个符合 wittyhub 识别标准的 SKILL.md（正文默认超过 100 字符）."""
     body = body or ("# My Skill\n\n" + "This skill does something useful. " * 5)
-    content = "---\nname: {}\ndescription: {}\n---\n{}".format(name, description, body)
+    frontmatter = "---\nname: {}\ndescription: {}\n".format(name, description)
+    if license_id:
+        frontmatter += "license: {}\n".format(license_id)
+    content = frontmatter + "---\n" + body
     path = tmp_path / "openEuler-skills" / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     return path
+
+
+LICENSE_LIST = """\
+Software Licenses:
+  Licenses:
+  - alias:
+    - MIT License
+    - MIT
+    identifier: MIT
+    oeApproved: 'Y'
+    lowRisk: 'N'
+    black: 'N'
+    blackReason: ''
+    exception: 'N'
+  - alias:
+    - Server Side Public License, v 1
+    - SSPL-1.0
+    identifier: SSPL-1.0
+    oeApproved: 'N'
+    lowRisk: 'N'
+    black: 'Y'
+    blackReason: 不建议引入，对云厂商不友好
+    exception: 'N'
+  - alias:
+    - CC-BY-NC-4.0
+    identifier: CC-BY-NC-4.0
+    oeApproved: 'N'
+    lowRisk: 'Y'
+    black: 'N'
+    blackReason: ''
+    exception: 'N'
+"""
+
+
+def _license_access(tmp_path):
+    path = tmp_path / "Licenses_Access_List.yaml"
+    path.write_text(LICENSE_LIST, encoding="utf-8")
+    return LicenseAccessList(source=str(path)).load()
 
 
 def _mock_async_audit(mock_post, mock_get, result, build_number=42, poll_pending=0):
@@ -91,7 +134,7 @@ def _audit_ctx(check, discover=_one_skill_for_repo):
         # 远端 skill_url 内容校验默认视为通过，避免单测访问网络
         stack.enter_context(mock.patch.object(
             check, "_remote_skill_errors",
-            side_effect=lambda repo_url, ref, paths: [(None, None)] * len(paths),
+            side_effect=lambda repo_url, ref, paths: [(None, None, None)] * len(paths),
         ))
         yield mock_post, mock_get, mock_gp
 
@@ -336,12 +379,12 @@ def test_comment_conclusion_above_table_sorted_by_score(tmp_path):
     body = mock_gp.return_value.comment_pr.call_args.args[1]
     lines = body.splitlines()
     # 结论在表格表头上方
-    conclusion_idx = next(i for i, l in enumerate(lines) if l.startswith("**结论"))
-    header_idx = next(i for i, l in enumerate(lines) if l.startswith("| skill 名称"))
+    conclusion_idx = next(i for i, line in enumerate(lines) if line.startswith("**结论"))
+    header_idx = next(i for i, line in enumerate(lines) if line.startswith("| skill 名称"))
     assert conclusion_idx < header_idx
     # 表格行（含 report 详情链接）按风险分数降序；无分数（unknown，分数显示 -）排最后
-    rows = [l for l in lines if l.startswith("| ") and "安全审计报告.md]" in l]
-    numeric = [int(l.split("|")[3].strip()) for l in rows if l.split("|")[3].strip() != "-"]
+    rows = [line for line in lines if line.startswith("| ") and "安全审计报告.md]" in line]
+    numeric = [int(line.split("|")[3].strip()) for line in rows if line.split("|")[3].strip() != "-"]
     assert numeric == sorted(numeric, reverse=True)
     assert rows[-1].startswith("| unknown-skill")
 
@@ -744,7 +787,7 @@ def test_discover_slash_branch_falls_back_to_whole_repo(tmp_path):
     ):
         mock_run.return_value = mock.Mock(returncode=0, stderr="")
         discovered = getattr(check, "_discover_repo_skills")("https://gitcode.com/openeuler/foo", "")
-    assert discovered == ("repo", "release/2.0")  # 回退整仓库审计的信号
+    assert discovered == ("repo", "release/2.0", None)  # 回退整仓库审计的信号
     mock_run.assert_called_once()  # 只发生了一次 clone
 
 
@@ -758,7 +801,7 @@ def test_slash_branch_falls_back_to_whole_repo_audit(tmp_path):
     )
     check = _make_check(tmp_path)
     with _audit_ctx(
-        check, discover=lambda _url, _branch: ("repo", "release/2.0"),
+        check, discover=lambda _url, _branch: ("repo", "release/2.0", None),
     ) as (mock_post, mock_get, _gp):
         _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
         result = _run(check, diff_files=["community/sig-x/skill.yaml"])
@@ -1128,7 +1171,7 @@ def test_remote_skill_content_invalid_fails(tmp_path):
     )
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
-        setattr(check, "_remote_skill_errors", mock.Mock(return_value=[("invalid", "正文内容少于 100 字符")]))
+        setattr(check, "_remote_skill_errors", mock.Mock(return_value=[("invalid", "正文内容少于 100 字符", None)]))
         result = _run(check, diff_files=["personal/x/skill.yaml"])
     assert result == FAILED
     mock_post.assert_not_called()
@@ -1147,7 +1190,7 @@ def test_remote_skill_clone_failure_fails_without_audit(tmp_path):
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, _get, mock_gp):
         setattr(check, "_remote_skill_errors", mock.Mock(return_value=[(
-            "unavailable", "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
+            "unavailable", "远端仓库 clone 失败，未完成 SKILL.md 内容识别", None,
         )]))
         result = _run(check, diff_files=["personal/x/skill.yaml"])
     assert result == FAILED
@@ -1221,7 +1264,7 @@ def test_remote_skill_errors_reads_cloned_content(tmp_path):
         errors = getattr(check, "_remote_skill_errors")(
             "https://gitcode.com/o/r", "main", ["skills/good/SKILL.md", "skills/bad/SKILL.md"],
         )
-    assert errors[0] == (None, None)
+    assert errors[0] == (None, None, None)
     assert errors[1][0] == "invalid"
     assert "description" in errors[1][1]
 
@@ -1236,7 +1279,7 @@ def test_remote_skill_errors_missing_file_and_clone_failure(tmp_path):
         errors = getattr(check, "_remote_skill_errors")(
             "https://gitcode.com/o/r", "main", ["skills/x/SKILL.md"],
         )
-    assert errors == [("invalid", "远端 SKILL.md 不存在或无法读取")]
+    assert errors == [("invalid", "远端 SKILL.md 不存在或无法读取", None)]
 
     # clone 失败（非内容问题）返回 unavailable，由上层转 FAILED，不再回退审计
     with mock.patch(
@@ -1310,7 +1353,7 @@ def test_remote_clone_failure_with_valid_upload_fails(tmp_path):
     check = _make_check(tmp_path)
     with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
         setattr(check, "_remote_skill_errors", mock.Mock(return_value=[(
-            "unavailable", "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
+            "unavailable", "远端仓库 clone 失败，未完成 SKILL.md 内容识别", None,
         )]))
         mock_gp.return_value.get_pr_info.return_value = {
             "head": {"ref": "feature-x", "repo": {"html_url": "https://gitcode.com/forkowner/openEuler-skills"}}
@@ -1322,3 +1365,95 @@ def test_remote_clone_failure_with_valid_upload_fails(tmp_path):
     body = mock_gp.return_value.comment_pr.call_args.args[1]
     assert "失败（无法识别仓库或 skill_url，未完成内容识别）" in body
     assert "未完成 SKILL.md 内容识别" in body
+
+
+def _run_uploaded_license(tmp_path, license_id=None, conf=None):
+    _skill_md(tmp_path, "community/sig-x/my-skill/SKILL.md", license_id=license_id)
+    check = _make_check(tmp_path, conf={"license_check": True, **(conf or {})})
+    access = _license_access(tmp_path)
+    setattr(check, "_license_access", access)
+    with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
+        mock_gp.return_value.get_pr_info.return_value = {
+            "head": {"ref": "feature-x", "repo": {"html_url": "https://gitcode.com/forkowner/openEuler-skills"}}
+        }
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/my-skill/SKILL.md"])
+        body = mock_gp.return_value.comment_pr.call_args.args[1]
+    return result, body
+
+
+def test_license_allowed_uploaded_skill(tmp_path):
+    """SKILL.md 声明白名单 license 时通过，评论展示 license 检查结果."""
+    result, body = _run_uploaded_license(tmp_path, "MIT")
+    assert result == SUCCESS
+    assert "License 合规检查" in body
+    assert "| my-skill | MIT | 允许 |" in body
+
+
+def test_license_black_uploaded_skill_fails(tmp_path):
+    """黑名单 license 直接阻断，评论输出 blackReason."""
+    result, body = _run_uploaded_license(tmp_path, "SSPL-1.0")
+    assert result == FAILED
+    assert any("license 不合规" in detail for detail in result.details)
+    assert "| my-skill | SSPL-1.0 | 禁止 |" in body
+    assert "对云厂商不友好" in body
+
+
+def test_license_missing_uploaded_skill_fails(tmp_path):
+    """未声明 license 且无 license 文件时默认阻断."""
+    result, body = _run_uploaded_license(tmp_path)
+    assert result == FAILED
+    assert "| my-skill | - | 未声明 |" in body
+
+
+def test_license_restricted_can_be_warning(tmp_path):
+    """oE 受限使用默认阻断，可通过 license_restricted 配置降级为告警."""
+    result, body = _run_uploaded_license(
+        tmp_path, "CC-BY-NC-4.0", conf={"license_restricted": "warning"},
+    )
+    assert result == WARNING
+    assert "| my-skill | CC-BY-NC-4.0 | 受限 |" in body
+
+
+def test_license_list_load_failure_warns(tmp_path):
+    """license 清单加载失败时降级 WARNING，不阻断 PR，评论提示未执行."""
+    _skill_md(tmp_path, "community/sig-x/my-skill/SKILL.md", license_id="MIT")
+    missing = tmp_path / "not-exist.yaml"
+    check = _make_check(tmp_path, conf={
+        "license_check": True,
+        "license_list_url": str(missing),
+        "license_timeout": 0.01,
+    })
+    with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
+        mock_gp.return_value.get_pr_info.return_value = {
+            "head": {"ref": "feature-x", "repo": {"html_url": "https://gitcode.com/forkowner/openEuler-skills"}}
+        }
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/my-skill/SKILL.md"])
+        body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert result == WARNING
+    assert "未执行 license 检查" in body
+
+
+def test_license_from_discovered_repo_fails(tmp_path):
+    """仓库发现阶段带出的 license 结论会进入门禁判定和评论."""
+    _skill_yaml(tmp_path, "community/sig-x/skill.yaml", "skill_repos:\n- url: https://gitcode.com/openeuler/foo\n")
+    check = _make_check(tmp_path, conf={"license_check": True})
+    setattr(check, "_license_access", _license_access(tmp_path))
+    verdict = {
+        "status": "black",
+        "expression": "SSPL-1.0",
+        "sources": ["LICENSE"],
+        "reasons": ["不建议引入"],
+    }
+    discovered = [{
+        "name": "foo",
+        "skill_url": "https://gitcode.com/openeuler/foo/blob/main/skills/foo/SKILL.md",
+        "license": verdict,
+    }]
+    with _audit_ctx(check, discover=lambda _url, _branch: discovered) as (mock_post, mock_get, mock_gp):
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/skill.yaml"])
+        body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert result == FAILED
+    assert "| foo | SSPL-1.0 | 禁止 |" in body

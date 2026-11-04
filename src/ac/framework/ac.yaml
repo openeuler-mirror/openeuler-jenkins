@@ -117,4 +117,12 @@ openeuler:
     module: wittyhub_audit.check_wittyhub_audit
     entry: CheckWittyhubAudit
     allow_list: ["openEuler-skills"]
+    license_check: True
+    # 可选：license 准入清单地址，默认使用 compliance SIG 的 raw 地址
+    # license_list_url: https://api.atomgit.com/api/v5/repos/openeuler/compliance/raw/doc/rule/Licenses_Access_List.yaml?ref=master
+    license_timeout: 10
+    # 非白名单 license 的处置级别：failed / warning / success
+    license_missing: failed
+    license_restricted: failed
+    license_unknown: failed
 
