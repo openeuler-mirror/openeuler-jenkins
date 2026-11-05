@@ -26,6 +26,18 @@ from urllib.parse import quote, unquote, urlparse
 import requests
 import yaml
 
+from src.ac.acl.wittyhub_audit.license_access import (
+    STATUS_ALLOWED,
+    STATUS_BLACK,
+    STATUS_CONFLICT,
+    STATUS_ERROR,
+    STATUS_MISSING,
+    STATUS_RESTRICTED,
+    STATUS_UNKNOWN,
+    LicenseAccessList,
+    LicenseScanner,
+    LicenseVerdict,
+)
 from src.ac.framework.ac_base import BaseCheck
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING, ACResult
 from src.proxy.git_proxy import GitProxy
@@ -57,6 +69,13 @@ class CheckWittyhubAudit(BaseCheck):
     汇总（ac.yaml 可用 block_levels/warn_levels 覆盖）：命中 block_levels（默认
     critical/high）-> WARNING（谨慎合入，不阻断）；命中 warn_levels（默认 medium）、
     结果 unknown 或审计失败 -> WARNING；其余 SUCCESS。
+
+    License 合规检查（ac.yaml 设置 license_check: true 启用）：
+    - 优先读取 SKILL.md frontmatter 的 license 字段（SPDX 表达式）；
+    - 其次扫描 skill 目录及仓库根目录的 LICENSE/LICENCES 文件；
+    - 白名单来自 compliance SIG 的 Licenses_Access_List.yaml，black=Y 禁止，
+      oeApproved=Y 允许，lowRisk（oE 受限使用）、未收录、未声明均不属于白名单；
+    - 非白名单默认 FAILED；license 清单拉取失败时降级 WARNING，不阻断 PR。
     """
 
     SKILL_YAML_NAME = "skill.yaml"
@@ -117,6 +136,18 @@ class CheckWittyhubAudit(BaseCheck):
             self._poll_interval = float(conf.get("poll_interval") or self.POLL_INTERVAL)
         except (TypeError, ValueError):
             self._poll_interval = self.POLL_INTERVAL
+        self._license_check = self._to_bool(conf.get("license_check", False))
+        self._license_list_url = (
+            conf.get("license_list_url") or os.environ.get("WITTYHUB_LICENSE_LIST_URL") or ""
+        )
+        try:
+            self._license_timeout = float(conf.get("license_timeout") or 10)
+        except (TypeError, ValueError):
+            self._license_timeout = 10
+        self._license_missing = self._normalize_action(conf.get("license_missing"), "failed")
+        self._license_restricted = self._normalize_action(conf.get("license_restricted"), "failed")
+        self._license_unknown = self._normalize_action(conf.get("license_unknown"), "failed")
+        self._license_access = None
 
     def __call__(self, *args, **kwargs):
         logger.info("check %s wittyhub audit ...", self._repo)
@@ -147,11 +178,19 @@ class CheckWittyhubAudit(BaseCheck):
             logger.warning("wittyhub audit skipped: WITTYHUB_API_URL / WITTYHUB_ADMIN_TOKEN not configured")
             return SUCCESS
 
+        license_error = ""
         diff_files = self.get_pr_changed_files()
         if diff_files is None:
             diff_files = GitProxy(self._work_dir).diff_files_between_commits("HEAD~1", "HEAD~0") or []
         if not diff_files:
             return SUCCESS
+
+        if self._license_check:
+            try:
+                self._ensure_license_access()
+            except Exception as exc:
+                license_error = "license 准入清单加载失败，未执行 license 检查: {}".format(str(exc)[:200])
+                logger.warning(license_error)
 
         collected = self._collect_targets(diff_files)
         targets = collected["targets"]
@@ -257,15 +296,37 @@ class CheckWittyhubAudit(BaseCheck):
             for item in unrecognized
         )
 
+        license_findings, license_failed, license_warn = self._collect_license_findings(targets)
+        if license_warn:
+            warn_hit = True
+        if license_error:
+            warn_hit = True
+            details.append(license_error)
+        details.extend(
+            "license {}: {} -> {} ({})".format(
+                item["name"],
+                item["expression"] or "-",
+                self._license_status_label(item["status"]),
+                "; ".join(item["reasons"]) or "，".join(item["sources"]) or "-",
+            )
+            for item in license_findings
+        )
+
         self._comment_summary(
             audits, failed_details, block_hit, warn_hit,
             collected["rejected"], unrecognized, ignored,
+            license_findings=license_findings,
+            license_error=license_error,
+            license_hash=self._license_hash(),
         )
 
         # 存在未识别到 skill 的变更，或 clone 失败未完成内容识别：
         # 即使其他 skill 审计通过，也判定失败
         if collected["rejected"] or unrecognized:
             details.insert(0, "存在未识别到 skill 的变更或无法识别的来源，未完成内容识别，门禁失败")
+            return ACResult(FAILED.val, details=details)
+        if license_failed:
+            details.insert(0, "存在 license 不合规的 skill，禁止合入")
             return ACResult(FAILED.val, details=details)
         if block_hit:
             details.insert(0, "存在 {} 风险的 skill，请谨慎合入".format("/".join(self._block_levels)))
@@ -274,6 +335,98 @@ class CheckWittyhubAudit(BaseCheck):
             details.insert(0, "安全审计有风险提示（medium 或审计失败），请确认后合入")
             return ACResult(WARNING.val, details=details)
         return SUCCESS
+
+    def _ensure_license_access(self):
+        """加载 license 准入清单（进程内复用）。"""
+        if self._license_access is not None:
+            return self._license_access
+        access = LicenseAccessList(
+            source=self._license_list_url or None,
+            timeout=self._license_timeout,
+        ).load()
+        self._license_access = access
+        return access
+
+    def _scan_license(self, repo_root, skill_dir, declared=None):
+        """扫描单个 skill 的 license，未启用或清单加载失败时返回 None。"""
+        if not self._license_check or self._license_access is None:
+            return None
+        try:
+            verdict = LicenseScanner(self._license_access).scan(repo_root, skill_dir, declared)
+        except Exception as exc:
+            logger.warning("license scan failed for %s: %s", skill_dir, exc)
+            verdict = LicenseVerdict(
+                STATUS_ERROR, reasons=["license 检查内部错误: {}".format(str(exc)[:200])],
+            )
+        return verdict.to_dict()
+
+    def _collect_license_findings(self, targets):
+        """汇总所有 skill 的 license 结论，返回 ``(findings, failed, warning)``。"""
+        findings = []
+        failed = False
+        warning = False
+        seen = set()
+        for target in targets:
+            data = target.get("license")
+            if not isinstance(data, dict):
+                continue
+            verdict = LicenseVerdict.from_dict(data)
+            key = (target.get("url"), verdict.expression, verdict.status)
+            if key in seen:
+                continue
+            seen.add(key)
+            action = self._license_action(verdict.status)
+            findings.append({
+                "name": target.get("name") or target.get("url") or "",
+                "status": verdict.status,
+                "expression": verdict.expression,
+                "sources": verdict.sources,
+                "reasons": verdict.reasons,
+                "action": action,
+            })
+            if action == "failed":
+                failed = True
+            elif action == "warning":
+                warning = True
+        return findings, failed, warning
+
+    def _license_action(self, status):
+        if status == STATUS_ALLOWED:
+            return "success"
+        if status == STATUS_RESTRICTED:
+            return self._license_restricted
+        if status in (STATUS_UNKNOWN, STATUS_ERROR):
+            return self._license_unknown
+        if status == STATUS_MISSING:
+            return self._license_missing
+        # black / conflict 始终阻断
+        return "failed"
+
+    @staticmethod
+    def _license_status_label(status):
+        return {
+            STATUS_ALLOWED: "允许",
+            STATUS_BLACK: "禁止",
+            STATUS_RESTRICTED: "受限",
+            STATUS_UNKNOWN: "无法识别",
+            STATUS_MISSING: "未声明",
+            STATUS_CONFLICT: "声明冲突",
+            STATUS_ERROR: "检查失败",
+        }.get(status, "无法识别")
+
+    def _license_hash(self):
+        return self._license_access.hash if self._license_access is not None else ""
+
+    @staticmethod
+    def _to_bool(value):
+        if isinstance(value, bool):
+            return value
+        return str(value or "").strip().lower() in ("1", "true", "yes", "on")
+
+    @staticmethod
+    def _normalize_action(value, default="failed"):
+        value = str(value or default).strip().lower()
+        return value if value in ("failed", "warning", "success", "ignore") else default
 
     def _collect_targets(self, diff_files):
         """收集审计目标，并记录 skill 识别结果。
@@ -392,7 +545,11 @@ class CheckWittyhubAudit(BaseCheck):
                 continue
             if head_url is None:
                 head_url, head_ref = self._pr_head()
-            targets.append({
+            metadata, _content = self._parse_skill_frontmatter_text(text)
+            license_verdict = self._scan_license(
+                self._work_dir, Path(local_path).parent, metadata.get("license"),
+            )
+            target = {
                 "type": "pr_skill",
                 "url": skill_file,
                 "name": self._skill_display_name_from_text(
@@ -401,7 +558,10 @@ class CheckWittyhubAudit(BaseCheck):
                 "head_url": head_url,
                 "head_ref": head_ref,
                 "desc": "PR 上传 skill 文件: {}".format(skill_file),
-            })
+            }
+            if license_verdict:
+                target["license"] = license_verdict
+            targets.append(target)
         return {
             "targets": targets,
             "rejected": rejected,
@@ -477,13 +637,16 @@ class CheckWittyhubAudit(BaseCheck):
             repo_name = (repo_url or "").rstrip("/").rsplit("/", 1)[-1]
             if repo_name.endswith(".git"):
                 repo_name = repo_name[:-4]
-            return [{
+            target = {
                 "type": "repo",
                 "url": repo_url,
                 "branch": discovered[1],
                 "name": repo_name or repo_url,
                 "desc": "repo: {}@{}".format(repo_url, discovered[1]),
-            }], [], []
+            }
+            if len(discovered) > 2 and discovered[2]:
+                target["license"] = discovered[2]
+            return [target], [], []
         if discovered is None:
             return [], [], [{
                 "source": repo_url,
@@ -494,23 +657,27 @@ class CheckWittyhubAudit(BaseCheck):
                 "source": repo_url,
                 "reason": "仓库内未识别到符合标准的 skill",
             }], []
-        return [
-            {
+        targets = []
+        for item in discovered:
+            target = {
                 "type": "skill",
                 "url": item["skill_url"],
                 "name": item["name"],
                 "desc": "skill: {}".format(item["name"] or item["skill_url"]),
             }
-            for item in discovered
-        ], [], []
+            if item.get("license"):
+                target["license"] = item["license"]
+            targets.append(target)
+        return targets, [], []
 
     def _discover_repo_skills(self, repo_url, branch):
         """克隆仓库并按 skillcrawler 相同逻辑发现其中的合法 skill。
 
-        返回 ``[{"name": str, "skill_url": str}]``；克隆/发现失败返回 None
-        （由 ``_repo_targets`` 转成“无法识别仓库”失败项，不触发整仓库审计）；
-        分支名含 '/' 时返回 ``("repo", branch)``，由 ``_repo_targets`` 回退整仓库审计；
-        克隆成功但没有任何合法 skill 时返回空列表（由上层判定为“没有识别到 skill”）。
+        返回 ``[{"name": str, "skill_url": str, "license": dict}]``；克隆/发现失败
+        返回 None（由 ``_repo_targets`` 转成“无法识别仓库”失败项，不触发整仓库审计）；
+        分支名含 '/' 时返回 ``("repo", branch, license)``，由 ``_repo_targets`` 回退
+        整仓库审计；克隆成功但没有任何合法 skill 时返回空列表（由上层判定为
+        “没有识别到 skill”）。
         """
         # SSRF 防护：clone 前校验 URL 在白名单内，防止 PR 提交者探测内网/私网
         if not self._validate_git_url(repo_url):
@@ -547,7 +714,7 @@ class CheckWittyhubAudit(BaseCheck):
                     "discover skills: branch %s contains '/', use whole-repo audit for %s",
                     resolved_branch, repo_url,
                 )
-                return "repo", resolved_branch
+                return "repo", resolved_branch, self._scan_license(repo_root, repo_root)
             skills = []
             for skill_file in sorted(repo_root.rglob(self.SKILL_MD_NAME)):
                 if not skill_file.is_file():
@@ -563,11 +730,15 @@ class CheckWittyhubAudit(BaseCheck):
                 # 正文过短的 SKILL.md 不算 skill，不纳入审计
                 if self._recognize_skill_text(relative, text):
                     continue
+                metadata, _content = self._parse_skill_frontmatter_text(text)
                 skills.append({
                     "name": self._skill_display_name_from_text(
                         text, skill_file.parent.name or self.SKILL_MD_NAME,
                     ),
                     "skill_url": "{}/blob/{}/{}".format(base_url, resolved_branch, relative),
+                    "license": self._scan_license(
+                        repo_root, skill_file.parent, metadata.get("license"),
+                    ),
                 })
             return skills
         except Exception as exc:
@@ -897,28 +1068,31 @@ class CheckWittyhubAudit(BaseCheck):
             results = self._remote_skill_errors(
                 repo_url, ref, [skill_path for _url, skill_path, _name in items],
             )
-            for (url, _skill_path, name), (status, reason) in zip(items, results):
+            for (url, _skill_path, name), (status, reason, license_verdict) in zip(items, results):
                 if status == "unavailable":
                     unrecognized.append({"source": url, "reason": reason})
                 elif status == "invalid":
                     rejected.append({"source": url, "reason": reason})
                 else:
-                    targets.append(self._skill_target(url, name))
+                    target = self._skill_target(url, name)
+                    if license_verdict:
+                        target["license"] = license_verdict
+                    targets.append(target)
         return targets, rejected, unrecognized
 
     def _remote_skill_errors(self, repo_url, ref, skill_paths):
         """浅 clone 仓库并校验远端 SKILL.md 内容。
 
-        返回与 ``skill_paths`` 等长的 ``(status, reason)`` 列表：
+        返回与 ``skill_paths`` 等长的 ``(status, reason, license)`` 列表：
 
-        - ``(None, None)``: 识别通过
-        - ``("invalid", reason)``: 内容/文件不合规，门禁失败
-        - ``("unavailable", reason)``: clone 失败，未完成内容识别，门禁 FAILED
+        - ``(None, None, license)``: 识别通过，license 为检查结论（未启用时为 None）
+        - ``("invalid", reason, None)``: 内容/文件不合规，门禁失败
+        - ``("unavailable", reason, None)``: clone 失败，未完成内容识别，门禁 FAILED
 
         clone 失败时不再回退为按声明 URL 审计。
         """
         if not self._validate_git_url(repo_url):
-            return [("invalid", "仓库地址不在公开托管域名白名单内")] * len(skill_paths)
+            return [("invalid", "仓库地址不在公开托管域名白名单内", None)] * len(skill_paths)
         env = dict(os.environ)
         env.update({
             "GIT_TERMINAL_PROMPT": "0",
@@ -939,6 +1113,7 @@ class CheckWittyhubAudit(BaseCheck):
                 return [(
                     "unavailable",
                     "远端仓库 clone 失败，未完成 SKILL.md 内容识别",
+                    None,
                 )] * len(skill_paths)
             repo_root = Path(tmpdir)
             root = repo_root.resolve()
@@ -949,28 +1124,34 @@ class CheckWittyhubAudit(BaseCheck):
                 try:
                     candidate.relative_to(root)
                 except ValueError:
-                    results.append(("invalid", "skill_url 路径越界，拒绝读取 clone 目录之外的文件"))
+                    results.append((
+                        "invalid", "skill_url 路径越界，拒绝读取 clone 目录之外的文件", None,
+                    ))
                     continue
-                results.append(self._recognize_remote_skill_file(candidate, skill_path))
+                results.append(self._recognize_remote_skill_file(candidate, skill_path, root))
             return results
         except Exception as exc:
             logger.warning("validate skill_url %s@%s failed: %s", repo_url, ref, exc)
             return [(
                 "unavailable",
                 "远端仓库 clone 失败，未完成 SKILL.md 内容识别: {}".format(exc),
+                None,
             )] * len(skill_paths)
         finally:
             if tmpdir:
                 shutil.rmtree(tmpdir, ignore_errors=True)
 
-    @classmethod
-    def _recognize_remote_skill_file(cls, skill_file, relative_path):
+    def _recognize_remote_skill_file(self, skill_file, relative_path, repo_root):
         try:
             text = Path(skill_file).read_text(encoding="utf-8", errors="replace")
         except OSError:
-            return "invalid", "远端 SKILL.md 不存在或无法读取"
-        reason = cls._recognize_skill_text(relative_path, text)
-        return ("invalid", reason) if reason else (None, None)
+            return "invalid", "远端 SKILL.md 不存在或无法读取", None
+        reason = self._recognize_skill_text(relative_path, text)
+        if reason:
+            return "invalid", reason, None
+        metadata, _content = self._parse_skill_frontmatter_text(text)
+        license_verdict = self._scan_license(repo_root, Path(skill_file).parent, metadata.get("license"))
+        return None, None, license_verdict
 
     def _skill_yaml_changed_fields(self, skill_yamls):
         """解析 PR 中每个 skill.yaml 的行级 patch，返回 {yaml_file: (repo_urls, skill_urls)}。
@@ -1316,9 +1497,11 @@ class CheckWittyhubAudit(BaseCheck):
     def _comment_summary(
         self, audits, failed_details, block_hit, warn_hit,
         rejected=None, unrecognized=None, ignored=None,
+        license_findings=None, license_error="", license_hash="",
     ):
         # 评论链接使用对外可访问的地址；未配置时回退到内部 API 地址
         report_base = (os.environ.get("WITTYHUB_PUBLIC_URL") or self._api_url).rstrip("/")
+        license_failed = any(item.get("action") == "failed" for item in (license_findings or []))
 
         # 结论放在表格上方，便于一眼看到门禁判定
         # 未识别到 skill 或 clone 失败未完成内容识别均属于门禁失败，优先于风险等级
@@ -1330,8 +1513,12 @@ class CheckWittyhubAudit(BaseCheck):
             conclusion = "**结论: 失败（存在无法识别来源和审计失败项）**"
         elif unrecognized:
             conclusion = "**结论: 失败（无法识别仓库或 skill_url，未完成内容识别）**"
+        elif license_failed:
+            conclusion = "**结论: 失败（存在 license 不合规的 skill）**"
         elif failed_details:
             conclusion = "**结论: 审计失败，请评论 /retest 重新审计**"
+        elif license_error:
+            conclusion = "**结论: 有风险提示（license 清单加载失败，未执行 license 检查）**"
         elif block_hit:
             conclusion = "**结论: 谨慎合入（存在高风险 skill）**"
         elif warn_hit:
@@ -1401,9 +1588,37 @@ class CheckWittyhubAudit(BaseCheck):
                     self._escape_table_cell(item.get("source", "")),
                     self._escape_table_cell(item.get("reason", "")),
                 ))
+        if self._license_check:
+            self._append_license_section(lines, license_findings, license_error, license_hash)
         self._append_ignored_section(lines, ignored)
 
         self._post_comment("\n".join(lines))
+
+    def _append_license_section(self, lines, findings, error="", hash_value=""):
+        """向评论追加 License 合规检查结果。"""
+        lines.extend(["", "**License 合规检查**", ""])
+        if error:
+            lines.append(error)
+            return
+        if not findings:
+            lines.append("未发现需要检查 license 的 skill。")
+            return
+        lines.extend([
+            "| skill 名称 | license | 结论 | 说明 |",
+            "| --- | --- | --- | --- |",
+        ])
+        for item in findings:
+            reason = "; ".join(item.get("reasons") or [])
+            if not reason and item.get("sources"):
+                reason = "来源: {}".format("，".join(item.get("sources")))
+            lines.append("| {} | {} | {} | {} |".format(
+                self._escape_table_cell(item.get("name", "")),
+                self._escape_table_cell(item.get("expression") or "-"),
+                self._license_status_label(item.get("status")),
+                self._escape_table_cell(reason or "-"),
+            ))
+        if hash_value:
+            lines.extend(["", "license 准入清单版本: `{}`".format(hash_value)])
 
     @staticmethod
     def _escape_table_cell(value):
