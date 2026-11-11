@@ -6,7 +6,7 @@ hotpatch_update_src_path=hotpatch_update/source/Packages
 
 function ver_maintainer(){
     if [[ ! ${trustlist} =~ ${comment_user} ]];then
-        check_result=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/collaborators?access_token='${token}'&page=1&per_page=100'`
+        check_result=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/'${gitcodeTargetNamespace}'/'${gitcodeRepoName}'/collaborators?access_token='${token}'&page=1&per_page=100'`
         maintainer_list=`echo ${check_result}|jq -r '.[].login'`
         echo $maintainer_list
         if [[ ! ${maintainer_list[@]} =~ ${comment_user} ]]; then
@@ -19,8 +19,8 @@ function ver_maintainer(){
 function print_job(){
     job_name=`echo $JOB_NAME|sed -e 's#/#/job/#g'`
     job_path="https://ci.openeuler.openatom.cn/job/${job_name}/$BUILD_ID/console"
-    body_str="热补丁制作流程已启动，正在创建热补丁issue和生成热补丁元数据并提交pr至hotpatch_meta仓库，请不要重复提交命令。\n点击链接查看工程进度：${job_path}\n热补丁issue及hotpatch_meta仓作用参考：https://gitee.com/openeuler/hotpatch_meta/blob/master/README.md"
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    body_str="热补丁制作流程已启动，正在创建热补丁issue和生成热补丁元数据并提交pr至hotpatch_meta仓库，请不要重复提交命令。\n点击链接查看工程进度：${job_path}\n热补丁issue及hotpatch_meta仓作用参考：https://atomgit.com/openeuler/hotpatch_meta/blob/master/README.md"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/'${gitcodeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
 function error_info(){
@@ -126,16 +126,16 @@ function get_debuginfo_rpm(){
 
 function get_patch(){
     rm -rf $gitcodeRepoName
-    git clone -b $gitcodeTargetBranch --depth 1  https://gitee.com/$giteeTargetNamespace/$gitcodeRepoName
+    git clone -b $gitcodeTargetBranch --depth 1  https://atomgit.com/$gitcodeTargetNamespace/$gitcodeRepoName
     cd $gitcodeRepoName
     if [[ ${openeuler_support} =~ ${gitcodeRepoName} ]]; then
         log_info "***********get openeuler pr patch file*********"
-        wget https://atomgit.com/$giteeTargetNamespace/kernel/pull/$gitcodePullRequestId.patch
+        wget https://atomgit.com/$gitcodeTargetNamespace/kernel/pull/$gitcodePullRequestId.patch
         patch_list="$gitcodePullRequestId.patch"
     else
         echo
         log_info "**********get src-openeuler ${gitcodeRepoName} patch file**********"
-        git fetch origin pull/$gitcodePullRequestId/head:pr_$gitcodePullRequestId
+        git fetch origin +refs/merge-requests/$gitcodePullRequestId/head:pr_$gitcodePullRequestId
         git checkout pr_$gitcodePullRequestId
         patch_list=`echo ${patch_name}|sed -e 's/,/ /g'`
         changed_patch=`git diff --name-status HEAD~1 HEAD~0 | grep ".patch" | awk -F ' ' '{print $2}'`
@@ -187,7 +187,7 @@ function get_pr_patch_file(){
     if [[ $open_pr_result ]];then
         open_pr_id=${open_pr_result##*/}
         if [[ ${open_pr_id} ]]; then
-            git fetch origin pull/${open_pr_id}/head:pr_${open_pr_id}
+            git fetch origin +refs/merge-requests/${open_pr_id}/head:pr_${open_pr_id}
             git checkout pr_${open_pr_id}
             pr_patch_list=`git diff --name-status HEAD~1 HEAD~0 | grep ".patch"| awk -F ' ' '{print $2}'`
             echo ${pr_patch_list}
@@ -202,7 +202,7 @@ function gen_hot_patch_metadata(){
 
     export PYTHONPATH=${shell_path}
     # 生成hotmetadata.xml文件
-    python3 ${shell_path}/src/hotpatch/gen_hotmetadata_xml.py -f ${func} -c ${giteeTargetNamespace} -t ${token} -p `echo ${patch_list}|sed -e 's/ /,/g'` -b ${commet_branch} -r ${gitcodeRepoName} -pr ${gitcodePullRequestId} -o ${metadata_path} -i ${hotpatch_issue_file} -m "${comment}" -l  "${src_url},${x86_debug_url},${aarch64_debug_url}"
+    python3 ${shell_path}/src/hotpatch/gen_hotmetadata_xml.py -f ${func} -c ${gitcodeTargetNamespace} -t ${token} -p `echo ${patch_list}|sed -e 's/ /,/g'` -b ${commet_branch} -r ${gitcodeRepoName} -pr ${gitcodePullRequestId} -o ${metadata_path} -i ${hotpatch_issue_file} -m "${comment}" -l  "${src_url},${x86_debug_url},${aarch64_debug_url}"
     if [ $? -ne 0 ];then
         # 报错后删除临时分支
         if [[ $(git branch -a | grep ${branch_name}) && !${open_pr_result} ]]; then
@@ -244,17 +244,17 @@ function create_remote_branch(){
     log_info "**********create remote branch for pr**********"
     branch_name="hotpatch_${commet_branch}_${gitcodeRepoName}_${version}_${gitcodePullRequestId}"
     echo $branch_name
-    branch_result=`curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/openeuler/hotpatch_meta/branches' -d '{"access_token":"'"${CicdToken}"'","refs":"master","branch_name":"'"${branch_name}"'"}'`
+    branch_result=`curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/openeuler/hotpatch_meta/branches' -d '{"access_token":"'"${CicdToken}"'","refs":"master","branch_name":"'"${branch_name}"'"}'`
     if [[ `echo ${branch_result} | grep "分支名已存在"` ]]; then
-        branch_exist=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/openeuler/hotpatch_meta/branches/'${branch_name}'?access_token='${CicdToken}`
+        branch_exist=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/openeuler/hotpatch_meta/branches/'${branch_name}'?access_token='${CicdToken}`
         branch_creater=`echo ${branch_exist} | jq -r '.commit.commit.author.name'`
         echo ${branch_creater}
-        if [[ ${branch_creater} != ${GiteeCloneUserName} ]]; then
+        if [[ ${branch_creater} != ${GitcodeCloneUserName} ]]; then
             comment_error_src_pr "私人分支${branch_name}已存在，不能创建分支"
         fi
         func="update"
         # 查看源分支是否有打开的pr
-        pr_result=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/openeuler/hotpatch_meta/pulls?access_token='${CicdToken}'&state=open&head='${branch_name}'&sort=created&direction=desc&page=1&per_page=20'` || echo "get source branch open pr failed"
+        pr_result=`curl -X GET --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/openeuler/hotpatch_meta/pulls?access_token='${CicdToken}'&state=open&head='${branch_name}'&sort=created&direction=desc&page=1&per_page=20'` || echo "get source branch open pr failed"
         open_pr_result=`echo ${pr_result} | jq -r '.[].html_url'`
         echo ${open_pr_result}
         if [[ !{open_pr_result} ]]; then
@@ -266,7 +266,7 @@ function create_remote_branch(){
     echo ${func}
 
     rm -rf hotpatch_meta
-    git clone https://${GiteeCloneUserName}:${GiteeClonePassword}@gitee.com/openeuler/hotpatch_meta.git
+    git clone https://${GitcodeCloneUserName}:${GitcodeClonePassword}@atomgit.com/openeuler/hotpatch_meta.git
     cd hotpatch_meta
 
     # 切换到临时的远程分支
@@ -293,10 +293,10 @@ function create_pr(){
     base="master"
 
     log_info "**********create pr**********"
-    pr_result=`curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/openeuler/hotpatch_meta/pulls' -d '{"access_token":"'"${CicdToken}"'","title":"'"${title}"'","base":"master","head":"'"${branch_name}"'"}'`
+    pr_result=`curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/openeuler/hotpatch_meta/pulls' -d '{"access_token":"'"${CicdToken}"'","title":"'"${title}"'","base":"master","head":"'"${branch_name}"'"}'`
     if [[ $(echo ${pr_result}|grep "已存在相同源分支、目标分支的 Pull Request") ]]; then
         pr_url=`echo ${pr_result}|jq -r '.message'| sed 's/^.*<a href=//g' | sed 's/>.*$//g'| sed 's/\"//g'`
-        pr_link="https://gitee.com/${pr_url}"
+        pr_link="https://atomgit.com/${pr_url}"
     else
         pr_link=`echo ${pr_result}|jq -r '.html_url'`
     fi
@@ -310,19 +310,19 @@ function comment_src_pr(){
     hotpatch_issue=`cat ${hotpatch_issue_file}`
     echo ${hotpatch_issue}
     body_str="In response to this:\n > ${comment}  \n\n命令执行结果：\n热补丁issue链接：${hotpatch_issue} \n后续热补丁流程请在hotpatch_meta仓库pr跟踪，链接如下: ${pr_link}"
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/'${gitcodeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
 }
 
 function comment_error_src_pr(){
     log_info "**********comment hotmetadata pr link to source pr********"
     body_str="In response to this:\n > ${comment}  \n\n命令执行结果：\n $* "
-    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://gitee.com/api/v5/repos/'${giteeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
+    curl -X POST --header 'Content-Type: application/json;charset=UTF-8' 'https://api.atomgit.com/api/v5/repos/'${gitcodeTargetNamespace}'/'${gitcodeRepoName}'/pulls/'${gitcodePullRequestId}'/comments' -d '{"access_token":"'"${token}"'","body":"'"${body_str}"'"}' || echo "comment source pr failed"
     log_error $1
 }
 
 function main(){
     echo ${gitcodeRepoName}
-    echo ${giteeTargetNamespace}
+    echo ${gitcodeTargetNamespace}
     echo ${gitcodeTargetBranch}
     curr_path=`pwd`
     hotpatch_issue_file=$curr_path/hotpatch_issue

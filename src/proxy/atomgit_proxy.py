@@ -170,14 +170,18 @@ class AtomgitProxy(object):
 
     def get_issue(self, cve_issue, enterprises="open_euler"):
         """
-        获取企业的某个issue信息
+        获取issue信息；数字编号为仓库级 issue（atomgit 新建），字母编号为企业级（gitee 遗留）
         :param cve_issue: issue编号
         :param enterprises: 企业名称
         :return: 请求response
         """
         resp = {}
-        issue_url = "${}/api/v5/enterprises/{}/issues/{}?access_token={}".format(
-            self._base_url, enterprises, cve_issue, self._token)
+        if str(cve_issue).isdigit():
+            issue_url = "{}/api/v5/repos/{}/{}/issues/{}?access_token={}".format(
+                self._base_url, self._owner, self._repo, cve_issue, self._token)
+        else:
+            issue_url = "{}/api/v5/enterprises/{}/issues/{}?access_token={}".format(
+                self._base_url, enterprises, cve_issue, self._token)
 
         rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp))
         if rs != 0:
