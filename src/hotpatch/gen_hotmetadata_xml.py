@@ -24,7 +24,7 @@ from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from src.logger import logger
-from src.proxy.gitee_proxy import GiteeProxy
+from src.proxy.atomgit_proxy import AtomgitProxy
 
 
 def init_metadata_xml(filename):
@@ -318,7 +318,7 @@ def init_args():
     parser = argparse.ArgumentParser(description='generate hotmetadata.xml')
     parser.add_argument("-c", type=str, dest="community", default="src-openeuler",
                         help="src-openeuler or openeuler")
-    parser.add_argument("-t", type=str, dest="token", help="gitee api token")
+    parser.add_argument("-t", type=str, dest="token", help="atomgit api token")
     parser.add_argument("-r", type=str, dest="repo", help="repo name")
     parser.add_argument("-o", type=str, dest="output", help="output file to save result")
     parser.add_argument("-m", type=str, dest="comment", help="trigger comment")
@@ -347,7 +347,7 @@ if __name__ == '__main__':
     issue_number = ""
     metadata_path = args.output
     src_url, x86_url, arm_url = args.download_link.split(",")
-    meta_url = "https://gitee.com/openeuler/hotpatch_meta"
+    meta_url = "https://atomgit.com/openeuler/hotpatch_meta"
     patch_path = os.path.join(metadata_path, args.branch, args.repo, repo_version, "patch")
     if not os.path.exists(patch_path):
         os.makedirs(patch_path)
@@ -360,7 +360,7 @@ if __name__ == '__main__':
 
     logger.info("new_metadata_patch: %s", metadata_file)
 
-    gp = GiteeProxy(args.community, args.repo, args.token)
+    gp = AtomgitProxy(args.community, args.repo, args.token)
 
     # 获取需要修复的issue信息
     cve_issue_id, cve_issue_url = get_issue_info(cve_issue)
