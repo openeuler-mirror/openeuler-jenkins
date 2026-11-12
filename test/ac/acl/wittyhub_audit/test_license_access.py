@@ -315,14 +315,25 @@ def test_scanner_detects_cann_and_extra_allow(tmp_path):
 
 
 def test_scanner_placeholder_declared_falls_back_to_file(tmp_path):
-    """frontmatter 占位声明解析不出 license 时，以 LICENSE 文件为准."""
+    """frontmatter 占位声明解析不出 license 时，prefer_file 下以文件为准."""
+    repo, skill = _skill_dir(tmp_path)
+    (repo / "LICENSE").write_text(MIT_TEXT, encoding="utf-8")
+    verdict = LicenseScanner(_access(tmp_path), prefer_file=True).scan(
+        repo, skill, "Complete terms in LICENSE.txt"
+    )
+    assert verdict.status == STATUS_ALLOWED
+    assert verdict.expression == "MIT"
+    assert "无法解析" in verdict.reasons[0]
+
+
+def test_scanner_placeholder_declared_without_prefer_file_stays_unknown(tmp_path):
+    """未开启 prefer_file 时不回退，占位声明仍判无法识别."""
     repo, skill = _skill_dir(tmp_path)
     (repo / "LICENSE").write_text(MIT_TEXT, encoding="utf-8")
     verdict = LicenseScanner(_access(tmp_path)).scan(
         repo, skill, "Complete terms in LICENSE.txt"
     )
-    assert verdict.status == STATUS_ALLOWED
-    assert verdict.expression == "MIT"
+    assert verdict.status == STATUS_UNKNOWN
 
 
 def test_scanner_prefer_file_when_declared_restricted(tmp_path):
@@ -414,7 +425,18 @@ def test_scanner_prefer_file_when_declared_unknown(tmp_path):
     repo, skill = _skill_dir(tmp_path)
     (repo / "LICENSE").write_text(MIT_TEXT, encoding="utf-8")
     verdict = LicenseScanner(_access(tmp_path), prefer_file=True).scan(
-        repo, skill, "Unknown-1.0"
+        repo, skill, "Unknown License 1.0"
     )
     assert verdict.status == STATUS_ALLOWED
     assert verdict.expression == "MIT"
+    assert "无法解析" in verdict.reasons[0]
+
+
+def test_scanner_single_token_unresolvable_declared_stays_unknown(tmp_path):
+    """单 token 未收录写法（如 SSPL）不回退文件，避免黑名单简写被放行."""
+    repo, skill = _skill_dir(tmp_path)
+    (repo / "LICENSE").write_text(MIT_TEXT, encoding="utf-8")
+    verdict = LicenseScanner(_access(tmp_path), prefer_file=True).scan(
+        repo, skill, "SSPL"
+    )
+    assert verdict.status == STATUS_UNKNOWN

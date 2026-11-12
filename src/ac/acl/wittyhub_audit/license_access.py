@@ -560,25 +560,28 @@ class LicenseScanner(object):
             for identifier in self._detect(path, text):
                 detected.setdefault(identifier, []).append(relative)
 
-        if declared_expression and not self._access.identifiers_in(declared_expression) and detected:
-            # frontmatter 常见占位写法（如 "Complete terms in LICENSE.txt"）解析不出
-            # 任何 identifier，此时以 license 文件为准，避免误判为 unknown
-            logger.info(
-                "ignore unparsable declared license %r, fallback to license files",
-                declared_expression,
-            )
-            declared_expression = ""
+        ignored_declared = ""
+        if declared_expression and not self._access.identifiers_in(declared_expression):
+            # 仅当声明是描述性占位（多个 token，如 "Complete terms in LICENSE.txt"）
+            # 且开启 prefer_file 时回退到 license 文件；单 token 的未收录写法
+            # （如 "SSPL"）保持原判定，避免黑名单/受限许可被文件许可静默放行。
+            if detected and self._prefer_file and len(_TOKEN_RE.findall(declared_expression)) > 1:
+                logger.info(
+                    "ignore unparsable declared license %r, fallback to license files",
+                    declared_expression,
+                )
+                ignored_declared = declared_expression
+                declared_expression = ""
 
         if declared_expression:
             verdict = self._access.evaluate(declared_expression)
             verdict.sources = sources or ["SKILL.md frontmatter"]
             conflict = self._conflict_reason(declared_expression, detected)
-            if (
-                conflict
-                and self._prefer_file
-                and detected
+            prefer_file_verdict = (
+                self._prefer_file
                 and verdict.status in (STATUS_RESTRICTED, STATUS_UNKNOWN)
-            ):
+            )
+            if conflict and detected and prefer_file_verdict:
                 # 声明不可用或受限、而 LICENSE 文件明确允许时，以文件为准；
                 # black 声明不在此列，保留禁止结论
                 file_verdict = self._access.evaluate(" AND ".join(sorted(detected)))
@@ -616,6 +619,12 @@ class LicenseScanner(object):
         expression = " AND ".join(sorted(detected))
         verdict = self._access.evaluate(expression)
         verdict.sources = sources
+        if ignored_declared:
+            verdict.reasons.append(
+                "SKILL.md 声明的 license '{}' 无法解析，已按 license 文件判定".format(
+                    ignored_declared,
+                )
+            )
         return verdict
 
     def _conflict_reason(self, declared_expression, detected):

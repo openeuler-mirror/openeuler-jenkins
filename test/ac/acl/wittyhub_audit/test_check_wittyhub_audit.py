@@ -1423,17 +1423,18 @@ def test_license_conflict_and_extra_allow_config(tmp_path):
         "license_extra_allow": ["CANN-2.0", "Convex-CPL"],
         "license_prefer_file": "true",
     })
-    assert check._license_action(STATUS_CONFLICT) == "warning"
-    assert check._license_extra_allow == ["CANN-2.0", "Convex-CPL"]
-    assert check._license_prefer_file is True
+    license_action = getattr(check, "_license_action")
+    assert license_action(STATUS_CONFLICT) == "warning"
+    assert getattr(check, "_license_extra_allow") == ["CANN-2.0", "Convex-CPL"]
+    assert getattr(check, "_license_prefer_file") is True
 
     check2 = _make_check(tmp_path, conf={"license_extra_allow": "CANN-2.0, Convex-CPL"})
-    assert check2._license_extra_allow == ["CANN-2.0", "Convex-CPL"]
+    assert getattr(check2, "_license_extra_allow") == ["CANN-2.0", "Convex-CPL"]
 
     # 未配置新键时保持旧行为：冲突阻断、不使用文件覆盖
     check3 = _make_check(tmp_path, conf={})
-    assert check3._license_action(STATUS_CONFLICT) == "failed"
-    assert check3._license_prefer_file is False
+    assert getattr(check3, "_license_action")(STATUS_CONFLICT) == "failed"
+    assert getattr(check3, "_license_prefer_file") is False
 
 
 MIT_TEXT = """MIT License
@@ -1485,6 +1486,37 @@ def test_license_prefer_file_end_to_end(tmp_path):
     )
     assert result == SUCCESS
     assert "| my-skill | MIT | 允许 |" in body
+
+
+def test_license_prefer_file_keeps_black_end_to_end(tmp_path):
+    """prefer_file 开启时 black 声明仍阻断，不被文件 MIT 覆盖."""
+    _write_skill_license(tmp_path, MIT_TEXT)
+    result, body = _run_uploaded_license(
+        tmp_path, "SSPL-1.0", conf={"license_prefer_file": "true"},
+    )
+    assert result == FAILED
+    assert "| my-skill | SSPL-1.0 | 禁止 |" in body
+
+
+def test_license_extra_allow_never_overrides_black_end_to_end(tmp_path):
+    """license_extra_allow 误配 black 许可时仍阻断."""
+    _skill_md(tmp_path, "community/sig-x/my-skill/SKILL.md", license_id="SSPL-1.0")
+    list_path = tmp_path / "Licenses_Access_List.yaml"
+    list_path.write_text(LICENSE_LIST, encoding="utf-8")
+    check = _make_check(tmp_path, conf={
+        "license_check": True,
+        "license_list_url": str(list_path),
+        "license_extra_allow": "SSPL-1.0",
+    })
+    with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
+        mock_gp.return_value.get_pr_info.return_value = {
+            "head": {"ref": "feature-x", "repo": {"html_url": "https://gitcode.com/forkowner/openEuler-skills"}}
+        }
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/my-skill/SKILL.md"])
+        body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert result == FAILED
+    assert "| my-skill | SSPL-1.0 | 禁止 |" in body
 
 
 def test_license_extra_allow_applied_when_loading_access_list(tmp_path):
