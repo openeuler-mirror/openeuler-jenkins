@@ -125,4 +125,18 @@ openeuler:
     license_missing: failed
     license_restricted: failed
     license_unknown: failed
+    # 声明与 LICENSE 文件不一致：元数据问题，降级为告警，不阻断合入
+    license_conflict: warning
+    # 门禁侧补充的可分发许可（清单未收录或未获 oE 认可的生态/内容许可）；
+    # 仅覆盖未收录与未认可项，不会覆盖清单中的 black 判定
+    license_extra_allow:
+      - CANN-2.0
+      - SUL-1.0
+      - FSL-1.1-Apache-2.0
+      - Convex-CPL
+      # CC-BY-3.0-US 已收录但未获 oE 认可，属可分发内容许可
+      - CC-BY-3.0-US
+    # 声明与 LICENSE 文件冲突时以文件为准：文件许可允许即可放行，
+    # 冲突原因仍写入评论，便于推动上游修正 frontmatter
+    license_prefer_file: True
 
