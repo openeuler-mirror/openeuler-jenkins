@@ -147,6 +147,12 @@ class CheckWittyhubAudit(BaseCheck):
         self._license_missing = self._normalize_action(conf.get("license_missing"), "failed")
         self._license_restricted = self._normalize_action(conf.get("license_restricted"), "failed")
         self._license_unknown = self._normalize_action(conf.get("license_unknown"), "failed")
+        # 声明与文件不一致：默认阻断，可降级为告警（元数据问题，不影响实际授权）
+        self._license_conflict = self._normalize_action(conf.get("license_conflict"), "failed")
+        # 门禁侧补充的可分发许可（逗号分隔或 YAML 列表），不会覆盖清单 black
+        self._license_extra_allow = self._to_list(conf.get("license_extra_allow"))
+        # 声明不可用/受限而文件明确允许时，是否以文件为准（ac.yaml 中开启）
+        self._license_prefer_file = self._to_bool(conf.get("license_prefer_file", False))
         self._license_access = None
 
     def __call__(self, *args, **kwargs):
@@ -343,6 +349,7 @@ class CheckWittyhubAudit(BaseCheck):
         access = LicenseAccessList(
             source=self._license_list_url or None,
             timeout=self._license_timeout,
+            extra_allow=self._license_extra_allow,
         ).load()
         self._license_access = access
         return access
@@ -352,7 +359,9 @@ class CheckWittyhubAudit(BaseCheck):
         if not self._license_check or self._license_access is None:
             return None
         try:
-            verdict = LicenseScanner(self._license_access).scan(repo_root, skill_dir, declared)
+            verdict = LicenseScanner(
+                self._license_access, prefer_file=self._license_prefer_file
+            ).scan(repo_root, skill_dir, declared)
         except Exception as exc:
             logger.warning("license scan failed for %s: %s", skill_dir, exc)
             verdict = LicenseVerdict(
@@ -399,7 +408,9 @@ class CheckWittyhubAudit(BaseCheck):
             return self._license_unknown
         if status == STATUS_MISSING:
             return self._license_missing
-        # black / conflict 始终阻断
+        if status == STATUS_CONFLICT:
+            return self._license_conflict
+        # black 始终阻断
         return "failed"
 
     @staticmethod
@@ -427,6 +438,14 @@ class CheckWittyhubAudit(BaseCheck):
     def _normalize_action(value, default="failed"):
         value = str(value or default).strip().lower()
         return value if value in ("failed", "warning", "success", "ignore") else default
+
+    @staticmethod
+    def _to_list(value):
+        """把 YAML 列表或逗号分隔字符串解析为字符串列表。"""
+        if isinstance(value, (list, tuple)):
+            return [str(item).strip() for item in value if str(item).strip()]
+        text = str(value or "").replace(";", ",")
+        return [item.strip() for item in text.split(",") if item.strip()]
 
     def _collect_targets(self, diff_files):
         """收集审计目标，并记录 skill 识别结果。

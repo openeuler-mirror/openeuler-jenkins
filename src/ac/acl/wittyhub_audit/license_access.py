@@ -85,6 +85,14 @@ _TOKEN_RE = re.compile(r"\(|\)|\bAND\b|\bOR\b|\bWITH\b|[^\s()]+", re.IGNORECASE)
 
 # 常见 license 全文特征。license 文件全文通常不带 SPDX 头，需要按正文识别。
 _TEXT_SIGNATURES = (
+    # 厂商/源码可见许可：正文特征需在 Apache/GPL 之前匹配，
+    # 避免被附带的标准许可文本抢占
+    ("CANN-2.0", (r"CANN Open Software License Agreement",)),
+    ("SUL-1.0", (r"Sustainable Use License",)),
+    ("FSL-1.1-Apache-2.0", (r"Functional Source License",)),
+    ("Convex-CPL", (r"Convex Public Licen[cs]e",)),
+    ("SSPL-1.0", (r"Server Side Public License",)),
+    ("PostgreSQL", (r"PostgreSQL License",)),
     ("AGPL-3.0-only", (r"GNU AFFERO GENERAL PUBLIC LICENSE", r"Version\s+3")),
     ("GPL-3.0-only", (r"GNU GENERAL PUBLIC LICENSE", r"Version\s+3")),
     ("GPL-2.0-only", (r"GNU GENERAL PUBLIC LICENSE", r"Version\s+2")),
@@ -94,6 +102,7 @@ _TEXT_SIGNATURES = (
     ("Apache-1.1", (r"Apache Software License", r"Version\s+1\.1")),
     ("MPL-2.0", (r"Mozilla Public License", r"Version\s+2\.0")),
     ("MulanPSL-2.0", (r"Mulan Permissive Software License", r"Version\s+2")),
+    ("MulanPSL-2.0", (r"Mulan PSL v2",)),
     ("EPL-2.0", (r"Eclipse Public License", r"(?:v|Version)\s*2\.0")),
     ("CDDL-1.0", (r"COMMON DEVELOPMENT AND DISTRIBUTION LICENSE", r"Version\s+1\.0")),
     ("Artistic-2.0", (r"The Artistic License\s+2\.0",)),
@@ -193,7 +202,7 @@ class LicenseAccessList(object):
     - 其余（含 Nonstandard、未收录）-> 无法识别，不属于白名单。
     """
 
-    def __init__(self, source=None, timeout=10):
+    def __init__(self, source=None, timeout=10, extra_allow=None):
         self._source = source or DEFAULT_LICENSE_LIST_URL
         self._timeout = timeout
         self._entries = {}
@@ -201,6 +210,13 @@ class LicenseAccessList(object):
         self._content_aliases = []
         self._hash = ""
         self._loaded = False
+        # 门禁侧补充的可分发许可（如生态自有许可）；只对“未收录”生效，
+        # 不能覆盖清单里的 black 判定
+        self._extra_allow = {}
+        for item in extra_allow or []:
+            token = str(item or "").strip()
+            if token:
+                self._extra_allow[_normalize_token(token)] = token
 
     @property
     def hash(self):
@@ -311,6 +327,9 @@ class LicenseAccessList(object):
         if not candidates:
             candidates = {identifier for identifier in self._entries if identifier.lower() == key}
         if not candidates:
+            extra = self._extra_allow.get(key)
+            if extra:
+                return extra, ""
             return None, "未在 license 准入清单中: {}".format(token)
         if len(candidates) == 1:
             return next(iter(candidates)), ""
@@ -326,9 +345,13 @@ class LicenseAccessList(object):
         """返回 ``(status, reason)``。"""
         entry = self._entries.get(identifier)
         if entry is None:
+            if _normalize_token(identifier) in self._extra_allow:
+                return STATUS_ALLOWED, ""
             return STATUS_UNKNOWN, "未在 license 准入清单中: {}".format(identifier)
         if entry["black"]:
             return STATUS_BLACK, entry["blackReason"] or "禁止使用"
+        if _normalize_token(identifier) in self._extra_allow:
+            return STATUS_ALLOWED, ""
         if entry["oeApproved"]:
             return STATUS_ALLOWED, ""
         if entry["lowRisk"]:
@@ -515,8 +538,11 @@ class LicenseScanner(object):
     MAX_FILE_SIZE = 1024 * 1024
     MAX_HEADER_CHARS = 8192
 
-    def __init__(self, access):
+    def __init__(self, access, prefer_file=False):
         self._access = access
+        # 声明与文件冲突时是否以文件为准：仅对“声明不可用/受限、文件允许”
+        # 的情况生效；black 与允许声明之间的冲突保留原判定
+        self._prefer_file = prefer_file
 
     def scan(self, repo_root, skill_dir, declared=None):
         repo_root = Path(repo_root).resolve()
@@ -534,10 +560,32 @@ class LicenseScanner(object):
             for identifier in self._detect(path, text):
                 detected.setdefault(identifier, []).append(relative)
 
+        if declared_expression and not self._access.identifiers_in(declared_expression) and detected:
+            # frontmatter 常见占位写法（如 "Complete terms in LICENSE.txt"）解析不出
+            # 任何 identifier，此时以 license 文件为准，避免误判为 unknown
+            logger.info(
+                "ignore unparsable declared license %r, fallback to license files",
+                declared_expression,
+            )
+            declared_expression = ""
+
         if declared_expression:
             verdict = self._access.evaluate(declared_expression)
             verdict.sources = sources or ["SKILL.md frontmatter"]
             conflict = self._conflict_reason(declared_expression, detected)
+            if (
+                conflict
+                and self._prefer_file
+                and detected
+                and verdict.status in (STATUS_RESTRICTED, STATUS_UNKNOWN)
+            ):
+                # 声明不可用或受限、而 LICENSE 文件明确允许时，以文件为准；
+                # black 声明不在此列，保留禁止结论
+                file_verdict = self._access.evaluate(" AND ".join(sorted(detected)))
+                if file_verdict.status == STATUS_ALLOWED:
+                    file_verdict.sources = sources
+                    file_verdict.reasons = [conflict]
+                    return file_verdict
             if conflict and verdict.status == STATUS_ALLOWED:
                 return LicenseVerdict(
                     STATUS_CONFLICT,

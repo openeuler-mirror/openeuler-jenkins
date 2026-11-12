@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from src.ac.acl.wittyhub_audit.check_wittyhub_audit import CheckWittyhubAudit
-from src.ac.acl.wittyhub_audit.license_access import LicenseAccessList
+from src.ac.acl.wittyhub_audit.license_access import STATUS_CONFLICT, LicenseAccessList
 from src.ac.framework.ac_result import FAILED, SUCCESS, WARNING
 
 
@@ -1413,6 +1413,99 @@ def test_license_restricted_can_be_warning(tmp_path):
     )
     assert result == WARNING
     assert "| my-skill | CC-BY-NC-4.0 | 受限 |" in body
+
+
+def test_license_conflict_and_extra_allow_config(tmp_path):
+    """license_conflict 可降级为告警；extra_allow 支持列表与逗号分隔字符串."""
+    check = _make_check(tmp_path, conf={
+        "license_check": True,
+        "license_conflict": "warning",
+        "license_extra_allow": ["CANN-2.0", "Convex-CPL"],
+        "license_prefer_file": "true",
+    })
+    assert check._license_action(STATUS_CONFLICT) == "warning"
+    assert check._license_extra_allow == ["CANN-2.0", "Convex-CPL"]
+    assert check._license_prefer_file is True
+
+    check2 = _make_check(tmp_path, conf={"license_extra_allow": "CANN-2.0, Convex-CPL"})
+    assert check2._license_extra_allow == ["CANN-2.0", "Convex-CPL"]
+
+    # 未配置新键时保持旧行为：冲突阻断、不使用文件覆盖
+    check3 = _make_check(tmp_path, conf={})
+    assert check3._license_action(STATUS_CONFLICT) == "failed"
+    assert check3._license_prefer_file is False
+
+
+MIT_TEXT = """MIT License
+
+Copyright (c) 2025 Example
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction.
+"""
+
+APACHE_TEXT = """Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/
+"""
+
+
+def _write_skill_license(tmp_path, text, relative="community/sig-x/my-skill/LICENSE"):
+    path = tmp_path / "openEuler-skills" / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_license_conflict_fails_by_default(tmp_path):
+    """声明与 LICENSE 文件冲突时默认阻断（兼容未配置新键的仓库）."""
+    _write_skill_license(tmp_path, APACHE_TEXT)
+    result, body = _run_uploaded_license(tmp_path, "MIT")
+    assert result == FAILED
+    assert any("license 不合规" in detail for detail in result.details)
+    assert "| my-skill | MIT | 声明冲突 |" in body
+
+
+def test_license_conflict_can_be_warning_end_to_end(tmp_path):
+    """license_conflict: warning 时冲突只告警，不阻断合入."""
+    _write_skill_license(tmp_path, APACHE_TEXT)
+    result, body = _run_uploaded_license(
+        tmp_path, "MIT", conf={"license_conflict": "warning"},
+    )
+    assert result == WARNING
+    assert "| my-skill | MIT | 声明冲突 |" in body
+
+
+def test_license_prefer_file_end_to_end(tmp_path):
+    """声明受限但 LICENSE 文件为允许许可时，prefer_file 放行."""
+    _write_skill_license(tmp_path, MIT_TEXT)
+    result, body = _run_uploaded_license(
+        tmp_path, "CC-BY-NC-4.0", conf={"license_prefer_file": "true"},
+    )
+    assert result == SUCCESS
+    assert "| my-skill | MIT | 允许 |" in body
+
+
+def test_license_extra_allow_applied_when_loading_access_list(tmp_path):
+    """conf 的 license_extra_allow 经 _ensure_license_access 传入清单加载."""
+    _skill_md(tmp_path, "community/sig-x/my-skill/SKILL.md", license_id="CANN-2.0")
+    list_path = tmp_path / "Licenses_Access_List.yaml"
+    list_path.write_text(LICENSE_LIST, encoding="utf-8")
+    check = _make_check(tmp_path, conf={
+        "license_check": True,
+        "license_list_url": str(list_path),
+        "license_extra_allow": "CANN-2.0",
+    })
+    with _audit_ctx(check) as (mock_post, mock_get, mock_gp):
+        mock_gp.return_value.get_pr_info.return_value = {
+            "head": {"ref": "feature-x", "repo": {"html_url": "https://gitcode.com/forkowner/openEuler-skills"}}
+        }
+        _mock_async_audit(mock_post, mock_get, {"status": "done", "risk_level": "low", "risk_score": 10})
+        result = _run(check, diff_files=["community/sig-x/my-skill/SKILL.md"])
+        body = mock_gp.return_value.comment_pr.call_args.args[1]
+    assert result == SUCCESS
+    assert "| my-skill | CANN-2.0 | 允许 |" in body
 
 
 def test_license_list_load_failure_warns(tmp_path):
