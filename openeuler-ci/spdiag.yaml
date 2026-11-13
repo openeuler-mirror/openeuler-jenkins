@@ -1,0 +1,8 @@
+repo_name: spdiag
+container_level: l2
+init_shell: "bash ${WORKSPACE}/spdiag/.gitee/ci_build.sh"
+users:
+  - login_name: qinyufei
+    name: Qin Yufei
+    email: qinyufei5@huawei.com
+    gitee_id: qinyufei

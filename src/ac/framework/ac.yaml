@@ -93,7 +93,7 @@ openeuler:
                  "security-tool","imageTailor","obmm","yuanrong-functionsystem","yuanrong","yuanrong-frontend","yuanrong-datasystem","ray-adapter",
                  "ubs-engine","ubturbo","ubs-comm","golang","ham", "dpdk", "ubs-virt", "ubs-io", "cache_tuner", "mem_hot", "witty-ub",
                  "TSB-agent","ubs-atomic","ubs-optimizer","ubs-mem","cdf-crypto","scf-security", "umdk","knet", "elasticMem", "spdk",
-                 "sysHAX", "euler-copilot-rag", "euler-copilot-shell", "ccb", "witty-service", "oeDevPlugin", "heolleo"]
+                 "sysHAX", "euler-copilot-rag", "euler-copilot-shell", "ccb", "witty-service", "oeDevPlugin", "heolleo", "spdiag"]
   commit_msg:
     hint: commit_msg
     module: commit_msg.check_commit_msg
