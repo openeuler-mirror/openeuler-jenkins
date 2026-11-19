@@ -32,6 +32,7 @@ mkdir -p "${ACTION_WORKSPACE}"
 
 # approve.sh 依赖的 gitcode* 变量（Jenkins ci_check 流水线命名，保持原样映射）
 export gitcodeRepoName=${ACTION_REPO}
+export gitcodeTargetNamespace=${ACTION_OWNER:-src-openeuler}
 export gitcodePullRequestId=${ACTION_PR_NUMBER}
 export gitcodeTargetBranch=${ACTION_TARGET_BRANCH}
 export gitcodeCommitter=${ACTION_COMMITTER}
