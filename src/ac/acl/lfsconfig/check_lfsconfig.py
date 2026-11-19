@@ -47,6 +47,11 @@ class CheckLfsconfig(BaseCheck):
             logger.info(".lfsconfig not in PR diff, skip check")
             return EXCLUDE
 
+        # 工作区已 checkout 到 PR merge 提交，文件不存在说明 PR 删除了该文件，无需检查内容
+        if not os.path.exists(os.path.join(self._work_dir, ".lfsconfig")):
+            logger.info(".lfsconfig deleted in PR, skip check")
+            return EXCLUDE
+
         logger.info(".lfsconfig found in PR diff, checking url ...")
         return self.start_check_with_order("lfsconfig")
 
