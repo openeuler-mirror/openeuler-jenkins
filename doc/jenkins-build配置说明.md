@@ -136,13 +136,11 @@ shell_path=/home/jenkins/ci_check
 # rm -rf ${shell_path}/*
 # git clone https://gitee.com/xxx/openeuler-jenkins.git ${shell_path}
 
-. ${shell_path}/src/lib/main_process.sh "$OBSUserName" "$OBSPassword" "$GiteeUserName" "$GiteePassword" "$GiteeToken" "$GiteeUserPassword" "$PkgShipUserName" "$PkgShipPassword" "$buddy" "$repo" "$tbranch" "$arch" "$package" "$branch" "$prid" "$WORKSPACE" "$committer" "$commentid" "$SaveBuildRPM2Repo" "$repo_server" "$pkgship_notify_url" "$pkgship_notify_token"
+. ${shell_path}/src/lib/trigger.sh
 
-set +x
-set -e
-main
-set +e
 set -x
+main
+set +x
 ```
 
 ## **6.构建后操作**
