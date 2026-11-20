@@ -108,7 +108,7 @@ ${variant_dir_cmds}
 EOF
   )
   echo "$remote_place_cmd"
-  echo "https://atomgit.com/src-openeuler/${gitcodeRepoName}/pull/${gitcodePullRequestId}"
+  echo "https://atomgit.com/${gitcodeTargetNamespace:-src-openeuler}/${gitcodeRepoName}/pull/${gitcodePullRequestId}"
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_place_cmd"
 
   config_oecp_db

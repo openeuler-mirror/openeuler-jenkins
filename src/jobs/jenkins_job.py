@@ -271,6 +271,10 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
             return list(set(jobs_in_community).intersection(set(exists_jobs_list)))
         elif action == "create":
             to_create_list = list(set(jobs_in_community).difference(set(exists_jobs_list)))
+            if self._organization != "src-openeuler":
+                # 非 src-openeuler 组织（如 src-openeuler-sig）只有 gitcode 一套任务目录，
+                # 不做 github/atomgit 任务目录拆分，直接返回待创建列表
+                return to_create_list
             if self._platform == "github":
                 target_jobs_dir2 = target_jobs_dir.replace("src-openeuler-github", "src-openeuler")
             else:
@@ -450,7 +454,7 @@ if "__main__" == __name__:
         logger.error("all is not allowed when create ci in openeuler")
     elif any([args.organization == "src-openeuler", "trigger" in args.target_jobs_dir,
             "comment" in args.target_jobs_dir, args.action == "create"]):
-        if args.organization == "src-openeuler":
+        if args.organization in ("src-openeuler", "src-openeuler-sig"):
             jenkins_jobs = SrcOpenEulerJenkinsJobs(args.template_jobs_dir, args.template_job, jp, 
                     args.organization, args.platform, args.atomgit_token)
         else:

@@ -6,6 +6,10 @@ src-openeuler:
       buddy: kata-containers, kata_integration, kernel
       packages: kata-containers
   arch_config: {}
+src-openeuler-sig:
+  skipped_repo: []
+  repo_config: {}
+  arch_config: {}
 openeuler:
   skipped_repo: ["community", "release-management"]
   repo_config: {}
