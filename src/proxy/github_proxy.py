@@ -38,7 +38,7 @@ class GithubProxy(object):
         """
         logger.debug("comment pull request %s", pr)
         comment_pr_url = "https://api.github.com/repos/{}/{}/issues/{}/comments".format(self._owner, self._repo, pr)
-        data = {"auth": self._token, "body": comment}
+        data = {"body": comment}
 
         rs = do_requests("post", comment_pr_url, RequestData(body=data, timeout=10, headers=self._headers))
 

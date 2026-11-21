@@ -340,7 +340,7 @@ class Comment(object):
             pr_data.setdefault('milestone', milestone_id)
             issue_num = self.get_target_issue_num(gp, pr_id)
             comments = self._comment_of_compare_package_issue(check_result_file, details_files, detail_url, commit_id)
-            logger.info(f"Show issue data: {pr_data}, issue num: {issue_num}")
+            logger.info("Show issue data: title=%s, issue num: %s", pr_data.get("title"), issue_num)
             if not issue_num:
                 logger.info(f"the first time submit issue,comment: {comments}")
                 if comments:
@@ -379,7 +379,6 @@ class Comment(object):
         """
         other_info = {}
         issue_data = {
-            "access_token": gp._token,
             "owner": gp._owner,
             "repo": gp._repo,
             "issue_type": "缺陷"

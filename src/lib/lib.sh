@@ -162,3 +162,25 @@ function git_update()
         cd $old_pwd &> /dev/null
     fi
 }
+
+# 执行敏感命令：关闭函数体 trace，命令结束仅在 CI_DEBUG=true 时恢复。
+# 注意：bash 会在进入函数前打印调用行，调用行不得包含秘密；
+# 秘密必须通过环境变量、stdin 或 600 权限临时文件传入。
+function run_sensitive()
+{
+    { set +x; } 2>/dev/null
+    "$@"
+    local rc=$?
+    if [ "${CI_DEBUG:-false}" == "true" ]; then
+        set -x
+    fi
+    return ${rc}
+}
+
+# 从 stdin 读、stdout 写，脱敏敏感 key 的 value；--json 走 JSON 模式。
+function mask_sensitive()
+{
+    local lib_dir
+    lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    python3 "${lib_dir}/../utils/sensitive_mask.py" "$@"
+}

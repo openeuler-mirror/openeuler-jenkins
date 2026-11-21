@@ -16,7 +16,6 @@ jenkins_api_host="https://ci.openeuler.openatom.cn/"
 support_arch_prefix="${gitcodeRepoName}_${gitcodePullRequestId}_support_arch_"
 repo_server_test_tail=""
 token=${gitcodeToken}
-user_passwd=${gitcodeUserPassword}
 
 if [[ "${platform}" == "" ]]; then
     platform="gitcode"
@@ -25,7 +24,6 @@ fi
 if [[ "${platform}" == "github" ]]; then
     repo_server_test_tail="-github"
     token=${GithubToken}
-    user_passwd=${GithubUserPassword}
 fi
 
 # debug测试变量

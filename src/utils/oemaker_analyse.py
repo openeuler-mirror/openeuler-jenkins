@@ -112,12 +112,11 @@ class OemakerAnalyse(object):
         return deny_dict
 
     @staticmethod
-    def get_deny_delete_list(branch, arch, atomgit_token, oecp_json_path):
+    def get_deny_delete_list(branch, arch, oecp_json_path):
         """
         获取oecp删除包列表中被禁止删除的包列表
         :param branch: 分支
         :param arch: 架构
-        :param atomgit_token: atomgit token
         :param oecp_json_path: oecp结果文件
         :return: list
         """
@@ -149,7 +148,7 @@ class OemakerAnalyse(object):
             branch = "openEuler" + branch.split("openEuler")[-1]
 
         fetch_cmd = 'git clone -b {} --depth 1 ' \
-                    'https://{}@atomgit.com/src-openeuler/oemaker'.format(branch, atomgit_token)
+                    'https://atomgit.com/src-openeuler/oemaker'.format(branch)
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
             logger.error("git fetch failed, %s\n%s", ret, out)
@@ -189,7 +188,7 @@ if "__main__" == __name__:
     logger.info("check oemaker rpm-delete start")
 
     deny_delete_list = OemakerAnalyse.get_deny_delete_list(args.branch, args.arch,
-                                                           args.atomgit_token, args.oecp_json_path)
+                                                           args.oecp_json_path)
     if not deny_delete_list:
         logger.info("check oemaker rpm-delete pass")
     else:

@@ -40,9 +40,12 @@ class CheckRepoInMaintain(BaseCheck):
 
     def load_yml(self):
         base_url = "https://api.atomgit.com/api/v5/repos/openeuler/release-management/raw"
-        url = f"{base_url}/{self._branch}/delete/pckg-mgmt.yaml?access_token={self._token}"
+        url = f"{base_url}/{self._branch}/delete/pckg-mgmt.yaml"
+        headers = {}
+        if self._token:
+            headers["Authorization"] = f"Bearer {self._token}"
 
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         if response.status_code != 200:
             logger.info(f"request package management failure: {response.text}")
             return {}
