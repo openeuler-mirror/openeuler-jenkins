@@ -40,8 +40,8 @@ class MissingActionEnvError(Exception):
     """
     pass
 
-# ActionContext 字段 → 环境变量名（token 例外：gate 入口用 ACTION_TOKEN，
-# build/finalize 入口用 ACTION_GITCODE_TOKEN，由 load_action_context 的 token_env 指定）
+# ActionContext 字段 → 环境变量名（token 例外：主变量固定为 ACTION_GITCODE_TOKEN_READ/WRITE，
+# 缺失时回退平台 token ACTION_SELF_TOKEN）
 _FIELD_ENV = {
     "pr_number": "ACTION_PR_NUMBER",
     "repo": "ACTION_REPO",
@@ -54,6 +54,8 @@ _FIELD_ENV = {
     "arch": "ACTION_ARCH",
     "variant": "ACTION_VARIANT",
     "pr_url": "ACTION_PR_URL",
+    "read_token": "ACTION_GITCODE_TOKEN_READ",
+    "write_token": "ACTION_GITCODE_TOKEN_WRITE",
 }
 
 
@@ -65,7 +67,9 @@ class ActionContext:
     :param pr_number: PR 编号
     :param repo: 仓库名（如 openEuler-repos）
     :param owner: 仓库实际 owner（API 调用用，如 src-openeuler）
-    :param token: AtomGit API token（默认组织级 bot token，未配置回退 atomgit.token）
+    :param token: 灰度兼容字段，值为 read_token or write_token（新入口改用 read_token / write_token）
+    :param read_token: AtomGit API 读 token（ACTION_GITCODE_TOKEN_READ，缺失回退 ACTION_SELF_TOKEN）
+    :param write_token: AtomGit API 写 token（ACTION_GITCODE_TOKEN_WRITE，缺失回退 ACTION_SELF_TOKEN）
     :param target_branch: PR 目标分支
     :param workspace: 工作目录（产物所在）
     :param pipeline_url: 本 job 流水线链接（Build Details 跳转）
@@ -80,6 +84,8 @@ class ActionContext:
     repo: str
     owner: str
     token: str
+    read_token: str = ""
+    write_token: str = ""
     target_branch: str = ""
     workspace: str = ""
     pipeline_url: str = ""
@@ -113,28 +119,41 @@ def setup_action_logging(log_file):
         root.addHandler(handler)
 
 
-def load_action_context(entry_name, required=(), token_env="ACTION_GITCODE_TOKEN"):
+def load_action_context(entry_name, required=(), write_only=False):
     """
     读取并校验 ACTION_* 环境变量，返回 PR 上下文。
+
+    token 取值规则：
+        - 常规入口（gate / build / ci-final）：ACTION_GITCODE_TOKEN_READ / WRITE 优先，
+          缺失时回退平台 token ACTION_SELF_TOKEN（即 workflow 的 ${{ atomgit.token }}）。
+        - build-comment（write_only=True）：不持有 READ token，只读 ACTION_GITCODE_TOKEN_WRITE，
+          不使用平台 token 回退。
+        - ACTION_BOT_TOKEN 不再读取；环境变量为空串时视为未配置。
 
     :param entry_name: 入口标识（用于日志，如 gate / build_comment / final）
     :param required: 必填字段名元组（ActionContext 字段名），缺失时抛 MissingActionEnvError
                      （由入口 main 捕获后 sys.exit(2)）
-    :param token_env: token 对应的环境变量名（gate 入口为 ACTION_TOKEN，
-                      build/finalize 入口为 ACTION_GITCODE_TOKEN）
+    :param write_only: build-comment 模式（无 READ token，无平台 token 回退）
     :return: ActionContext
     """
     # ACTION_OWNER 为正式环境变量名（装 PR 目标仓实际 owner，API 调用用）；
     # ACTION_COMMUNITY 为改名前的旧名，过渡期回退读取（三仓 ci.yml 全量切换后删除）
     owner = os.environ.get("ACTION_OWNER") or os.environ.get("ACTION_COMMUNITY", "")
-    # 全局 token 策略：默认组织级 bot token（ACTION_BOT_TOKEN），secret 未配置时
-    # 平台注入空串，须用 or 回退 atomgit.token（os.environ.get 默认值挡不住空串）
-    token = os.environ.get("ACTION_BOT_TOKEN", "") or os.environ.get(token_env, "")
+    if write_only:
+        read_token = ""
+        write_token = os.environ.get("ACTION_GITCODE_TOKEN_WRITE", "")
+    else:
+        # 平台注入的 token 未配置时为空串，须用 or 回退（os.environ.get 默认值挡不住空串）
+        fallback_token = os.environ.get("ACTION_SELF_TOKEN", "")
+        read_token = os.environ.get("ACTION_GITCODE_TOKEN_READ", "") or fallback_token
+        write_token = os.environ.get("ACTION_GITCODE_TOKEN_WRITE", "") or fallback_token
     ctx = ActionContext(
         pr_number=os.environ.get("ACTION_PR_NUMBER", ""),
         repo=os.environ.get("ACTION_REPO", ""),
         owner=owner,
-        token=token,
+        token=read_token or write_token,  # 灰度兼容：未切换入口仍读 ctx.token
+        read_token=read_token,
+        write_token=write_token,
         target_branch=os.environ.get("ACTION_TARGET_BRANCH", ""),
         workspace=os.environ.get("ACTION_WORKSPACE", os.getcwd()),
         pipeline_url=os.environ.get("ACTION_PIPELINE_URL", ""),
@@ -146,7 +165,10 @@ def load_action_context(entry_name, required=(), token_env="ACTION_GITCODE_TOKEN
     )
     missing = [name for name in required if not getattr(ctx, name)]
     if missing:
-        envs = ", ".join(token_env if name == "token" else _FIELD_ENV.get(name, name)
-                         for name in missing)
+        envs = ", ".join(
+            "ACTION_GITCODE_TOKEN_READ/ACTION_GITCODE_TOKEN_WRITE（或 ACTION_SELF_TOKEN）"
+            if name == "token" else _FIELD_ENV.get(name, name)
+            for name in missing
+        )
         raise MissingActionEnvError("[%s] 缺少必要环境变量: %s" % (entry_name, envs))
     return ctx

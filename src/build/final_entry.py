@@ -47,7 +47,7 @@ def main():
     try:
         ctx = load_action_context(
             entry_name="final",
-            required=("pr_number", "repo", "owner", "token"),
+            required=("pr_number", "repo", "owner", "read_token", "write_token"),
         )
     except MissingActionEnvError as e:
         logger.error("%s", e)
@@ -55,7 +55,8 @@ def main():
     pr_number = ctx.pr_number
     owner = ctx.owner
     repo = ctx.repo
-    token = ctx.token
+    read_token = ctx.read_token
+    write_token = ctx.write_token
     committer = ctx.committer
     gate_result = os.environ.get("ACTION_GATE_RESULT", "")
     build_result = os.environ.get("ACTION_BUILD_RESULT", "")
@@ -64,7 +65,7 @@ def main():
     logger.info("PR #%s, repo=%s, gate=%s, build=%s",
                 pr_number, repo, gate_result, build_result)
 
-    gp = AtomgitProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, read_token=read_token, write_token=write_token)
 
     if gate_result == "success" and build_result == "success":
         final_state = "ci_successful"

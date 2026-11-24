@@ -34,15 +34,18 @@ class CheckRepoInMaintain(BaseCheck):
         openlibing_conf = kwargs.get("common_args", {})
 
         self._branch = kwargs.get("tbranch")
-        self._token = openlibing_conf.get("access_token", "")
+        self._read_token, _ = self.resolve_common_tokens(openlibing_conf)
 
         return self.start_check_with_order("repo_in_maintain")
 
     def load_yml(self):
         base_url = "https://api.atomgit.com/api/v5/repos/openeuler/release-management/raw"
-        url = f"{base_url}/{self._branch}/delete/pckg-mgmt.yaml?access_token={self._token}"
+        url = f"{base_url}/{self._branch}/delete/pckg-mgmt.yaml"
+        headers = {}
+        if self._read_token:
+            headers["Authorization"] = f"Bearer {self._read_token}"
 
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         if response.status_code != 200:
             logger.info(f"request package management failure: {response.text}")
             return {}

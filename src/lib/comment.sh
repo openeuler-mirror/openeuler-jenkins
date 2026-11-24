@@ -35,14 +35,24 @@ compare_package_result_aarch64_variant=""
 detail_result_file_aarch64_variant=""
 
 repo_server_test_tail=""
-token=${gitcodeToken}
 #需要输入的参数
 jenkins_api_host="https://ci.openeuler.openatom.cn/"
 
+# 代码平台写 token 与 Jenkins API token 只通过环境变量传给 Python，不进 argv。
+# GitHub 链路本期不验证：沿用 job 注入的 GithubToken。
 if [[ $platform == "github" ]]; then
     repo_server_test_tail="-github"
-    token=${GithubToken}
+    export GITHUB_TOKEN="${GithubToken:-}"
+else
+    # 旧 job 兼容（ADR-028）：新变量优先，缺失时回退旧 gitcodeToken 并告警
+    _legacy_code_token="${gitcodeToken:-}"
+    if [[ -n "${_legacy_code_token}" && -z "${gitcodeTokenWrite:-}" ]]; then
+        echo "[WARN] gitcodeTokenWrite 未配置，回退旧 gitcodeToken" >&2
+    fi
+    export GITCODE_TOKEN_WRITE="${gitcodeTokenWrite:-${_legacy_code_token}}"
+    : "${GITCODE_TOKEN_WRITE:?GITCODE_TOKEN_WRITE is required (gitcodeTokenWrite or gitcodeToken)}"
 fi
+export JENKINS_API_TOKEN="${jenkins_api_token:-}"
 
 # debug测试变量
 function config_debug_variable() {
@@ -176,8 +186,8 @@ function exec_comment() {
     d_args="${d_args},${detail_result_file_aarch64_variant}"
   fi
 
-  python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer -t ${token}\
-   -b $jenkins_api_host -u $jenkins_user -j $jenkins_api_token -a ${a_args}\
+  python3 ${shell_path}/src/build/gitee_comment.py -o $repo_owner -r $repo -p $prid -c $committer \
+   -b $jenkins_api_host -u $jenkins_user -a ${a_args}\
     -f ${f_args} -m ${commentid} -l ${url_files_server} \
     -d ${d_args} -tb ${tbranch} --platform ${platform}
   log_info "***** End to exec comment *****"

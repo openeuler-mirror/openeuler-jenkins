@@ -22,11 +22,36 @@ logger = logging.getLogger("common")
 
 
 class AtomgitProxy(object):
-    def __init__(self, owner, repo, token):
+    def __init__(self, owner, repo, token=None, *, read_token=None, write_token=None):
         self._owner = owner
         self._repo = repo
-        self._token = token
+        # 灰度兼容：仅传旧 token 时读写双通；任一拆分 token 已传则忽略旧 token
+        if token and not (read_token or write_token):
+            read_token = write_token = token
+        self._read_token = read_token or ""
+        self._write_token = write_token or ""
         self._base_url = "https://api.atomgit.com"
+
+    def _require(self, kind):
+        """
+        取指定类型的 token，缺失时 fail-fast
+
+        :param kind: read / write
+        :return: token 字符串
+        """
+        token = self._read_token if kind == "read" else self._write_token
+        if not token:
+            raise RuntimeError("{} token not provided".format(kind))
+        return token
+
+    def _headers(self, kind):
+        """
+        构造 Bearer 鉴权头
+
+        :param kind: read / write
+        :return: header dict
+        """
+        return {"Authorization": "Bearer {}".format(self._require(kind))}
 
     def comment_pr(self, pr, comment):
         """
@@ -35,17 +60,16 @@ class AtomgitProxy(object):
         :param comment: 评论内容
         :return: True成功，False失败
         """
-        url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{number}/comments?access_token={token}".format(
+        url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{number}/comments".format(
             burl=self._base_url,
             owner=self._owner,
             repo=self._repo,
-            number=pr,
-            token=self._token
+            number=pr
         )
         data = {
             "body": comment
         }
-        rs = do_requests("post", url, RequestData(body=data, timeout=10))
+        rs = do_requests("post", url, RequestData(body=data, timeout=10, headers=self._headers("write")))
         if rs != 0:
             logger.warning("comment pull request failed")
             return False
@@ -66,11 +90,11 @@ class AtomgitProxy(object):
             number=pr
         )
         if oper == "DELETE":
-            url = url + "/{}?access_token={}".format(tags[0], self._token)
-            rs = do_requests("delete", url, RequestData(timeout=10))
+            url = url + "/{}".format(tags[0])
+            rs = do_requests("delete", url, RequestData(timeout=10, headers=self._headers("write")))
         else:
-            url = url + "?access_token={}".format(self._token)
-            rs = do_requests(oper.lower(), url, RequestData(body=list(tags), timeout=10))
+            rs = do_requests(oper.lower(), url,
+                             RequestData(body=list(tags), timeout=10, headers=self._headers("write")))
         if rs != 0:
             logger.warning("{oper} tags:{tags} failed".format(oper=oper, tags=tags))
             return False
@@ -120,7 +144,7 @@ class AtomgitProxy(object):
             labels = []
             rs = do_requests(
                 "get", url,
-                RequestData(querystring={"access_token": self._token}, timeout=10, obj=labels)
+                RequestData(timeout=10, obj=labels, headers=self._headers("read"))
             )
             if rs == 0:
                 names = []
@@ -150,12 +174,12 @@ class AtomgitProxy(object):
             repo=self._repo,
         )
         querystring = {
-            "access_token": self._token,
             "state": state,
             "base": branch
         }
         pr_list = []
-        rs = do_requests("get", url, RequestData(querystring=querystring, timeout=10, obj=pr_list))
+        rs = do_requests("get", url, RequestData(querystring=querystring, timeout=10, obj=pr_list,
+                                                 headers=self._headers("read")))
         if rs != 0:
             logger.warning("get last pr committer failed")
             return None
@@ -177,58 +201,46 @@ class AtomgitProxy(object):
         """
         resp = {}
         if str(cve_issue).isdigit():
-            issue_url = "{}/api/v5/repos/{}/{}/issues/{}?access_token={}".format(
-                self._base_url, self._owner, self._repo, cve_issue, self._token)
+            issue_url = "{}/api/v5/repos/{}/{}/issues/{}".format(
+                self._base_url, self._owner, self._repo, cve_issue)
         else:
-            issue_url = "{}/api/v5/enterprises/{}/issues/{}?access_token={}".format(
-                self._base_url, enterprises, cve_issue, self._token)
+            issue_url = "{}/api/v5/enterprises/{}/issues/{}".format(
+                self._base_url, enterprises, cve_issue)
 
-        rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp))
+        rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp, headers=self._headers("read")))
         if rs != 0:
             logging.warning("get issue failed")
         return resp
 
-    @staticmethod
-    def create_issue(owner, data):
+    def create_issue(self, owner, data):
         """
         创建issue
         :param owner: 仓库所属空间地址
-        :param data: issue信息（字典格式），需包含如下信息
-            {
-            "title": issue标题,
-            "repo": 仓库路径,
-            "body": issue描述,
-            "access_token": 用户token
-            }
+        :param data: issue信息（字典格式），需包含 title/repo/body 等字段
         :return: 请求response
         """
         resp = {}
         issue_url = "https://api.atomgit.com/api/v5/repos/{}/issues".format(owner)
 
-        rs = do_requests("post", issue_url, RequestData(body=data, timeout=10, obj=resp))
+        rs = do_requests("post", issue_url, RequestData(body=data, timeout=10, obj=resp,
+                                                        headers=self._headers("write")))
         if rs != 0:
             logging.warning("create issue failed")
         return resp
 
-    @staticmethod
-    def update_issue(owner, data, number):
+    def update_issue(self, owner, data, number):
         """
         更新issue
         :param owner: 仓库所属空间地址
-        :param data: issue信息（字典格式），需包含如下信息
-            {
-            "title": issue标题,
-            "repo": 仓库路径,
-            "body": issue描述,
-            "access_token": 用户token
-            }
+        :param data: issue信息（字典格式），需包含 title/repo/body 等字段
         :param number: issue编号，不带#号
         :return: 请求response
         """
         resp = {}
         issue_url = "https://api.atomgit.com/api/v5/repos/{}/issues/{}".format(owner, number)
 
-        rs = do_requests("patch", issue_url, RequestData(body=data, timeout=10, obj=resp))
+        rs = do_requests("patch", issue_url, RequestData(body=data, timeout=10, obj=resp,
+                                                         headers=self._headers("write")))
         if rs != 0:
             logging.warning("update issue failed")
         return resp
@@ -238,15 +250,14 @@ class AtomgitProxy(object):
         获取仓库下所有issue信息
         :return: issues response list
         """
-        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/issues?access_token={token}".format(
+        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/issues".format(
             burl=self._base_url,
             owner=self._owner,
-            repo=self._repo,
-            token=self._token
+            repo=self._repo
         )
         issues_info = []
 
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=issues_info))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=issues_info, headers=self._headers("read")))
         if rs != 0:
             logger.warning("get issue num info failed")
 
@@ -258,15 +269,14 @@ class AtomgitProxy(object):
         :param pr_id: pr id
         :return: 请求response.
         """
-        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{pr}?access_token={token}".format(
+        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{pr}".format(
             burl=self._base_url,
             owner=self._owner,
             repo=self._repo,
-            pr=pr_id,
-            token=self._token
+            pr=pr_id
         )
         pr_info = {}
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=pr_info))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=pr_info, headers=self._headers("read")))
         if rs != 0:
             logger.warning(f"get pr info {self._repo} {pr_id} failed")
 
@@ -278,16 +288,15 @@ class AtomgitProxy(object):
         :param pr_id: pr id
         :return: list of dict, 每个元素包含 filename、status 等字段
         """
-        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{pr}/files?access_token={token}".format(
+        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/pulls/{pr}/files".format(
             burl=self._base_url,
             owner=self._owner,
             repo=self._repo,
-            pr=pr_id,
-            token=self._token
+            pr=pr_id
         )
 
         file_list = []
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=file_list))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=file_list, headers=self._headers("read")))
         if rs != 0:
             logger.warning("get pr files %s %s failed", self._repo, pr_id)
             return None
@@ -299,14 +308,14 @@ class AtomgitProxy(object):
         查询仓库所有里程碑
         :return: milestone id info list
         """
-        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/milestones?access_token={token}".format(
+        pr_url = "{burl}/api/v5/repos/{owner}/{repo}/milestones".format(
             burl=self._base_url,
             owner=self._owner,
-            repo=self._repo,
-            token=self._token
+            repo=self._repo
         )
         milestones_info = []
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=milestones_info))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=milestones_info,
+                                                    headers=self._headers("read")))
         if rs != 0:
             logger.warning("get milestone id info failed")
 

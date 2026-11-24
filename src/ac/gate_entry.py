@@ -24,7 +24,9 @@ AtomGit Action 门禁入口脚本
     ACTION_REPO:            仓库名（如 openEuler-repos）
     ACTION_OWNER:           PR 目标仓实际 owner（API/clone 用；community 由映射表推导）
     ACTION_TARGET_BRANCH:   PR 目标分支
-    ACTION_TOKEN:           AtomGit API token
+    ACTION_GITCODE_TOKEN_READ:  AtomGit 读 token（缺失回退 ACTION_SELF_TOKEN）
+    ACTION_GITCODE_TOKEN_WRITE: AtomGit 写 token（缺失回退 ACTION_SELF_TOKEN）
+    ACTION_SELF_TOKEN:      Action 平台 token（atomgit.token，回退用）
     ACTION_WORKSPACE:       工作目录（已 checkout 的仓库根目录）
     ACTION_PR_URL:          PR 链接（可选，用于评论展示）
     ACTION_COMMITTER:       PR 提交者（可选）
@@ -252,8 +254,7 @@ def main():
     try:
         ctx = load_action_context(
             entry_name="gate",
-            required=("pr_number", "repo", "owner", "token"),
-            token_env="ACTION_TOKEN",
+            required=("pr_number", "repo", "owner", "read_token", "write_token"),
         )
     except MissingActionEnvError as e:
         logger.error("%s", e)
@@ -262,7 +263,6 @@ def main():
     repo = ctx.repo
     owner = ctx.owner  # 仓库实际 owner（API 调用用）
     target_branch = ctx.target_branch
-    token = ctx.token
     workspace = ctx.workspace
     pr_url = ctx.pr_url
     pipeline_url = ctx.pipeline_url
@@ -303,7 +303,8 @@ def main():
                       datetime.datetime.now(datetime.timezone.utc).astimezone().replace(tzinfo=None))
 
     # AtomGit proxy（用于评论和标签）——用仓库实际 owner，不是 community
-    gp = AtomgitProxy(owner, repo, token)
+    # 读写路由由 proxy 内部完成：标签/评论走 write，AC 读取走 read
+    gp = AtomgitProxy(owner, repo, read_token=ctx.read_token, write_token=ctx.write_token)
 
     # 标记门禁进行中
     try:
@@ -320,7 +321,9 @@ def main():
         "owner": owner,
         "community": community,
         "pr_num": pr_number,
-        "access_token": token,
+        "access_token": ctx.write_token or ctx.read_token,
+        "read_token": ctx.read_token,
+        "write_token": ctx.write_token,
         "platform": "atomgit",
     }
 

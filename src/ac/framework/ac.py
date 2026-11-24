@@ -238,6 +238,37 @@ class AC(object):
             f.write("ACL={}".format(json.dumps(self._ac_check_result)))
 
 
+def resolve_tokens(platform, cli_token=None):
+    """
+    解析代码平台读写 token
+
+    :param platform: atomgit / gitee / github
+    :param cli_token: 本地调试用 -t 参数；传入时读写双通
+    :return: (read_token, write_token)
+    """
+    if cli_token:
+        # -t 仅本地调试：传入时读写都等于 -t，CI 脚本不得使用
+        return cli_token, cli_token
+    if platform == "github":
+        # GitHub 链路本期不验证：GITHUB_TOKEN 读写双通
+        token = os.environ.get("GITHUB_TOKEN", "")
+        return token, token
+    return (
+        os.environ.get("GITCODE_TOKEN_READ", ""),
+        os.environ.get("GITCODE_TOKEN_WRITE", ""),
+    )
+
+
+def resolve_jenkins_api_token(cli_token=None):
+    """
+    解析 Jenkins API token：环境变量优先，--jenkins-api-token 仅本地调试
+
+    :param cli_token: --jenkins-api-token 参数
+    :return: token 字符串，缺失时为空串（JenkinsProxy 不启用）
+    """
+    return os.environ.get("JENKINS_API_TOKEN", "") or cli_token or ""
+
+
 def init_args():
     """
     init args
@@ -251,7 +282,7 @@ def init_args():
     parser.add_argument("-b", type=str, dest="tbranch", help="branch merge to")
     parser.add_argument("-o", type=str, dest="output", help="output file to save result")
     parser.add_argument("-p", type=str, dest="pr", help="pull request number")
-    parser.add_argument("-t", type=str, dest="token", help="gitee/github api token")
+    parser.add_argument("-t", type=str, dest="token", help="api token, local debug only")
     parser.add_argument("-a", type=str, dest="account", help="gitee/github account")
 
     # dataset
@@ -284,10 +315,15 @@ if "__main__" == __name__:
     logger = logging.getLogger("ac")
     ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%S")
 
+    read_token, write_token = resolve_tokens(args.platform, args.token)
+    jenkins_api_token = resolve_jenkins_api_token(args.jenkins_api_token)
+
     if args.platform == "atomgit":
         code_url = "https://atomgit.com"
         repo_url = "{}/{}/{}.git".format(code_url, args.community, args.repo)
-        gitee_proxy_inst = AtomgitProxy(args.community, args.repo, args.token)
+        gitee_proxy_inst = AtomgitProxy(
+            args.community, args.repo, read_token=read_token, write_token=write_token
+        )
         pull_tag="pull"
     elif args.platform == "gitee":
         code_url = "https://gitee.com"
@@ -298,7 +334,9 @@ if "__main__" == __name__:
         code_url = "https://github.com"
         agent = "https://gh-proxy.test.osinfra.cn/"
         repo_url = "{}/{}/{}/{}.git".format(agent, code_url, args.community, args.repo)
-        gitee_proxy_inst = GithubProxy(args.community, args.repo, args.token)
+        gitee_proxy_inst = GithubProxy(
+            args.community, args.repo, read_token=read_token, write_token=write_token
+        )
         ctime = datetime.datetime.strptime(args.trigger_time.split("+")[0], "%Y-%m-%dT%H:%M:%SZ")
         pull_tag = "pull"
 
@@ -350,10 +388,10 @@ if "__main__" == __name__:
     # build start
     dd.set_attr_stime("access_control.build.stime")
 
-    if all([args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token]):
+    if all([args.jenkins_base_url, args.jenkins_user, jenkins_api_token]):
         # 延迟导入：Action 场景下不依赖 Jenkins，避免 import 时拉起 jenkins 模块
         from src.proxy.jenkins_proxy import JenkinsProxy
-        jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
+        jenkins_proxy_inst = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, jenkins_api_token)
         AC.comment_jenkins_url(gitee_proxy_inst, jenkins_proxy_inst, args.pr)
     # gitee pr tag
     gitee_proxy_inst.delete_tag_of_pr(args.pr, "ci_successful")
@@ -366,7 +404,9 @@ if "__main__" == __name__:
     common_args = {"pr_url": "{url}/{owner}/{repo}/{pull}/{pr}".format(url=code_url, owner=args.community,
                                                                        repo=args.repo, pull=pull_tag, pr=args.pr),
                           "community": args.community, "pr_num": args.pr,
-                          "access_token": args.token, "platform": args.platform}
+                          "access_token": write_token or read_token,
+                          "read_token": read_token, "write_token": write_token,
+                          "platform": args.platform}
 
     # build
     ac = AC(os.path.join(os.path.dirname(os.path.realpath(__file__)), "ac.yaml"), args.community)

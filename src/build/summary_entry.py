@@ -34,7 +34,7 @@ job 中运行，download-artifact 拉取全部架构制品后：
     ACTION_PR_NUMBER:       PR 编号
     ACTION_REPO:            仓库名
     ACTION_OWNER:           仓库 owner（API 调用用，如 src-openeuler）
-    ACTION_GITCODE_TOKEN:   AtomGit API token
+    ACTION_GITCODE_TOKEN_WRITE: AtomGit 写 token（只写入口，不注入 READ / 平台 token）
     ACTION_TARGET_BRANCH:   目标分支（compare 差异评论用）
     ACTION_ARTIFACT_DIR:    制品下载根目录（各架构制品子目录的父目录）
     ACTION_PIPELINE_URL:    本 run 流水线链接（各架构 Build Details 跳转）
@@ -164,7 +164,8 @@ def main():
     try:
         ctx = load_action_context(
             entry_name="build_summary",
-            required=("pr_number", "repo", "owner", "token"),
+            required=("pr_number", "repo", "owner", "write_token"),
+            write_only=True,
         )
     except MissingActionEnvError as e:
         logger.error("%s", e)
@@ -173,7 +174,7 @@ def main():
     repo = ctx.repo
     owner = ctx.owner
     target_branch = ctx.target_branch
-    token = ctx.token
+    write_token = ctx.write_token
     pipeline_url = ctx.pipeline_url
     run_number = ctx.run_number
     artifact_dir = os.environ.get("ACTION_ARTIFACT_DIR", "")
@@ -197,7 +198,7 @@ def main():
     import src.build.gitee_comment as gitee_comment  # noqa: PLC0415 - 延迟赋值模块 logger
     gitee_comment.logger = logger
 
-    gp = AtomgitProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, write_token=write_token)
 
     # 收集各架构产物文件，构造单实例 Comment 一次成型：
     # check_item_comment_files（构造参数）供 _comment_of_check_item 渲染，
