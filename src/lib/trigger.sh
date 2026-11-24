@@ -15,16 +15,28 @@
 jenkins_api_host="https://ci.openeuler.openatom.cn/"
 support_arch_prefix="${gitcodeRepoName}_${gitcodePullRequestId}_support_arch_"
 repo_server_test_tail=""
-token=${gitcodeToken}
 
 if [[ "${platform}" == "" ]]; then
     platform="gitcode"
 fi
 
+# 代码平台 token 与 Jenkins API token 只通过环境变量传给 Python，不进 argv。
+# GitHub 链路本期不验证：沿用 job 注入的 GithubToken。
 if [[ "${platform}" == "github" ]]; then
     repo_server_test_tail="-github"
-    token=${GithubToken}
+    export GITHUB_TOKEN="${GithubToken:-}"
+else
+    # 旧 job 兼容（ADR-028）：新变量逐项优先，缺失时回退旧 gitcodeToken 并告警
+    _legacy_code_token="${gitcodeToken:-}"
+    if [[ -n "${_legacy_code_token}" ]] && { [[ -z "${gitcodeTokenRead:-}" ]] || [[ -z "${gitcodeTokenWrite:-}" ]]; }; then
+        echo "[WARN] gitcodeTokenRead/gitcodeTokenWrite 未配置，回退旧 gitcodeToken" >&2
+    fi
+    export GITCODE_TOKEN_READ="${gitcodeTokenRead:-${_legacy_code_token}}"
+    export GITCODE_TOKEN_WRITE="${gitcodeTokenWrite:-${_legacy_code_token}}"
+    : "${GITCODE_TOKEN_READ:?GITCODE_TOKEN_READ is required (gitcodeTokenRead or gitcodeToken)}"
+    : "${GITCODE_TOKEN_WRITE:?GITCODE_TOKEN_WRITE is required (gitcodeTokenWrite or gitcodeToken)}"
 fi
+export JENKINS_API_TOKEN="${jenkins_api_token:-}"
 
 # debug测试变量
 function config_debug_variable() {
@@ -65,11 +77,11 @@ function exec_check() {
   log_info "***** Start to exec static check *****"
   export PYTHONPATH=${shell_path}
   python3 ${shell_path}/src/ac/framework/ac.py \
-    -w ${WORKSPACE} -r ${gitcodeRepoName} -o ${acfile} -t ${token}\
+    -w ${WORKSPACE} -r ${gitcodeRepoName} -o ${acfile} \
     -p ${gitcodePullRequestId} -b ${gitcodeTargetBranch} \
     -x ${prCreateTime} -l ${triggerLink} -z ${jobTriggerTime} -m "${comment}" \
     -i "${commentID}" -e ${gitcodeCommitter} --jenkins-base-url ${jenkins_api_host} \
-    --jenkins-user ${jenkins_user} --jenkins-api-token ${jenkins_api_token} \
+    --jenkins-user ${jenkins_user} \
     -c ${gitcodeTargetNamespace} --platform "${platform}"
   log_info "***** End to exec static check *****"
 }

@@ -26,7 +26,7 @@ AtomGit Action 编译门禁评论入口脚本
     ACTION_PR_NUMBER:       PR 编号
     ACTION_REPO:            仓库名
     ACTION_OWNER:           仓库 owner（API 调用用，如 src-openeuler）
-    ACTION_GITCODE_TOKEN:   AtomGit API token
+    ACTION_GITCODE_TOKEN_WRITE: AtomGit 写 token（只写入口，不注入 READ / 平台 token）
     ACTION_ARCH:            编译架构（x86_64 / aarch64）
     ACTION_VARIANT:         构建变体（可选，如 64k）
     ACTION_WORKSPACE:       工作目录（产物所在）
@@ -73,7 +73,8 @@ def main():
     try:
         ctx = load_action_context(
             entry_name="build_comment",
-            required=("pr_number", "repo", "owner", "arch", "token"),
+            required=("pr_number", "repo", "owner", "arch", "write_token"),
+            write_only=True,
         )
     except MissingActionEnvError as e:
         logger.error("%s", e)
@@ -87,7 +88,7 @@ def main():
     pipeline_url = ctx.pipeline_url
     run_number = ctx.run_number
     target_branch = ctx.target_branch
-    token = ctx.token
+    write_token = ctx.write_token
     build_rc = int(os.environ.get("ACTION_BUILD_RESULT", "0"))
 
     logger.info("==== AtomGit Action build 门禁评论启动 ====")
@@ -102,7 +103,7 @@ def main():
     import src.build.gitee_comment as gitee_comment  # noqa: PLC0415 - 延迟赋值模块 logger
     gitee_comment.logger = logger
 
-    gp = AtomgitProxy(owner, repo, token)
+    gp = AtomgitProxy(owner, repo, write_token=write_token)
 
     # 定位本地产物（check 项评论文件 + compare 差异结果文件）
     check_file, compare_file = _locate_artifacts(workspace, repo, pr_number, arch, variant)

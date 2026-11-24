@@ -180,7 +180,6 @@ if "__main__" == __name__:
     parser.add_argument("--oecp_json_path", type=str, dest="oecp_json_path", help="oecp_json_path")
     parser.add_argument("--owner", type=str, dest="owner", help="owner")
     parser.add_argument("--repo", type=str, dest="repo", help="repo")
-    parser.add_argument("--atomgit_token", type=str, dest="atomgit_token", help="atomgit_token")
     parser.add_argument("--prid", type=str, dest="prid", help="prid")
 
     args = parser.parse_args()
@@ -193,7 +192,8 @@ if "__main__" == __name__:
         logger.info("check oemaker rpm-delete pass")
     else:
         logger.info("check oemaker rpm-delete not pass")
-        gp = AtomgitProxy(args.owner, args.repo, args.atomgit_token)
+        gp = AtomgitProxy(args.owner, args.repo,
+                          write_token=os.environ.get("GITCODE_TOKEN_WRITE", ""))
         gp.comment_pr(args.prid, "Forbidden delete rpm(s) {} in {}, which is/are list in oemaker. "
                                  "You should contact sig-release before merge this pull request.".format(
             ", ".join(deny_delete_list), args.arch))

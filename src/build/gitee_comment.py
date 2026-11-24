@@ -30,12 +30,44 @@ from html import escape as html_escape
 
 import yaml
 from yaml.error import YAMLError
+from src.ac.framework.ac import resolve_jenkins_api_token, resolve_tokens
 from src.ac.framework.ac_result import ACResult, SUCCESS, FAILED
 from src.proxy.atomgit_proxy import AtomgitProxy
 from src.proxy.gitee_proxy import GiteeProxy
 from src.proxy.github_proxy import GithubProxy
 from src.proxy.jenkins_proxy import JenkinsProxy
 from src.utils.dist_dataset import DistDataset
+
+
+def build_code_proxy(platform, owner, repo, cli_token=None):
+    """
+    按平台与拆分 token 构造代码平台 proxy
+
+    :param platform: gitcode / gitee / github
+    :param owner: 仓库 owner
+    :param repo: 仓库名
+    :param cli_token: 本地调试 -t；传入时读写双通
+    :return: proxy 实例
+    """
+    read_token, write_token = resolve_tokens(platform, cli_token)
+    if platform == "github":
+        return GithubProxy(owner, repo, read_token=read_token, write_token=write_token)
+    if platform == "gitee":
+        # GiteeProxy 已不再使用，保持单 token 签名
+        return GiteeProxy(owner, repo, write_token or read_token)
+    return AtomgitProxy(owner, repo, read_token=read_token, write_token=write_token)
+
+
+def build_jenkins_proxy(base_url, user, cli_token=None):
+    """
+    构造 JenkinsProxy：JENKINS_API_TOKEN 优先，-j 仅本地调试
+
+    :param base_url: Jenkins 地址
+    :param user: Jenkins 用户
+    :param cli_token: --jenkins-api-token 参数
+    :return: JenkinsProxy 实例
+    """
+    return JenkinsProxy(base_url, user, resolve_jenkins_api_token(cli_token))
 
 
 @dataclass
@@ -1268,12 +1300,13 @@ def init_args():
     parser.add_argument("-c", type=str, dest="committer", help="commiter")
     parser.add_argument("-o", type=str, dest="owner", help="atomgit owner")
     parser.add_argument("-r", type=str, dest="repo", help="repo name")
-    parser.add_argument("-t", type=str, dest="atomgit_token", help="atomgit api token")
+    parser.add_argument("-t", type=str, dest="atomgit_token", help="api token, local debug only")
 
     parser.add_argument("-b", type=str, dest="jenkins_base_url", default="https://ci.openeuler.openatom.cn/",
                         help="jenkins base url")
     parser.add_argument("-u", type=str, dest="jenkins_user", help="repo name")
-    parser.add_argument("-j", type=str, dest="jenkins_api_token", help="jenkins api token")
+    parser.add_argument("-j", type=str, dest="jenkins_api_token",
+                        help="jenkins api token, local debug only")
     parser.add_argument("-f", type=str, dest="check_result_file", default="", help="compare package check item result")
     parser.add_argument("-d", type=str, dest="detail_result_file", default="",
                         help="compare package check detail result")
@@ -1302,15 +1335,10 @@ if "__main__" == __name__:
     dd.set_attr_stime("comment.job.stime")
 
     # gitee pr tag
-    if args.platform == "github":
-        gp = GithubProxy(args.owner, args.repo, args.atomgit_token)
-    elif args.platform == "gitee":
-        gp = GiteeProxy(args.owner, args.repo, args.atomgit_token)
-    else:
-        gp = AtomgitProxy(args.owner, args.repo, args.atomgit_token)
+    gp = build_code_proxy(args.platform, args.owner, args.repo, args.atomgit_token)
     gp.delete_tag_of_pr(args.pr, "ci_processing")
 
-    jp = JenkinsProxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
+    jp = build_jenkins_proxy(args.jenkins_base_url, args.jenkins_user, args.jenkins_api_token)
     job_url, build_time, reason = jp.get_job_build_info(os.environ.get("JOB_NAME"), int(os.environ.get("BUILD_ID")))
     dd.set_attr_ctime("comment.job.ctime", build_time)
     dd.set_attr("comment.job.link", job_url)

@@ -22,14 +22,36 @@ logger = logging.getLogger("common")
 
 
 class AtomgitProxy(object):
-    def __init__(self, owner, repo, token):
+    def __init__(self, owner, repo, token=None, *, read_token=None, write_token=None):
         self._owner = owner
         self._repo = repo
-        self._token = token
+        # 灰度兼容：仅传旧 token 时读写双通；任一拆分 token 已传则忽略旧 token
+        if token and not (read_token or write_token):
+            read_token = write_token = token
+        self._read_token = read_token or ""
+        self._write_token = write_token or ""
         self._base_url = "https://api.atomgit.com"
 
-    def _auth_headers(self):
-        return {"Authorization": "Bearer {}".format(self._token)}
+    def _require(self, kind):
+        """
+        取指定类型的 token，缺失时 fail-fast
+
+        :param kind: read / write
+        :return: token 字符串
+        """
+        token = self._read_token if kind == "read" else self._write_token
+        if not token:
+            raise RuntimeError("{} token not provided".format(kind))
+        return token
+
+    def _headers(self, kind):
+        """
+        构造 Bearer 鉴权头
+
+        :param kind: read / write
+        :return: header dict
+        """
+        return {"Authorization": "Bearer {}".format(self._require(kind))}
 
     def comment_pr(self, pr, comment):
         """
@@ -47,7 +69,7 @@ class AtomgitProxy(object):
         data = {
             "body": comment
         }
-        rs = do_requests("post", url, RequestData(body=data, timeout=10, headers=self._auth_headers()))
+        rs = do_requests("post", url, RequestData(body=data, timeout=10, headers=self._headers("write")))
         if rs != 0:
             logger.warning("comment pull request failed")
             return False
@@ -69,10 +91,10 @@ class AtomgitProxy(object):
         )
         if oper == "DELETE":
             url = url + "/{}".format(tags[0])
-            rs = do_requests("delete", url, RequestData(timeout=10, headers=self._auth_headers()))
+            rs = do_requests("delete", url, RequestData(timeout=10, headers=self._headers("write")))
         else:
             rs = do_requests(oper.lower(), url,
-                             RequestData(body=list(tags), timeout=10, headers=self._auth_headers()))
+                             RequestData(body=list(tags), timeout=10, headers=self._headers("write")))
         if rs != 0:
             logger.warning("{oper} tags:{tags} failed".format(oper=oper, tags=tags))
             return False
@@ -122,7 +144,7 @@ class AtomgitProxy(object):
             labels = []
             rs = do_requests(
                 "get", url,
-                RequestData(timeout=10, obj=labels, headers=self._auth_headers())
+                RequestData(timeout=10, obj=labels, headers=self._headers("read"))
             )
             if rs == 0:
                 names = []
@@ -157,7 +179,7 @@ class AtomgitProxy(object):
         }
         pr_list = []
         rs = do_requests("get", url, RequestData(querystring=querystring, timeout=10, obj=pr_list,
-                                                 headers=self._auth_headers()))
+                                                 headers=self._headers("read")))
         if rs != 0:
             logger.warning("get last pr committer failed")
             return None
@@ -185,7 +207,7 @@ class AtomgitProxy(object):
             issue_url = "{}/api/v5/enterprises/{}/issues/{}".format(
                 self._base_url, enterprises, cve_issue)
 
-        rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp, headers=self._auth_headers()))
+        rs = do_requests("get", issue_url, RequestData(timeout=10, obj=resp, headers=self._headers("read")))
         if rs != 0:
             logging.warning("get issue failed")
         return resp
@@ -201,7 +223,7 @@ class AtomgitProxy(object):
         issue_url = "https://api.atomgit.com/api/v5/repos/{}/issues".format(owner)
 
         rs = do_requests("post", issue_url, RequestData(body=data, timeout=10, obj=resp,
-                                                        headers=self._auth_headers()))
+                                                        headers=self._headers("write")))
         if rs != 0:
             logging.warning("create issue failed")
         return resp
@@ -218,7 +240,7 @@ class AtomgitProxy(object):
         issue_url = "https://api.atomgit.com/api/v5/repos/{}/issues/{}".format(owner, number)
 
         rs = do_requests("patch", issue_url, RequestData(body=data, timeout=10, obj=resp,
-                                                         headers=self._auth_headers()))
+                                                         headers=self._headers("write")))
         if rs != 0:
             logging.warning("update issue failed")
         return resp
@@ -235,7 +257,7 @@ class AtomgitProxy(object):
         )
         issues_info = []
 
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=issues_info, headers=self._auth_headers()))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=issues_info, headers=self._headers("read")))
         if rs != 0:
             logger.warning("get issue num info failed")
 
@@ -254,7 +276,7 @@ class AtomgitProxy(object):
             pr=pr_id
         )
         pr_info = {}
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=pr_info, headers=self._auth_headers()))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=pr_info, headers=self._headers("read")))
         if rs != 0:
             logger.warning(f"get pr info {self._repo} {pr_id} failed")
 
@@ -274,7 +296,7 @@ class AtomgitProxy(object):
         )
 
         file_list = []
-        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=file_list, headers=self._auth_headers()))
+        rs = do_requests("get", pr_url, RequestData(timeout=10, obj=file_list, headers=self._headers("read")))
         if rs != 0:
             logger.warning("get pr files %s %s failed", self._repo, pr_id)
             return None
@@ -293,7 +315,7 @@ class AtomgitProxy(object):
         )
         milestones_info = []
         rs = do_requests("get", pr_url, RequestData(timeout=10, obj=milestones_info,
-                                                    headers=self._auth_headers()))
+                                                    headers=self._headers("read")))
         if rs != 0:
             logger.warning("get milestone id info failed")
 

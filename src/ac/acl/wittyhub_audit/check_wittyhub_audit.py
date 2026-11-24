@@ -119,7 +119,8 @@ class CheckWittyhubAudit(BaseCheck):
         self._community = None
         self._pr_url = None
         self._pr_num = None
-        self._access_token = None
+        self._read_token = None
+        self._write_token = None
         self._platform = None
         self._api_url = ""
         self._admin_token = ""
@@ -162,7 +163,7 @@ class CheckWittyhubAudit(BaseCheck):
         self._community = common_args.get("community", "")
         self._pr_url = common_args.get("pr_url", "")
         self._pr_num = common_args.get("pr_num", "")
-        self._access_token = common_args.get("access_token", "")
+        self._read_token, self._write_token = self.resolve_common_tokens(common_args)
         self._platform = common_args.get("platform", "gitcode")
         return self.start_check_with_order("audit")
 
@@ -1182,7 +1183,10 @@ class CheckWittyhubAudit(BaseCheck):
         pr_files = []
         try:
             from src.proxy.atomgit_proxy import AtomgitProxy
-            files = AtomgitProxy(self._community, self._repo, self._access_token).get_pr_files(self._pr_num) or []
+            files = AtomgitProxy(
+                self._community, self._repo,
+                read_token=self._read_token, write_token=self._write_token,
+            ).get_pr_files(self._pr_num) or []
             if isinstance(files, list):
                 pr_files = files
         except Exception as exc:
@@ -1275,7 +1279,10 @@ class CheckWittyhubAudit(BaseCheck):
         """获取 PR 头分支的仓库 URL 与 ref（AtomGit PR 信息）。"""
         try:
             from src.proxy.atomgit_proxy import AtomgitProxy
-            info = AtomgitProxy(self._community, self._repo, self._access_token).get_pr_info(self._pr_num) or {}
+            info = AtomgitProxy(
+                self._community, self._repo,
+                read_token=self._read_token, write_token=self._write_token,
+            ).get_pr_info(self._pr_num) or {}
         except Exception as exc:
             logger.warning("get pr info failed: %s", exc)
             return "", ""
@@ -1416,7 +1423,10 @@ class CheckWittyhubAudit(BaseCheck):
             body = body[:self.MAX_COMMENT_CHARS] + "\n\n... (评论过长，已截断)"
         try:
             from src.proxy.atomgit_proxy import AtomgitProxy
-            AtomgitProxy(self._community, self._repo, self._access_token).comment_pr(self._pr_num, body)
+            AtomgitProxy(
+                self._community, self._repo,
+                read_token=self._read_token, write_token=self._write_token,
+            ).comment_pr(self._pr_num, body)
         except Exception as exc:
             logger.warning("comment pr failed: %s", exc)
 

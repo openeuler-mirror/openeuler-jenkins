@@ -19,6 +19,7 @@
 
 import argparse
 import json
+import logging
 import re
 import sys
 
@@ -70,6 +71,20 @@ def _mask_json(value):
     return value
 
 
+def _stream_logger(name, stream):
+    """把输出流封装为 logger：保持 CLI 输出原样，同时用日志模块写流。"""
+    stream_logger = logging.getLogger(name)
+    stream_logger.handlers = []
+    stream_logger.propagate = False
+    stream_logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    # stdout 内容须与输入逐字节一致（换行由数据决定），不让 handler 追加换行
+    handler.terminator = ""
+    stream_logger.addHandler(handler)
+    return stream_logger
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Mask sensitive values from stdin to stdout."
@@ -88,17 +103,20 @@ def main(argv=None):
     except (AttributeError, ValueError):
         pass
 
+    stdout_logger = _stream_logger("sensitive_mask.stdout", sys.stdout)
+    stderr_logger = _stream_logger("sensitive_mask.stderr", sys.stderr)
+
     data = sys.stdin.read()
     if args.json_mode:
         try:
             payload = json.loads(data)
         except json.JSONDecodeError as exc:
-            sys.stderr.write("sensitive_mask: invalid JSON: %s\n" % exc)
+            stderr_logger.error("sensitive_mask: invalid JSON: %s\n", exc)
             return 2
         suffix = "\n" if data.endswith("\n") else ""
-        sys.stdout.write(json.dumps(_mask_json(payload), ensure_ascii=False) + suffix)
+        stdout_logger.info(json.dumps(_mask_json(payload), ensure_ascii=False) + suffix)
     else:
-        sys.stdout.write(_mask_text(data))
+        stdout_logger.info(_mask_text(data))
     return 0
 
 

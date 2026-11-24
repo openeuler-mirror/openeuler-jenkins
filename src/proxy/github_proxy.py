@@ -22,12 +22,39 @@ logger = logging.getLogger("common")
 
 
 class GithubProxy(object):
-    def __init__(self, owner, repo, token):
+    def __init__(self, owner, repo, token=None, *, read_token=None, write_token=None):
         self._owner = owner
         self._repo = repo
-        self._token = token
-        self._headers = {"Authorization": "Bearer %s" % self._token, "Accept": "application/vnd.github+json", 
-                "Content-Type": "application/json"}
+        # 灰度兼容：仅传旧 token 时读写双通；任一拆分 token 已传则忽略旧 token
+        if token and not (read_token or write_token):
+            read_token = write_token = token
+        self._read_token = read_token or ""
+        self._write_token = write_token or ""
+
+    def _require(self, kind):
+        """
+        取指定类型的 token，缺失时 fail-fast
+
+        :param kind: read / write
+        :return: token 字符串
+        """
+        token = self._read_token if kind == "read" else self._write_token
+        if not token:
+            raise RuntimeError("{} token not provided".format(kind))
+        return token
+
+    def _headers(self, kind):
+        """
+        构造 Bearer 鉴权头
+
+        :param kind: read / write
+        :return: header dict
+        """
+        return {
+            "Authorization": "Bearer {}".format(self._require(kind)),
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+        }
 
     def comment_pr(self, pr, comment):
         """
@@ -40,7 +67,7 @@ class GithubProxy(object):
         comment_pr_url = "https://api.github.com/repos/{}/{}/issues/{}/comments".format(self._owner, self._repo, pr)
         data = {"body": comment}
 
-        rs = do_requests("post", comment_pr_url, RequestData(body=data, timeout=10, headers=self._headers))
+        rs = do_requests("post", comment_pr_url, RequestData(body=data, timeout=10, headers=self._headers("write")))
 
         if rs != 0:
             logger.warning("comment pull request failed")
@@ -63,7 +90,7 @@ class GithubProxy(object):
         pr_tag_url = "https://api.github.com/repos/{}/{}/issues/{}/labels".format(
                 self._owner, self._repo, pr)
 
-        rs = do_requests("post", pr_tag_url, RequestData(body=list(tags), timeout=10, headers=self._headers))
+        rs = do_requests("post", pr_tag_url, RequestData(body=list(tags), timeout=10, headers=self._headers("write")))
 
         if rs != 0:
             logger.warning("create tags:%s failed", tags)
@@ -86,7 +113,7 @@ class GithubProxy(object):
         pr_tag_url = "https://api.github.com/repos/{}/{}/issues/{}/label".format(
                 self._owner, self._repo, pr)
 
-        rs = do_requests("put", pr_tag_url, RequestData(body=list(tags), timeout=10, headers=self._headers))
+        rs = do_requests("put", pr_tag_url, RequestData(body=list(tags), timeout=10, headers=self._headers("write")))
         if rs != 0:
             logger.warning("replace tags:%s failed", tags)
             return False
@@ -104,7 +131,7 @@ class GithubProxy(object):
         pr_tag_url = "https://api.github.com/repos/{}/{}/issues/{}/labels/{}".format(
                 self._owner, self._repo, pr, tag)
 
-        rs = do_requests("delete", pr_tag_url, RequestData(timeout=10, headers=self._headers))
+        rs = do_requests("delete", pr_tag_url, RequestData(timeout=10, headers=self._headers("write")))
 
         if rs != 0:
             logger.warning("delete tags:%s failed", tag)

@@ -101,6 +101,20 @@ class BaseCheck(object):
 
         return self.start_check_with_order(*items)
 
+    @staticmethod
+    def resolve_common_tokens(common_args):
+        """
+        从 common_args 解析读写 token；缺失时回退灰度 access_token
+
+        :param common_args: 插件公共参数
+        :return: (read_token, write_token)
+        """
+        fallback = common_args.get("access_token", "")
+        return (
+            common_args.get("read_token", "") or fallback,
+            common_args.get("write_token", "") or fallback,
+        )
+
     def get_pr_changed_files(self):
         """
         通过 AtomGit API 获取本次 PR 的变更文件列表（仅文件名）。
@@ -112,13 +126,13 @@ class BaseCheck(object):
         # owner=仓库实际位置（API 调用用），fork仓场景下与 community 不同；
         # community 是配置归属（如 src-openeuler），用它查 PR 会查错仓库。
         owner = common_args.get("owner") or common_args.get("community", "")
-        token = common_args.get("access_token", "")
+        read_token, write_token = self.resolve_common_tokens(common_args)
 
-        if not all([pr_num, owner, token]):
+        if not all([pr_num, owner, read_token]):
             return None
 
         from src.proxy.atomgit_proxy import AtomgitProxy
-        gp = AtomgitProxy(owner, self._repo, token)
+        gp = AtomgitProxy(owner, self._repo, read_token=read_token, write_token=write_token)
         pr_files = gp.get_pr_files(pr_num)
         if pr_files is None: 
             return None
