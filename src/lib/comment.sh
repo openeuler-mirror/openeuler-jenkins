@@ -44,7 +44,7 @@ if [[ $platform == "github" ]]; then
     repo_server_test_tail="-github"
     export GITHUB_TOKEN="${GithubToken:-}"
 else
-    # 旧 job 兼容（ADR-028）：新变量优先，缺失时回退旧 gitcodeToken 并告警
+    # 旧 job 兼容：新变量优先，缺失时回退旧 gitcodeToken 并告警
     _legacy_code_token="${gitcodeToken:-}"
     if [[ -n "${_legacy_code_token}" && -z "${gitcodeTokenWrite:-}" ]]; then
         echo "[WARN] gitcodeTokenWrite 未配置，回退旧 gitcodeToken" >&2
