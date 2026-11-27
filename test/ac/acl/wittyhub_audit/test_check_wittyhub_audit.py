@@ -1498,6 +1498,26 @@ def test_license_prefer_file_keeps_black_end_to_end(tmp_path):
     assert "| my-skill | SSPL-1.0 | 禁止 |" in body
 
 
+def test_license_project_license_end_to_end(tmp_path):
+    """许可归档在 License/Project License 时，上传 skill 应识别为允许."""
+    _write_skill_license(tmp_path, MIT_TEXT, relative="License/Project License")
+    result, body = _run_uploaded_license(tmp_path)
+    assert result == SUCCESS
+    assert "| my-skill | MIT | 允许 |" in body
+
+
+def test_license_directory_notice_end_to_end(tmp_path):
+    """License/ 下只有 NOTICE 文档时不应被当成项目许可."""
+    _write_skill_license(
+        tmp_path,
+        APACHE_TEXT,
+        relative="License/Third_Party_Open_Source_Software_Notice.md",
+    )
+    result, body = _run_uploaded_license(tmp_path)
+    assert result == FAILED
+    assert "| my-skill | - | 未声明 |" in body
+
+
 def test_license_extra_allow_never_overrides_black_end_to_end(tmp_path):
     """license_extra_allow 误配 black 许可时仍阻断."""
     _skill_md(tmp_path, "community/sig-x/my-skill/SKILL.md", license_id="SSPL-1.0")

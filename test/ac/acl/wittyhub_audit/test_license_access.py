@@ -1,3 +1,5 @@
+import os
+
 from src.ac.acl.wittyhub_audit.license_access import (
     STATUS_ALLOWED,
     STATUS_BLACK,
@@ -236,6 +238,60 @@ def test_scanner_finds_parent_directory_license(tmp_path):
     verdict = LicenseScanner(_access(tmp_path)).scan(repo, skill)
     assert verdict.status == STATUS_ALLOWED
     assert verdict.sources == ["skills/LICENSE"]
+
+
+def test_scanner_detects_license_directory_variants(tmp_path):
+    """许可归档在 License/ 目录（License/LICENSE、Project License）时应识别."""
+    repo, skill = _skill_dir(tmp_path)
+    license_dir = repo / "License"
+    license_dir.mkdir()
+    (license_dir / "LICENSE").write_text(APACHE_TEXT, encoding="utf-8")
+    verdict = LicenseScanner(_access(tmp_path)).scan(repo, skill)
+    assert verdict.status == STATUS_ALLOWED
+    assert verdict.expression == "Apache-2.0"
+
+    (license_dir / "LICENSE").unlink()
+    (license_dir / "Project License").write_text(
+        "Mulan Permissive Software License\nVersion 2\n", encoding="utf-8"
+    )
+    verdict = LicenseScanner(_access(tmp_path)).scan(repo, skill)
+    assert verdict.status == STATUS_ALLOWED
+    assert verdict.expression == "MulanPSL-2.0"
+
+
+def test_scanner_license_directory_ignores_notice(tmp_path):
+    """License/ 下的说明/声明文档不应被当成项目许可."""
+    repo, skill = _skill_dir(tmp_path)
+    license_dir = repo / "License"
+    license_dir.mkdir()
+    (license_dir / "Third_Party_Open_Source_Software_Notice.md").write_text(
+        APACHE_TEXT, encoding="utf-8"
+    )
+    verdict = LicenseScanner(_access(tmp_path)).scan(repo, skill)
+    assert verdict.status == STATUS_MISSING
+
+
+def test_scanner_license_directory_symlink_outside_repo(tmp_path):
+    """License/ 指向仓库外时不得读取外部许可."""
+    repo, skill = _skill_dir(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "LICENSE").write_text(MIT_TEXT, encoding="utf-8")
+    os.symlink(str(outside), str(repo / "License"))
+    verdict = LicenseScanner(_access(tmp_path)).scan(repo, skill)
+    assert verdict.status == STATUS_MISSING
+
+
+def test_scanner_lowercase_licenses_not_treated_as_reuse(tmp_path):
+    """非全大写 LICENSES/ 不整体收录，避免第三方许可改变判定."""
+    repo, skill = _skill_dir(tmp_path)
+    (repo / "LICENSE").write_text(MIT_TEXT, encoding="utf-8")
+    third_party = repo / "licenses"
+    third_party.mkdir()
+    (third_party / "GPL-2.0.txt").write_text(GPL_TEXT, encoding="utf-8")
+    verdict = LicenseScanner(_access(tmp_path)).scan(repo, skill)
+    assert verdict.status == STATUS_ALLOWED
+    assert verdict.expression == "MIT"
 
 
 def test_scanner_black_and_restricted(tmp_path):
