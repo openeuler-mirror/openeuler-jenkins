@@ -22,8 +22,19 @@ function config_ipv6() {
   log_info "***** End to config ipv6 *****"
 }
 
+function run_oecp_submit_symbol() {
+  { set +x; } 2>/dev/null
+  config_oecp_db
+  # oecp 不支持 MYSQL_PWD，保留 --db-password；密码在 argv，禁止 trace
+  python3 ${JENKINS_HOME}/oecp/cli.py -s ${gitcodeTargetBranch} --db-password ${MysqlUserPasswd#*:} --pull-request-id ${gitcodeRepoName}-${gitcodePullRequestId} --submit-symbol
+  if [ "${CI_DEBUG:-false}" == "true" ]; then
+    set -x
+  fi
+}
+
 function save_build_result() {
   log_info "***** Start to save build result *****"
+  validate_approve_remote_vars
   committer_pr_x86_64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/${gitcodeCommitter}/${gitcodeRepoName}/x86_64/${gitcodePullRequestId}/"
   committer_pr_aarch64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/${gitcodeCommitter}/${gitcodeRepoName}/aarch64/${gitcodePullRequestId}/"
   committer_pr_riscv64_dir="/repo/openeuler/src-openeuler${repo_server_test_tail}/${gitcodeTargetBranch}/${gitcodeCommitter}/${gitcodeRepoName}/riscv64/${gitcodePullRequestId}/"
@@ -111,8 +122,7 @@ EOF
   echo "https://atomgit.com/${gitcodeTargetNamespace:-src-openeuler}/${gitcodeRepoName}/pull/${gitcodePullRequestId}"
   ssh -i ${SaveBuildRPM2Repo} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR root@${repo_server} "$remote_place_cmd"
 
-  config_oecp_db
-  python3 ${JENKINS_HOME}/oecp/cli.py -s ${gitcodeTargetBranch} --db-password ${MysqlUserPasswd#*:} --pull-request-id ${gitcodeRepoName}-${gitcodePullRequestId} --submit-symbol
+  with_oecp_conf_lock run_oecp_submit_symbol
 
   log_info "***** End to save build result *****"
 }

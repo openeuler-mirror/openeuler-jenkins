@@ -249,7 +249,8 @@ def init_args():
     parser.add_argument("-m", type=str, dest="comment_id", help="uniq comment id")
     parser.add_argument("-r", type=str, dest="repo", help="repo")
     parser.add_argument("--pr", type=str, dest="pr", help="pull request")
-    parser.add_argument("-t", type=str, dest="account", help="atomgit account")
+    # 兼容历史 Jenkins 调用：公仓 fetch 不再需要 token，新配置不要传 -t
+    parser.add_argument("-t", type=str, dest="account", help="deprecated: public repo does not need token")
 
     parser.add_argument("-o", type=str, dest="owner", default="src-openeuler", help="atomgit owner")
     parser.add_argument("--spec", type=str, dest="spec", default="", help="spec files")
@@ -265,8 +266,7 @@ if "__main__" == __name__:
     logging.config.fileConfig(logger_conf_path)
     logger = logging.getLogger("build")
 
-    logger.info("using credential %s", args.account.split(":")[0])
-    logger.info("cloning repository https://atomgit.com/%s/%s.git ", args.owner, args.repo)
+    logger.info("cloning public repository https://atomgit.com/%s/%s.git ", args.owner, args.repo)
     logger.info("clone depth 1")
     logger.info("checking out pull request %s", args.pr)
 
@@ -290,7 +290,8 @@ if "__main__" == __name__:
     # download repo
     dd.set_attr_stime("spb.scm.stime")
     gp = GitProxy.init_repository(args.repo, work_dir=args.workspace)
-    repo_url = "https://{}@atomgit.com/{}/{}.git".format(args.account, args.owner, args.repo)
+    # 公仓 fetch 不需要 token，避免 token 进入 git fetch 的 argv 和日志
+    repo_url = "https://atomgit.com/{}/{}.git".format(args.owner, args.repo)
     if not gp.fetch_pull_request(repo_url, args.pr, depth=1):
         logger.info("fetch finished -")
 

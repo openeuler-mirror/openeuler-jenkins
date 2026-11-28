@@ -201,7 +201,8 @@ class SrcOpenEulerJenkinsJobs(JenkinsJobs):
                 logger.error("%s", out)
                 return []
 
-        fetch_cmd = 'git clone -b master --depth 1 https://%s@atomgit.com/openeuler/community' % atomgit_token
+        # community 是公仓，无需 token；避免 token 进入 argv 和 community/.git/config
+        fetch_cmd = 'git clone -b master --depth 1 https://atomgit.com/openeuler/community'
         ret, out, _ = shell_cmd_live(fetch_cmd, cap_out=True, cmd_verbose=False)
         if ret:
             logger.error("git fetch failed, %s", ret)

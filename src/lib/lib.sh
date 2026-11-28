@@ -68,6 +68,71 @@ function config_oecp_db()
     sed -i "s/^dbuser=.*/dbuser=${MysqlUserPasswd%%:*}/g" ${JENKINS_HOME}/oecp/oecp/conf/oecp.conf
 }
 
+function with_oecp_conf_lock()
+{
+    # oecp.conf 为共享文件：锁住“写配置 + 执行 oecp”整个区间，结束后还原
+    local oecp_conf="${JENKINS_HOME}/oecp/oecp/conf/oecp.conf"
+    if [[ ! -f "${oecp_conf}" ]]; then
+        log_warn "oecp.conf not found: ${oecp_conf}, run without lock"
+        "$@"
+        return $?
+    fi
+    local lock_file="${oecp_conf}.lock"
+    local backup locked=0 rc=0
+    if command -v flock >/dev/null 2>&1; then
+        exec 9>"${lock_file}" || { log_warn "open oecp.conf lock failed"; return 1; }
+        flock 9 || { exec 9>&-; log_warn "lock oecp.conf failed"; return 1; }
+        locked=1
+    else
+        log_warn "flock not found, run without oecp.conf lock"
+    fi
+    backup=$(mktemp "${oecp_conf}.bak.XXXXXX") || {
+        [[ ${locked} -eq 1 ]] && { flock -u 9; exec 9>&-; }
+        log_warn "create oecp.conf backup failed"
+        return 1
+    }
+    if ! cp -p "${oecp_conf}" "${backup}"; then
+        rm -f "${backup}"
+        [[ ${locked} -eq 1 ]] && { flock -u 9; exec 9>&-; }
+        log_warn "backup oecp.conf failed"
+        return 1
+    fi
+    "$@" || rc=$?
+    if ! cp -p "${backup}" "${oecp_conf}"; then
+        log_warn "restore oecp.conf failed"
+        rc=1
+    fi
+    rm -f "${backup}"
+    if [[ ${locked} -eq 1 ]]; then
+        flock -u 9
+        exec 9>&-
+    fi
+    return ${rc}
+}
+
+function validate_remote_path_var()
+{
+    local name=$1
+    local value=${2:-}
+    if [[ -z "${value}" ]]; then
+        log_error "${name} is empty"
+    fi
+    if [[ ! "${value}" =~ ^[A-Za-z0-9._/@-]+$ ]]; then
+        log_error "${name} contains invalid characters"
+    fi
+}
+
+function validate_approve_remote_vars()
+{
+    validate_remote_path_var gitcodeTargetBranch "${gitcodeTargetBranch:-}"
+    validate_remote_path_var gitcodeRepoName "${gitcodeRepoName:-}"
+    validate_remote_path_var gitcodeCommitter "${gitcodeCommitter:-}"
+    validate_remote_path_var gitcodePullRequestId "${gitcodePullRequestId:-}"
+    if [[ -n "${variant:-}" ]]; then
+        validate_remote_path_var variant "${variant}"
+    fi
+}
+
 function git_clone()
 {
     url=$1
