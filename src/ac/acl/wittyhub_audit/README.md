@@ -91,8 +91,10 @@
 
 - **数据来源**：优先读取 `SKILL.md` frontmatter 的 `license` 字段（SPDX 表达式，
   如 `Apache-2.0`、`MIT OR Apache-2.0`）；其次扫描 skill 目录的
-  `LICENSE`/`LICENCE`/`COPYING`/`UNLICENSES` 及 `LICENSES/<SPDX>.txt`；skill
-  目录没有时回退到仓库根目录。
+  `LICENSE`/`LICENCE`/`COPYING`/`UNLICENSE` 及变体（如 `LICENSE.md`、
+  `Project License`）和全大写 `LICENSES/<SPDX>.txt`；`License/`、`licenses/`
+  等变体目录只收文件名像 license 的文件，避免把 NOTICE/第三方声明当成项目
+  许可；skill 目录没有时回退到仓库根目录。
 - **准入清单**：compliance SIG 维护的
   `Licenses_Access_List.yaml`，默认运行时从
   `https://api.atomgit.com/api/v5/repos/openeuler/compliance/raw/doc/rule/Licenses_Access_List.yaml?ref=master`
