@@ -1,0 +1,146 @@
+// arch 参数决定构建节点：x86_64 -> k8s-x86-soe，aarch64 -> k8s-aarch64-soe
+def buildAgentLabel = params.arch == 'x86_64' ? 'k8s-x86-soe' : 'k8s-aarch64-soe'
+
+// 声明式流水线的 options 是静态解析的，不能写 if 等控制语句，
+// 所以用 lock（Lockable Resources 插件）实现有条件并发控制：
+// - concurrent=否：所有构建锁同一个资源名，等效 disableConcurrentBuilds()，串行执行
+// - concurrent=是：每次构建用独立的资源名，构建之间互不阻塞
+def concurrencyLock = params.concurrent == '是' \
+        ? "gatekeeper-${env.JOB_NAME}-${env.BUILD_NUMBER}" \
+        : "gatekeeper-${env.JOB_NAME}"
+
+pipeline {
+    agent { label buildAgentLabel }
+
+    options {
+        // 原 job 为 NoActivity 10000s；activity: true 保留“无活动才超时”语义
+        timeout(time: 10000, unit: 'SECONDS', activity: true)
+        ansiColor('xterm')
+        skipDefaultCheckout()
+        lock(resource: concurrencyLock)
+    }
+
+    stages {
+        stage('build') {
+            steps {
+                // build 失败仍继续到 verify，保留评论上传
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    withCredentials([
+                        string(credentialsId: 'OPENEULER_BOT_TOKEN_READ',  variable: 'gitcodeTokenRead'),
+                        string(credentialsId: 'OPENEULER_BOT_TOKEN_WRITE', variable: 'gitcodeTokenWrite'),
+                        usernameColonPassword(credentialsId: '68ddb94f-871e-4cc7-9611-c1c507b9bf53', variable: 'MysqlUserPasswd'),
+                        file(credentialsId: '11608799-cfc7-42c1-8b38-462a4cbdcdee', variable: 'SaveBuildRPM2Repo'),
+                        usernamePassword(credentialsId: 'openeuler_cicd', usernameVariable: 'OauthAccount', passwordVariable: 'OauthPassword')
+                    ]) {
+                        sh '''
+                            #!/bin/bash
+                            set +x
+                            if [[ "${CI_DEBUG:-false}" == "true" ]]; then set -x; fi
+                            set -e
+
+                            shell_path=/home/jenkins/ci_check
+                            shell_pathoe=/home/jenkins/ci_check1
+                            rm -rf ${shell_path} ${shell_pathoe}
+                            mkdir -p ${shell_path} ${shell_pathoe}
+
+                            git clone --depth=1 https://gitcode.com/openeuler/openeuler-jenkins.git ${shell_pathoe}
+                            git clone --depth=1 https://gitcode.com/openeuler/A-guard.git ${shell_path}
+
+                            # 64k 变体仅特定分支支持；不支持时写跳过标记，供 install/verify 短路
+                            if [[ "${variant:-}" == "64k" ]]; then
+                                support_64k_branch_file="${shell_path}/ci_guard/conf/support_64k_branch"
+                                if [[ ! -f "${support_64k_branch_file}" ]] || ! grep -qx "${tbranch}" "${support_64k_branch_file}"; then
+                                    echo "当前分支 ${tbranch} 不支持64k编译，跳过"
+                                    : > "${WORKSPACE}/.ci_skip_build"
+                                    exit 0
+                                fi
+                            fi
+
+                            sudo yum install -y python-click python-xmltodict
+
+                            . ${shell_path}/ci_guard/ci-guard.sh
+                            main_build
+                            set +x
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('install') {
+            // build 失败时无 RPM，跳过 install；ExclusiveArch/64k 分支不支持时由 .ci_skip_build 短路
+            when { expression { currentBuild.currentResult != 'FAILURE' } }
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    withCredentials([
+                        usernamePassword(credentialsId: 'openeuler_cicd', usernameVariable: 'OauthAccount', passwordVariable: 'OauthPassword')
+                    ]) {
+                        sh '''
+                            #!/bin/bash
+                            set +x
+                            if [[ "${CI_DEBUG:-false}" == "true" ]]; then set -x; fi
+                            set -e
+
+                            shell_path=/home/jenkins/ci_check
+                            shell_pathoe=/home/jenkins/ci_check1
+
+                            # 构建被跳过时不再生成 EBS 配置，直接跳过 install
+                            if [[ -f "${WORKSPACE}/.ci_skip_build" ]]; then
+                                echo "检测到构建跳过标记，跳过 install"
+                                exit 0
+                            fi
+
+                            . ${shell_path}/ci_guard/ci-guard.sh
+                            config_ebs
+                            main_install
+                            set +x
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('verify') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'OPENEULER_BOT_TOKEN_READ',  variable: 'gitcodeTokenRead'),
+                    string(credentialsId: 'OPENEULER_BOT_TOKEN_WRITE', variable: 'gitcodeTokenWrite'),
+                    usernameColonPassword(credentialsId: '68ddb94f-871e-4cc7-9611-c1c507b9bf53', variable: 'MysqlUserPasswd'),
+                    file(credentialsId: '11608799-cfc7-42c1-8b38-462a4cbdcdee', variable: 'SaveBuildRPM2Repo'),
+                    usernamePassword(credentialsId: 'openeuler_cicd', usernameVariable: 'OauthAccount', passwordVariable: 'OauthPassword')
+                ]) {
+                    sh '''
+                        #!/bin/bash
+                        set +x
+                        if [[ "${CI_DEBUG:-false}" == "true" ]]; then set -x; fi
+                        set -e
+
+                        shell_path=/home/jenkins/ci_check
+                        shell_pathoe=/home/jenkins/ci_check1
+
+                        # 构建被跳过时不再生成 EBS 配置，直接跳过 verify
+                        if [[ -f "${WORKSPACE}/.ci_skip_build" ]]; then
+                            echo "检测到构建跳过标记，跳过 verify"
+                            exit 0
+                        fi
+
+                        . ${shell_path}/ci_guard/ci-guard.sh
+                        config_ebs
+                        main_verify
+                        set +x
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh '''
+                set +x
+                shred -u "$HOME/.config/cli/defaults/config.yaml" 2>/dev/null \
+                    || rm -f "$HOME/.config/cli/defaults/config.yaml"
+            '''
+        }
+    }
+}
